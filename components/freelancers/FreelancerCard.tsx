@@ -1,26 +1,45 @@
-'use client'
-import Link from 'next/link'
-import { useTheme } from 'next-themes'
-import { Button } from '@/components/ui/button'
-import { Moon, Sun } from 'lucide-react'
+import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 
-export default function Navbar() {
-  const { theme, setTheme } = useTheme()
+interface FreelancerCardProps {
+  freelancer: {
+    id: string
+    full_name: string
+    avatar_url?: string
+    bio?: string
+    hourly_rate?: number
+    skills?: string[]
+    is_verified?: boolean
+  }
+}
 
+export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
   return (
-    <nav className="border-b">
-      <div className="container mx-auto flex items-center justify-between p-4">
-        <Link href="/" className="text-2xl font-bold">Freelance Baap</Link>
-        <div className="flex items-center gap-4">
-          <Link href="/projects">Projects</Link>
-          <Link href="/freelancers">Freelancers</Link>
-          <Link href="/pricing">Pricing</Link>
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
+    <Link href={`/freelancers/${freelancer.id}`}>
+      <div className="border rounded-lg p-4 hover:shadow-lg transition">
+        <div className="flex items-center gap-3 mb-2">
+          <Avatar>
+            <AvatarImage src={freelancer.avatar_url || ""} />
+            <AvatarFallback>{freelancer.full_name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-semibold">{freelancer.full_name}</h3>
+            {freelancer.is_verified && (
+              <Badge variant="secondary">Verified</Badge>
+            )}
+          </div>
         </div>
+        <p className="text-sm text-gray-600 line-clamp-2">{freelancer.bio}</p>
+        <div className="mt-2">
+          {freelancer.skills?.slice(0, 3).map(skill => (
+            <Badge key={skill} variant="outline" className="mr-1">
+              {skill}
+            </Badge>
+          ))}
+        </div>
+        <p className="mt-2 font-semibold">₹{freelancer.hourly_rate}/hr</p>
       </div>
-    </nav>
+    </Link>
   )
 }

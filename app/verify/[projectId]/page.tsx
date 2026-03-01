@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 
-// Temporary placeholder component
 function VerificationUpload({ projectId }: { projectId: string }) {
   return (
     <div className="border p-4 rounded">
@@ -13,10 +12,9 @@ function VerificationUpload({ projectId }: { projectId: string }) {
 }
 
 export default async function VerifyPage(props: any) {
-  // ✅ FIX: params ko await karo aur safe access karo
   const params = await props.params
   const projectId = params?.projectId
-  
+
   if (!projectId) return notFound()
 
   const supabase = await createClient()
