@@ -5,10 +5,9 @@ const withPWA = require("next-pwa")({
   disable: process.env.NODE_ENV === "development",
 })
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // 👇 Yeh line Turbopack ko disable karega aur webpack use karega
+  // Yeh line webpack ko enable karegi
   webpack: (config, { isServer }) => {
     return config
   },
