@@ -1,80 +1,37 @@
-"use client"
+import { createClient } from "@/lib/supabase/server"
+import { notFound } from "next/navigation"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+// Temporary placeholder component
+function VerificationUpload({ projectId }: { projectId: string }) {
+  return (
+    <div className="border p-4 rounded">
+      <h2 className="text-lg font-semibold">Upload Verification</h2>
+      <p>Project ID: {projectId}</p>
+      <p className="text-sm text-gray-500">(Upload form coming soon)</p>
+    </div>
+  )
+}
 
-const supabase = createClient()
+export default async function VerifyPage(props: any) {
+  // ✅ FIX: params ko await karo aur safe access karo
+  const params = await props.params
+  const projectId = params?.projectId
+  
+  if (!projectId) return notFound()
 
-const DUMMY_FREELANCER_ID =
-  "22222222-2222-2222-2222-222222222222"
+  const supabase = await createClient()
+  const { data: project } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .single()
 
-export default function VerifyProjectPage({
-  params,
-}: {
-  params: { projectId: string }
-}) {
-  const [files, setFiles] = useState<FileList | null>(null)
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!files || files.length === 0) return
-    setLoading(true)
-
-    const fileUrls: string[] = []
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const fileName = `project-${params.projectId}/${Date.now()}-${file.name}`
-
-      const { error } = await supabase.storage
-        .from("verification-docs")
-        .upload(fileName, file)
-
-      if (!error) {
-        const { data } = supabase.storage
-          .from("verification-docs")
-          .getPublicUrl(fileName)
-
-        fileUrls.push(data.publicUrl)
-      }
-    }
-
-    await supabase.from("verification_docs").insert({
-      project_id: params.projectId,
-      user_id: DUMMY_FREELANCER_ID,
-      document_urls: fileUrls,
-      status: "pending",
-    })
-
-    setLoading(false)
-    router.push(
-      `/projects/${params.projectId}?verification_submitted=true`
-    )
-  }
+  if (!project) return notFound()
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">
-        Submit Verification Proof
-      </h1>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          type="file"
-          multiple
-          onChange={(e) => setFiles(e.target.files)}
-          required
-        />
-
-        <Button type="submit" disabled={loading}>
-          {loading ? "Submitting..." : "Submit for Verification"}
-        </Button>
-      </form>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold">Verify Project</h1>
+      <VerificationUpload projectId={projectId} />
     </div>
   )
 }
