@@ -10,7 +10,7 @@ export default function Navbar() {
   return (
     <nav className="border-b">
       <div className="container mx-auto flex items-center justify-between p-4">
-        <Link href="/" className="text-2xl font-bold">Freelance Baap</Link>
+        <Link href="/" className="text-2xl font-bold"> GigWAY</Link>
         <div className="flex items-center gap-4">
           <Link href="/projects">Projects</Link>
           <Link href="/freelancers">Freelancers</Link>

@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ThemeProvider } from '@/components/layout/ThemeProvider'
+import { themeProvider } from '@/components/layout/themeProvider'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Freelance Baap - India ka sabse bharosemand freelance platform',
-  description: 'Zero commission, verified projects, aur instant payments. Sirf Indian freelancers ke liye.',
+  title: 'GigWAY - Zero Commission Freelance Platform',
+  description: "India's first freelance platform with verified projects and zero commission.",
   manifest: '/manifest.json',
 }
 
