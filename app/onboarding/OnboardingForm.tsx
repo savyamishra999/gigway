@@ -50,7 +50,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
     if (error) {
       alert("Error updating role. Please try again.")
     } else {
-      router.push("/profile/edit") // After role selection, go to profile edit
+      router.push("/profile/edit")
     }
   }
 
