@@ -52,7 +52,9 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
     }
 
     if (profile?.user_type === "freelancer" || profile?.user_type === "both") {
-      updates.hourly_rate = parseFloat(formData.hourly_rate) || null
+      // Fix: Convert hourly_rate to string before parseFloat to avoid TypeScript error
+      const hourlyRate = formData.hourly_rate ? parseFloat(String(formData.hourly_rate)) : null
+      updates.hourly_rate = hourlyRate
     }
 
     const { error } = await supabase.from("profiles").update(updates).eq("id", userId)
