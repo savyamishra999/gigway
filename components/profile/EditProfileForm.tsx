@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface Profile {
+  id: string
   full_name: string | null
   bio: string | null
   skills: string[] | null
   hourly_rate: number | null
   user_type: string | null
+  avatar_url: string | null
 }
 
 export default function EditProfileForm({ profile, userId }: { profile: Profile; userId: string }) {
@@ -37,6 +39,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
     e.preventDefault()
     setLoading(true)
 
+    // Convert skills string to array
     const skillsArray = formData.skills
       .split(",")
       .map((s) => s.trim())
