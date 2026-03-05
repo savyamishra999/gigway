@@ -19,18 +19,66 @@ export default async function DashboardPage() {
     .single()
 
   if (error || !profile?.user_type) {
-    // अगर profile नहीं मिली या user_type सेट नहीं, तो onboarding पर भेजो
     redirect("/onboarding")
   }
+
+  // Fetch freelancer data
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("status", "open")
+    .order("created_at", { ascending: false })
+    .limit(5)
+
+  const { data: proposals } = await supabase
+    .from("proposals")
+    .select(`
+      *,
+      projects (
+        title,
+        budget
+      )
+    `)
+    .eq("freelancer_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(5)
+
+  // Fetch client data
+  const { data: clientProjects } = await supabase
+    .from("projects")
+    .select(`
+      *,
+      proposals(count)
+    `)
+    .eq("client_id", user.id)
+    .order("created_at", { ascending: false })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a]">
       <div className="container mx-auto p-4 max-w-6xl">
         <h1 className="text-3xl font-bold text-white mb-6">Dashboard</h1>
         
-        {profile.user_type === "freelancer" && <FreelancerDashboard userId={user.id} />}
-        {profile.user_type === "client" && <ClientDashboard userId={user.id} />}
-        {profile.user_type === "both" && <BothDashboard userId={user.id} />}
+        {profile.user_type === "freelancer" && (
+          <FreelancerDashboard 
+            userId={user.id}
+            initialProjects={projects || []}
+            initialProposals={proposals || []}
+          />
+        )}
+        {profile.user_type === "client" && (
+          <ClientDashboard 
+            userId={user.id}
+            initialProjects={clientProjects || []}
+          />
+        )}
+        {profile.user_type === "both" && (
+          <BothDashboard 
+            userId={user.id}
+            initialProjects={projects || []}
+            initialProposals={proposals || []}
+            initialClientProjects={clientProjects || []}
+          />
+        )}
       </div>
     </div>
   )

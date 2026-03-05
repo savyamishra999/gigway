@@ -5,7 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import FreelancerDashboard from "./FreelancerDashboard"
 import ClientDashboard from "./ClientDashboard"
 
-export default function BothDashboard({ userId }: { userId: string }) {
+interface BothDashboardProps {
+  userId: string
+  initialProjects: any[]
+  initialProposals: any[]
+  initialClientProjects: any[]
+}
+
+export default function BothDashboard({ 
+  userId, 
+  initialProjects, 
+  initialProposals, 
+  initialClientProjects 
+}: BothDashboardProps) {
   const [activeTab, setActiveTab] = useState("freelancer")
 
   return (
@@ -15,10 +27,17 @@ export default function BothDashboard({ userId }: { userId: string }) {
         <TabsTrigger value="client">My Jobs</TabsTrigger>
       </TabsList>
       <TabsContent value="freelancer">
-        <FreelancerDashboard userId={userId} />
+        <FreelancerDashboard 
+          userId={userId} 
+          initialProjects={initialProjects} 
+          initialProposals={initialProposals} 
+        />
       </TabsContent>
       <TabsContent value="client">
-        <ClientDashboard userId={userId} />
+        <ClientDashboard 
+          userId={userId} 
+          initialProjects={initialClientProjects} 
+        />
       </TabsContent>
     </Tabs>
   )

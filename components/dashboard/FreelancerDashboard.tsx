@@ -1,38 +1,25 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Briefcase, Clock, DollarSign } from "lucide-react"
 
-export default async function FreelancerDashboard({ userId }: { userId: string }) {
-  const supabase = await createClient()
+interface FreelancerDashboardProps {
+  userId: string
+  initialProjects: any[]
+  initialProposals: any[]
+}
 
-  // Fetch open projects (latest 5)
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("status", "open")
-    .order("created_at", { ascending: false })
-    .limit(5)
-
-  // Fetch user's proposals with project details
-  const { data: proposals } = await supabase
-    .from("proposals")
-    .select(`
-      *,
-      projects (
-        title,
-        budget
-      )
-    `)
-    .eq("freelancer_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(5)
-
-  // Count proposals by status
-  const pendingCount = proposals?.filter(p => p.status === "pending").length || 0
-  const acceptedCount = proposals?.filter(p => p.status === "accepted").length || 0
-  const totalProposals = proposals?.length || 0
+export default function FreelancerDashboard({ 
+  userId, 
+  initialProjects, 
+  initialProposals 
+}: FreelancerDashboardProps) {
+  
+  const pendingCount = initialProposals?.filter(p => p.status === "pending").length || 0
+  const acceptedCount = initialProposals?.filter(p => p.status === "accepted").length || 0
+  const totalProposals = initialProposals?.length || 0
 
   return (
     <div className="space-y-8">
@@ -81,11 +68,11 @@ export default async function FreelancerDashboard({ userId }: { userId: string }
           <CardTitle className="text-white">Latest Jobs for You</CardTitle>
         </CardHeader>
         <CardContent>
-          {!projects || projects.length === 0 ? (
+          {!initialProjects || initialProjects.length === 0 ? (
             <p className="text-gray-400 text-center py-8">No jobs available right now.</p>
           ) : (
             <div className="space-y-4">
-              {projects.map((project) => (
+              {initialProjects.map((project) => (
                 <Link
                   key={project.id}
                   href={`/projects/${project.id}`}
@@ -119,11 +106,11 @@ export default async function FreelancerDashboard({ userId }: { userId: string }
           <CardTitle className="text-white">My Proposals</CardTitle>
         </CardHeader>
         <CardContent>
-          {!proposals || proposals.length === 0 ? (
+          {!initialProposals || initialProposals.length === 0 ? (
             <p className="text-gray-400 text-center py-8">You haven't submitted any proposals yet.</p>
           ) : (
             <div className="space-y-4">
-              {proposals.map((proposal) => (
+              {initialProposals.map((proposal) => (
                 <div
                   key={proposal.id}
                   className="p-4 rounded-lg bg-white/5 border border-white/10"
