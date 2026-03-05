@@ -3,20 +3,28 @@
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, User } from "lucide-react"
+import { Moon, Sun, User, LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme()
   const [user, setUser] = useState<any>(null)
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
     })
   }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <nav className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
@@ -41,11 +49,16 @@ export default function Navbar() {
           </Button>
 
           {user ? (
-            <Link href="/profile">
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
+            <>
+              <Link href="/profile">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="h-5 w-5" />
               </Button>
-            </Link>
+            </>
           ) : (
             <Link href="/login">
               <Button className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black">
