@@ -17,10 +17,10 @@ export async function GET(request: Request) {
           get(name: string) {
             return cookieStore.get(name)?.value
           },
-          set(name, value, options) {
+          set(name: string, value: string, options: any) {
             cookieStore.set({ name, value, ...options })
           },
-          remove(name, options) {
+          remove(name: string, options: any) {
             cookieStore.set({ name, value: '', ...options })
           },
         },
@@ -30,7 +30,6 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Check if user has user_type set
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase
@@ -47,6 +46,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // fallback
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }
