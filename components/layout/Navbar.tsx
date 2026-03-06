@@ -3,10 +3,16 @@
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, User, LogOut } from "lucide-react"
+import { Moon, Sun, User, LogOut, ChevronDown } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme()
@@ -49,16 +55,27 @@ export default function Navbar() {
           </Button>
 
           {user ? (
-            <>
-              <Link href="/profile">
-                <Button variant="ghost" size="icon">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-1">
                   <User className="h-5 w-5" />
+                  <span className="hidden sm:inline">Account</span>
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
-              </Link>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link href="/login">
               <Button className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black">
