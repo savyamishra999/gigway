@@ -13,13 +13,21 @@ export default function ProjectForm({ userId }: { userId: string }) {
   const [formData, setFormData] = useState({
     title: "",
     category: "",
+    customCategory: "",
     skills: "",
     budget: "",
     description: "",
   })
+  const [showCustomCategory, setShowCustomCategory] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value
+    setFormData({ ...formData, category: value })
+    setShowCustomCategory(value === "other")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,12 +38,22 @@ export default function ProjectForm({ userId }: { userId: string }) {
       .map(s => s.trim())
       .filter(Boolean)
 
+    const finalCategory = formData.category === "other" 
+      ? formData.customCategory 
+      : formData.category
+
+    if (!finalCategory) {
+      alert("Please select or enter a category")
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.from("projects").insert({
       client_id: userId,
       title: formData.title,
       description: formData.description,
       budget: parseFloat(formData.budget),
-      category: formData.category,
+      category: finalCategory,
       skills_required: skillsArray,
       status: "open",
     })
@@ -71,16 +89,34 @@ export default function ProjectForm({ userId }: { userId: string }) {
             <select
               id="category"
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={handleCategoryChange}
               required
               className="w-full p-2 rounded-md bg-white/50 border border-gray-300"
             >
               <option value="">Select category</option>
               <option value="web-dev">Web Development</option>
-              <option value="design">Design</option>
-              <option value="writing">Writing</option>
-              <option value="ai">AI/ML</option>
+              <option value="mobile-app">Mobile App Development</option>
+              <option value="design">Graphic Design</option>
+              <option value="ui-ux">UI/UX Design</option>
+              <option value="ai-ml">AI/ML</option>
+              <option value="content">Content Writing</option>
+              <option value="digital-marketing">Digital Marketing</option>
+              <option value="video-editing">Video Editing</option>
+              <option value="translation">Translation</option>
+              <option value="data-entry">Data Entry</option>
+              <option value="virtual-assistant">Virtual Assistant</option>
+              <option value="other">Other (please specify)</option>
             </select>
+            {showCustomCategory && (
+              <Input
+                type="text"
+                placeholder="Enter your custom category"
+                value={formData.customCategory}
+                onChange={(e) => setFormData({ ...formData, customCategory: e.target.value })}
+                className="mt-2 bg-white/50"
+                required
+              />
+            )}
           </div>
 
           <div className="space-y-2">
