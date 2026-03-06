@@ -189,20 +189,20 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl mx-auto">
-        {/* Avatar Upload Card - Clean White */}
-        <Card className="border border-gray-200 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <Camera className="h-5 w-5 text-gray-500" />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Avatar Upload Card */}
+        <Card className="border border-gray-200 shadow-sm bg-white">
+          <CardHeader className="border-b border-gray-100">
+            <CardTitle className="text-gray-900 flex items-center gap-2 text-lg">
+              <Camera className="h-5 w-5 text-gray-600" />
               Profile Photo
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 pt-0">
+          <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
-              <Avatar className="w-24 h-24 ring-2 ring-gray-200">
+              <Avatar className="w-28 h-28 ring-2 ring-gray-200">
                 <AvatarImage src={avatarPreview || ""} />
-                <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">
+                <AvatarFallback className="bg-gray-200 text-gray-700 text-3xl">
                   {formData.full_name?.[0] || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -229,17 +229,17 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
           </CardContent>
         </Card>
 
-        {/* Basic Info Card - Clean White */}
-        <Card className="border border-gray-200 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <span>📋</span> Basic Information
+        {/* Basic Info Card */}
+        <Card className="border border-gray-200 shadow-sm bg-white">
+          <CardHeader className="border-b border-gray-100">
+            <CardTitle className="text-gray-900 flex items-center gap-2 text-lg">
+              <span className="text-gray-600">📋</span> Basic Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 pt-0 space-y-4">
+          <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name" className="text-sm font-medium text-gray-700">Full Name *</Label>
+                <Label htmlFor="full_name" className="text-gray-700 font-medium">Full Name *</Label>
                 <Input
                   id="full_name"
                   name="full_name"
@@ -247,76 +247,76 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
                   onChange={handleChange}
                   placeholder="e.g. Mohit Sharma"
                   required
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location</Label>
+                <Label htmlFor="location" className="text-gray-700 font-medium">Location</Label>
                 <Input
                   id="location"
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
                   placeholder="e.g. Mumbai, India"
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio" className="text-sm font-medium text-gray-700">Bio</Label>
+              <Label htmlFor="bio" className="text-gray-700 font-medium">Bio</Label>
               <Textarea
                 id="bio"
                 name="bio"
                 value={formData.bio}
                 onChange={handleChange}
-                placeholder="Tell us about yourself..."
+                placeholder="Tell us about yourself, your experience, and what you're passionate about..."
                 rows={4}
-                className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="skills" className="text-sm font-medium text-gray-700">Skills (comma separated)</Label>
+                <Label htmlFor="skills" className="text-gray-700 font-medium">Skills (comma separated)</Label>
                 <Input
                   id="skills"
                   name="skills"
                   value={formData.skills}
                   onChange={handleChange}
                   placeholder="e.g. React, Node.js, UI/UX"
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company" className="text-sm font-medium text-gray-700">Company (if any)</Label>
+                <Label htmlFor="company" className="text-gray-700 font-medium">Company (if any)</Label>
                 <Input
                   id="company"
                   name="company"
                   value={formData.company}
                   onChange={handleChange}
                   placeholder="e.g. Google, Self-employed"
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="user_type" className="text-sm font-medium text-gray-700">I want to work as *</Label>
+                <Label htmlFor="user_type" className="text-gray-700 font-medium">I want to work as *</Label>
                 <Select value={formData.user_type} onValueChange={handleRoleChange}>
-                  <SelectTrigger className="border-gray-300">
+                  <SelectTrigger className="border-gray-300 text-gray-900">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="freelancer">🎯 Freelancer</SelectItem>
-                    <SelectItem value="client">💼 Client</SelectItem>
-                    <SelectItem value="both">🔄 Both (Hybrid)</SelectItem>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="both">Both (Hybrid)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="experience_years" className="text-sm font-medium text-gray-700">Years of Experience</Label>
+                <Label htmlFor="experience_years" className="text-gray-700 font-medium">Years of Experience</Label>
                 <Input
                   id="experience_years"
                   name="experience_years"
@@ -325,14 +325,14 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
                   value={formData.experience_years}
                   onChange={handleChange}
                   placeholder="e.g. 5"
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
             </div>
 
             {(formData.user_type === "freelancer" || formData.user_type === "both") && (
               <div className="space-y-2">
-                <Label htmlFor="hourly_rate" className="text-sm font-medium text-gray-700">Hourly Rate (₹)</Label>
+                <Label htmlFor="hourly_rate" className="text-gray-700 font-medium">Hourly Rate (₹)</Label>
                 <Input
                   id="hourly_rate"
                   name="hourly_rate"
@@ -342,26 +342,26 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
                   value={formData.hourly_rate}
                   onChange={handleChange}
                   placeholder="e.g. 500"
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Portfolio Links Card - Clean White */}
-        <Card className="border border-gray-200 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
-              <LinkIcon className="h-5 w-5 text-gray-500" />
+        {/* Portfolio Links Card */}
+        <Card className="border border-gray-200 shadow-sm bg-white">
+          <CardHeader className="border-b border-gray-100">
+            <CardTitle className="text-gray-900 flex items-center gap-2 text-lg">
+              <LinkIcon className="h-5 w-5 text-gray-600" />
               Portfolio Links
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 pt-0 space-y-4">
+          <CardContent className="p-6 space-y-4">
             {/* Existing Links */}
             {portfolioLinks.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Your Links</Label>
+                <Label className="text-gray-700 text-sm">Your Links</Label>
                 <div className="space-y-2">
                   {portfolioLinks.map((link, index) => (
                     <div
@@ -369,7 +369,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
                       className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-200 rounded-full text-gray-600">
+                        <div className="p-2 bg-gray-200 rounded-full text-gray-700">
                           {getLinkIcon(link.type)}
                         </div>
                         <div>
@@ -382,7 +382,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
                         variant="ghost"
                         size="icon"
                         onClick={() => removePortfolioLink(index)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        className="text-gray-500 hover:text-red-500 hover:bg-gray-100"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -394,40 +394,40 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
 
             {/* Add New Link Section */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">Add New Link</Label>
+              <Label className="text-gray-700 text-sm font-medium">Add New Link</Label>
               <div className="grid grid-cols-1 gap-2">
                 <Input
                   placeholder="Title (e.g. Personal Website)"
                   value={newLink.title}
                   onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
                 <Input
                   placeholder="URL (e.g. https://myportfolio.com)"
                   value={newLink.url}
                   onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
-                  className="border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
                 />
                 <Select
                   value={newLink.type}
                   onValueChange={(value: any) => setNewLink({ ...newLink, type: value })}
                 >
-                  <SelectTrigger className="border-gray-300">
+                  <SelectTrigger className="border-gray-300 text-gray-900">
                     <SelectValue placeholder="Link Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="website">🌐 Website</SelectItem>
-                    <SelectItem value="github">🐙 GitHub</SelectItem>
-                    <SelectItem value="linkedin">🔗 LinkedIn</SelectItem>
-                    <SelectItem value="twitter">🐦 Twitter</SelectItem>
-                    <SelectItem value="other">📌 Other</SelectItem>
+                    <SelectItem value="website">Website</SelectItem>
+                    <SelectItem value="github">GitHub</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                    <SelectItem value="twitter">Twitter</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
                   type="button"
                   onClick={addPortfolioLink}
                   disabled={!newLink.title || !newLink.url}
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 mt-2"
+                  className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-5 mt-2"
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Link
                 </Button>
@@ -449,7 +449,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
           <Button
             type="submit"
             disabled={loading}
-            className="bg-gray-900 hover:bg-gray-800 text-white font-medium px-6"
+            className="bg-black hover:bg-gray-800 text-white font-semibold px-8"
           >
             {loading ? "Saving..." : "Save Changes"}
           </Button>
@@ -458,9 +458,9 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
 
       {/* Role Change Warning Dialog */}
       <AlertDialog open={showRoleWarning} onOpenChange={setShowRoleWarning}>
-        <AlertDialogContent className="border border-gray-200">
+        <AlertDialogContent className="bg-white border border-gray-200">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900">Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="text-gray-900 text-xl">Are you sure?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600">
               Changing your role may affect your proposals, projects, and how others see you on the platform.
             </AlertDialogDescription>
@@ -471,7 +471,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => setShowRoleWarning(false)}
-              className="bg-gray-900 hover:bg-gray-800 text-white"
+              className="bg-black hover:bg-gray-800 text-white"
             >
               Continue
             </AlertDialogAction>
