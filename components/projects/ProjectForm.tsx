@@ -103,8 +103,6 @@ export default function ProjectForm({ userId }: { userId: string }) {
               <option value="digital-marketing">Digital Marketing</option>
               <option value="video-editing">Video Editing</option>
               <option value="translation">Translation</option>
-              <option value="data-entry">Data Entry</option>
-              <option value="virtual-assistant">Virtual Assistant</option>
               <option value="other">Other (please specify)</option>
             </select>
             {showCustomCategory && (
