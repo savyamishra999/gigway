@@ -1,12 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Mail, Loader2, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mail, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -14,9 +17,9 @@ export default function LoginPage() {
   const [step, setStep] = useState<"email" | "otp">("email")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const router = useRouter()
   const supabase = createClient()
 
-  // Step 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -39,7 +42,6 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  // Step 2: Verify OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -54,12 +56,11 @@ export default function LoginPage() {
     if (error) {
       setMessage({ type: "error", text: error.message })
     } else {
-      window.location.href = "/"
+      window.location.href = "/dashboard"
     }
     setLoading(false)
   }
 
-  // Google Login
   const handleGoogleLogin = async () => {
     setLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
@@ -75,24 +76,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/10 backdrop-blur-lg text-white">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <CardTitle className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#FFD700] to-[#FFA500] bg-clip-text text-transparent">
             gigWAY
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-gray-300 text-base">
             Zero commission freelance platform
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="email" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="email">Email OTP</TabsTrigger>
-              <TabsTrigger value="google">Google</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-4 bg-white/20">
+              <TabsTrigger value="email" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-black">Email OTP</TabsTrigger>
+              <TabsTrigger value="google" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-black">Google</TabsTrigger>
             </TabsList>
 
-            {/* Email OTP Tab */}
             <TabsContent value="email">
               {step === "email" ? (
                 <form onSubmit={handleSendOtp} className="space-y-4">
@@ -106,14 +106,14 @@ export default function LoginPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         disabled={loading}
-                        className="pl-10 py-6 text-base"
+                        className="pl-10 py-6 text-base bg-white/20 border-white/30 text-white placeholder:text-gray-400"
                       />
                     </div>
                   </div>
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600"
+                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFD700]/90 hover:to-[#FFA500]/90 text-black"
                   >
                     {loading ? (
                       <>
@@ -128,8 +128,8 @@ export default function LoginPage() {
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-600">
-                      OTP sent to <strong>{email}</strong>
+                    <p className="text-sm text-gray-300">
+                      OTP sent to <strong className="text-[#FFD700]">{email}</strong>
                     </p>
                     <Input
                       type="text"
@@ -138,14 +138,14 @@ export default function LoginPage() {
                       onChange={(e) => setOtp(e.target.value)}
                       required
                       disabled={loading}
-                      className="py-6 text-base text-center tracking-widest"
+                      className="py-6 text-base text-center tracking-widest bg-white/20 border-white/30 text-white placeholder:text-gray-400"
                       maxLength={6}
                     />
                   </div>
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600"
+                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFD700]/90 hover:to-[#FFA500]/90 text-black"
                   >
                     {loading ? (
                       <>
@@ -160,7 +160,7 @@ export default function LoginPage() {
                     type="button"
                     variant="link"
                     onClick={() => setStep("email")}
-                    className="w-full"
+                    className="w-full text-[#FFD700]"
                   >
                     Use different email
                   </Button>
@@ -168,13 +168,12 @@ export default function LoginPage() {
               )}
             </TabsContent>
 
-            {/* Google Tab */}
             <TabsContent value="google">
               <div className="space-y-4">
                 <Button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full py-6 text-base font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                  className="w-full py-6 text-base font-semibold bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
@@ -202,16 +201,46 @@ export default function LoginPage() {
 
           {message && (
             <div
-              className={`mt-4 p-3 rounded-lg text-sm ${
+              className={cn(
+                "mt-4 p-3 rounded-lg text-sm",
                 message.type === "success"
-                  ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                  : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300"
-              }`}
+                  ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                  : "bg-red-500/20 text-red-300 border border-red-500/30"
+              )}
             >
               {message.text}
             </div>
           )}
         </CardContent>
+        <CardFooter className="flex flex-col space-y-4 text-center text-sm border-t border-white/10 pt-6">
+          {/* Team Hire Offer Section */}
+          <div className="bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/20 p-4 rounded-lg border border-[#FFD700]/30">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Users className="h-5 w-5 text-[#FFD700]" />
+              <h3 className="font-semibold text-[#FFD700]">Hire a Great Team from Us!</h3>
+            </div>
+            <p className="text-xs text-gray-300">
+              Get exclusive access to top-tier freelancers and teams. 
+              Subscribe now to unlock team hiring offers and grow your business faster.
+            </p>
+            <Button
+              variant="link"
+              className="mt-2 text-[#FFD700] hover:text-[#FFD700]/80 text-xs"
+              onClick={() => window.location.href = "/subscription"} // Baad mein link karenge
+            >
+              Learn More & Subscribe →
+            </Button>
+          </div>
+
+          {/* Existing Role Change Message */}
+          <p className="text-xs text-gray-400">
+            You can choose your role (Freelancer/Client/Both) in{' '}
+            <Link href="/profile/edit" className="text-[#FFD700] underline underline-offset-2 hover:text-[#FFD700]/80 transition">
+              Profile Settings
+            </Link> after logging in.
+          </p>
+          <p className="text-xs text-gray-500">We'll send you a secure code to log in instantly.</p>
+        </CardFooter>
       </Card>
     </div>
   )
