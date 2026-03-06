@@ -76,7 +76,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
     }
 
     if (formData.user_type === "freelancer" || formData.user_type === "both") {
-      updates.hourly_rate = parseFloat(formData.hourly_rate) || null
+      updates.hourly_rate = formData.hourly_rate ? parseFloat(String(formData.hourly_rate)) : null
     } else {
       updates.hourly_rate = null
     }
