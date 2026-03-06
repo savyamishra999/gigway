@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
     const cookieStore = await cookies()
@@ -32,19 +31,21 @@ export async function GET(request: Request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
+        // Check if user has user_type
         const { data: profile } = await supabase
           .from('profiles')
           .select('user_type')
           .eq('id', user.id)
           .single()
 
+        // If no user_type, send to onboarding
         if (!profile?.user_type) {
           return NextResponse.redirect(`${origin}/onboarding`)
         }
+        // Otherwise send to dashboard
+        return NextResponse.redirect(`${origin}/dashboard`)
       }
-      return NextResponse.redirect(`${origin}/dashboard`)
     }
   }
-
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }

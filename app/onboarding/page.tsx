@@ -17,8 +17,7 @@ export default async function OnboardingPage() {
     .eq("id", user.id)
     .single()
 
-  // If user_type already set, redirect to dashboard
-  if (profile?.user_type && profile.user_type !== "") {
+  if (profile?.user_type) {
     redirect("/dashboard")
   }
 

@@ -22,36 +22,43 @@ export default async function DashboardPage() {
     redirect("/onboarding")
   }
 
-  // Fetch freelancer data
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("status", "open")
-    .order("created_at", { ascending: false })
-    .limit(5)
+  // Fetch data based on user type
+  let projects = []
+  let proposals = []
+  let clientProjects = []
 
-  const { data: proposals } = await supabase
-    .from("proposals")
-    .select(`
-      *,
-      projects (
-        title,
-        budget
-      )
-    `)
-    .eq("freelancer_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5)
+  if (profile.user_type === "freelancer" || profile.user_type === "both") {
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(5)
+    projects = proj || []
 
-  // Fetch client data
-  const { data: clientProjects } = await supabase
-    .from("projects")
-    .select(`
-      *,
-      proposals(count)
-    `)
-    .eq("client_id", user.id)
-    .order("created_at", { ascending: false })
+    const { data: props } = await supabase
+      .from("proposals")
+      .select(`
+        *,
+        projects (title, budget)
+      `)
+      .eq("freelancer_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5)
+    proposals = props || []
+  }
+
+  if (profile.user_type === "client" || profile.user_type === "both") {
+    const { data: cProj } = await supabase
+      .from("projects")
+      .select(`
+        *,
+        proposals(count)
+      `)
+      .eq("client_id", user.id)
+      .order("created_at", { ascending: false })
+    clientProjects = cProj || []
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a]">
@@ -61,22 +68,22 @@ export default async function DashboardPage() {
         {profile.user_type === "freelancer" && (
           <FreelancerDashboard 
             userId={user.id}
-            initialProjects={projects || []}
-            initialProposals={proposals || []}
+            initialProjects={projects}
+            initialProposals={proposals}
           />
         )}
         {profile.user_type === "client" && (
           <ClientDashboard 
             userId={user.id}
-            initialProjects={clientProjects || []}
+            initialProjects={clientProjects}
           />
         )}
         {profile.user_type === "both" && (
           <BothDashboard 
             userId={user.id}
-            initialProjects={projects || []}
-            initialProposals={proposals || []}
-            initialClientProjects={clientProjects || []}
+            initialProjects={projects}
+            initialProposals={proposals}
+            initialClientProjects={clientProjects}
           />
         )}
       </div>
