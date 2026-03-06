@@ -157,7 +157,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile;
       skills: skillsArray,
       user_type: formData.user_type,
       avatar_url: avatarUrl,
-      experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
+     experience_years: formData.experience_years ? parseInt(String(formData.experience_years)) : null,
       location: formData.location || null,
       company: formData.company || null,
     }
