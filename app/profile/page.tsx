@@ -178,7 +178,7 @@ export default async function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {profile.skills.map((skill) => (
+                  {profile.skills.map((skill: string) => (
                     <Badge
                       key={skill}
                       className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 px-4 py-2 text-sm"
@@ -202,7 +202,7 @@ export default async function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {portfolio.map((item) => (
+                  {portfolio.map((item: any) => (
                     <a
                       key={item.id}
                       href={item.live_url}
