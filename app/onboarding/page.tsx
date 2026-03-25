@@ -10,14 +10,14 @@ export default async function OnboardingPage() {
     redirect("/login")
   }
 
-  // Check if user already has a user_type (if yes, redirect to dashboard)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_type")
+    .select("user_type, full_name")
     .eq("id", user.id)
     .single()
 
-  if (profile?.user_type) {
+  // Already fully onboarded
+  if (profile?.user_type && profile?.full_name) {
     redirect("/dashboard")
   }
 

@@ -17,9 +17,11 @@ export default async function EditProfilePage() {
     .single()
 
   return (
-    <div className="container mx-auto max-w-2xl p-4">
-      <h1 className="text-3xl font-bold mb-6">Edit Profile</h1>
-      <EditProfileForm profile={profile} userId={user.id} />
+    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] py-12">
+      <div className="container mx-auto max-w-2xl px-4">
+        <h1 className="text-3xl font-bold text-white mb-8">Edit Profile</h1>
+        <EditProfileForm profile={profile} userId={user.id} />
+      </div>
     </div>
   )
 }

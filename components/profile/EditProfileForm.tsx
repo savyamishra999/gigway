@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Camera, LinkIcon, Plus, X, Globe, Github, Twitter, Linkedin } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { X, Plus, ExternalLink } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -17,467 +17,352 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 interface Profile {
   id: string
   full_name: string | null
+  tagline?: string | null
   bio: string | null
   skills: string[] | null
   hourly_rate: number | null
   user_type: string | null
   avatar_url: string | null
-  experience_years?: number | null
   location?: string | null
   company?: string | null
+  phone?: string | null
+  availability?: string | null
+  portfolio_links?: string[] | null
 }
 
-interface PortfolioLink {
-  title: string
-  url: string
-  type: "website" | "github" | "linkedin" | "twitter" | "other"
-}
+const SKILL_SUGGESTIONS = [
+  "React", "Next.js", "TypeScript", "JavaScript", "Node.js", "Python",
+  "PostgreSQL", "MongoDB", "GraphQL", "Tailwind CSS", "Figma", "UI/UX Design",
+  "Content Writing", "SEO", "Digital Marketing", "Video Editing",
+]
 
-export default function EditProfileForm({ profile, userId }: { profile: Profile; userId: string }) {
-  const [formData, setFormData] = useState({
-    full_name: profile?.full_name || "",
-    bio: profile?.bio || "",
-    skills: profile?.skills?.join(", ") || "",
-    hourly_rate: profile?.hourly_rate || "",
-    user_type: profile?.user_type || "freelancer",
-    experience_years: profile?.experience_years || "",
-    location: profile?.location || "",
-    company: profile?.company || "",
-  })
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
-  const [portfolioLinks, setPortfolioLinks] = useState<PortfolioLink[]>([])
-  const [newLink, setNewLink] = useState({ title: "", url: "", type: "website" as const })
+export default function EditProfileForm({ profile, userId }: { profile: Profile | null; userId: string }) {
+  const isFreelancer = profile?.user_type === "freelancer" || profile?.user_type === "both"
+  const isClient = profile?.user_type === "client"
+
+  const [fullName, setFullName] = useState(profile?.full_name || "")
+  const [tagline, setTagline] = useState(profile?.tagline || "")
+  const [bio, setBio] = useState(profile?.bio || "")
+  const [location, setLocation] = useState(profile?.location || "")
+  const [phone, setPhone] = useState(profile?.phone || "")
+  const [hourlyRate, setHourlyRate] = useState(profile?.hourly_rate?.toString() || "")
+  const [availability, setAvailability] = useState(profile?.availability || "")
+  const [company, setCompany] = useState(profile?.company || "")
+  const [skills, setSkills] = useState<string[]>(profile?.skills || [])
+  const [skillInput, setSkillInput] = useState("")
+  const [portfolioLinks, setPortfolioLinks] = useState<string[]>(profile?.portfolio_links || [])
+  const [linkInput, setLinkInput] = useState("")
   const [loading, setLoading] = useState(false)
-  const [showRoleWarning, setShowRoleWarning] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const addSkill = (skill: string) => {
+    const trimmed = skill.trim()
+    if (trimmed && !skills.includes(trimmed)) {
+      setSkills(prev => [...prev, trimmed])
+    }
+    setSkillInput("")
   }
 
-  const handleRoleChange = (value: string) => {
-    if (profile?.user_type && profile.user_type !== value) {
-      setShowRoleWarning(true)
-      setFormData((prev) => ({ ...prev, user_type: value }))
+  const removeSkill = (skill: string) => setSkills(prev => prev.filter(s => s !== skill))
+
+  const addLink = () => {
+    const trimmed = linkInput.trim()
+    if (trimmed && !portfolioLinks.includes(trimmed)) {
+      setPortfolioLinks(prev => [...prev, trimmed])
+      setLinkInput("")
     }
   }
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setAvatarFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const uploadAvatar = async (): Promise<string | null> => {
-    if (!avatarFile) return profile?.avatar_url || null
-
-    const fileExt = avatarFile.name.split('.').pop()
-    const fileName = `${userId}-${Math.random()}.${fileExt}`
-    const filePath = `avatars/${fileName}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, avatarFile)
-
-    if (uploadError) {
-      console.error('Error uploading avatar:', uploadError)
-      return null
-    }
-
-    const { data } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(filePath)
-
-    return data.publicUrl
-  }
-
-  const getLinkIcon = (type: string) => {
-    switch(type) {
-      case 'github': return <Github className="h-4 w-4" />;
-      case 'linkedin': return <Linkedin className="h-4 w-4" />;
-      case 'twitter': return <Twitter className="h-4 w-4" />;
-      default: return <Globe className="h-4 w-4" />;
-    }
-  }
-
-  const addPortfolioLink = () => {
-    if (newLink.title && newLink.url) {
-      setPortfolioLinks([...portfolioLinks, newLink])
-      setNewLink({ title: "", url: "", type: "website" })
-    }
-  }
-
-  const removePortfolioLink = (index: number) => {
-    setPortfolioLinks(portfolioLinks.filter((_, i) => i !== index))
-  }
+  const removeLink = (link: string) => setPortfolioLinks(prev => prev.filter(l => l !== link))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setMessage(null)
 
-    let avatarUrl = profile?.avatar_url
-    if (avatarFile) {
-      avatarUrl = await uploadAvatar()
+    const updates: Record<string, unknown> = {
+      full_name: fullName,
+      bio: bio || null,
+      location: location || null,
     }
 
-    const skillsArray = formData.skills
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-
-    const updates: any = {
-      full_name: formData.full_name,
-      bio: formData.bio,
-      skills: skillsArray,
-      user_type: formData.user_type,
-      avatar_url: avatarUrl,
-      experience_years: formData.experience_years ? parseInt(String(formData.experience_years)) : null,
-      location: formData.location || null,
-      company: formData.company || null,
+    if (isFreelancer) {
+      updates.tagline = tagline || null
+      updates.phone = phone || null
+      updates.skills = skills
+      updates.hourly_rate = hourlyRate ? parseFloat(hourlyRate) : null
+      updates.availability = availability || null
+      updates.portfolio_links = portfolioLinks
     }
 
-    if (formData.user_type === "freelancer" || formData.user_type === "both") {
-      updates.hourly_rate = formData.hourly_rate ? parseFloat(String(formData.hourly_rate)) : null
-    } else {
-      updates.hourly_rate = null
+    if (isClient) {
+      updates.company = company || null
     }
 
     const { error } = await supabase.from("profiles").update(updates).eq("id", userId)
 
-    if (portfolioLinks.length > 0) {
-      const portfolioData = portfolioLinks.map(link => ({
-        freelancer_id: userId,
-        title: link.title,
-        live_url: link.url,
-        type: link.type,
-      }))
-      await supabase.from("portfolio_items").insert(portfolioData)
-    }
-
     setLoading(false)
     if (error) {
-      alert("Error updating profile: " + error.message)
+      setMessage({ type: "error", text: "Error saving profile: " + error.message })
     } else {
-      router.push("/profile")
+      setMessage({ type: "success", text: "Profile saved successfully!" })
       router.refresh()
     }
   }
 
   return (
-    <>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Avatar Upload Card */}
-        <Card className="border border-gray-200 shadow-sm bg-white">
-          <CardHeader className="border-b border-gray-100">
-            <CardTitle className="text-gray-900 flex items-center gap-2 text-lg">
-              <Camera className="h-5 w-5 text-gray-600" />
-              Profile Photo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <Avatar className="w-28 h-28 ring-2 ring-gray-200">
-                <AvatarImage src={avatarPreview || ""} />
-                <AvatarFallback className="bg-gray-200 text-gray-700 text-3xl">
-                  {formData.full_name?.[0] || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="space-y-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleAvatarChange}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  Change Photo
-                </Button>
-                <p className="text-xs text-gray-500">JPG, PNG, GIF up to 2MB</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {message && (
+        <div
+          className={`p-4 rounded-lg border text-sm font-medium ${
+            message.type === "success"
+              ? "bg-green-500/10 border-green-500/30 text-green-400"
+              : "bg-red-500/10 border-red-500/30 text-red-400"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
-        {/* Basic Info Card */}
-        <Card className="border border-gray-200 shadow-sm bg-white">
-          <CardHeader className="border-b border-gray-100">
-            <CardTitle className="text-gray-900 flex items-center gap-2 text-lg">
-              <span className="text-gray-600">📋</span> Basic Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="full_name" className="text-gray-700 font-medium">Full Name *</Label>
-                <Input
-                  id="full_name"
-                  name="full_name"
-                  value={formData.full_name}
-                  onChange={handleChange}
-                  placeholder="e.g. Mohit Sharma"
-                  required
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location" className="text-gray-700 font-medium">Location</Label>
-                <Input
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="e.g. Mumbai, India"
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-              </div>
-            </div>
-
+      {/* Basic Info */}
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader className="border-b border-white/10 pb-3">
+          <CardTitle className="text-white text-lg">Basic Information</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bio" className="text-gray-700 font-medium">Bio</Label>
-              <Textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                placeholder="Tell us about yourself, your experience, and what you're passionate about..."
-                rows={4}
-                className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
+              <Label className="text-gray-300">Full Name *</Label>
+              <Input
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder="Your full name"
+                required
+                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
               />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="skills" className="text-gray-700 font-medium">Skills (comma separated)</Label>
-                <Input
-                  id="skills"
-                  name="skills"
-                  value={formData.skills}
-                  onChange={handleChange}
-                  placeholder="e.g. React, Node.js, UI/UX"
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company" className="text-gray-700 font-medium">Company (if any)</Label>
-                <Input
-                  id="company"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder="e.g. Google, Self-employed"
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Location</Label>
+              <Input
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                placeholder="e.g. Mumbai, India"
+                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+              />
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="user_type" className="text-gray-700 font-medium">I want to work as *</Label>
-                <Select value={formData.user_type} onValueChange={handleRoleChange}>
-                  <SelectTrigger className="border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="freelancer">Freelancer</SelectItem>
-                    <SelectItem value="client">Client</SelectItem>
-                    <SelectItem value="both">Both (Hybrid)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="experience_years" className="text-gray-700 font-medium">Years of Experience</Label>
-                <Input
-                  id="experience_years"
-                  name="experience_years"
-                  type="number"
-                  min="0"
-                  value={formData.experience_years}
-                  onChange={handleChange}
-                  placeholder="e.g. 5"
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-              </div>
+          {isClient && (
+            <div className="space-y-2">
+              <Label className="text-gray-300">Company</Label>
+              <Input
+                value={company}
+                onChange={e => setCompany(e.target.value)}
+                placeholder="Company name"
+                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+              />
             </div>
+          )}
 
-            {(formData.user_type === "freelancer" || formData.user_type === "both") && (
+          <div className="space-y-2">
+            <Label className="text-gray-300">Bio</Label>
+            <Textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              placeholder="Tell others about yourself..."
+              rows={4}
+              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Freelancer Fields */}
+      {isFreelancer && (
+        <>
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="border-b border-white/10 pb-3">
+              <CardTitle className="text-white text-lg">Freelancer Details</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="hourly_rate" className="text-gray-700 font-medium">Hourly Rate (₹)</Label>
+                <Label className="text-gray-300">Tagline</Label>
                 <Input
-                  id="hourly_rate"
-                  name="hourly_rate"
-                  type="number"
-                  min="0"
-                  step="50"
-                  value={formData.hourly_rate}
-                  onChange={handleChange}
-                  placeholder="e.g. 500"
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
+                  value={tagline}
+                  onChange={e => setTagline(e.target.value)}
+                  placeholder="e.g. Full-Stack Developer | 5+ years"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
                 />
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Portfolio Links Card */}
-        <Card className="border border-gray-200 shadow-sm bg-white">
-          <CardHeader className="border-b border-gray-100">
-            <CardTitle className="text-gray-900 flex items-center gap-2 text-lg">
-              <LinkIcon className="h-5 w-5 text-gray-600" />
-              Portfolio Links
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {/* Existing Links */}
-            {portfolioLinks.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-gray-700 text-sm">Your Links</Label>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  {portfolioLinks.map((link, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-200 rounded-full text-gray-700">
-                          {getLinkIcon(link.type)}
-                        </div>
-                        <div>
-                          <p className="text-gray-900 font-medium">{link.title}</p>
-                          <p className="text-xs text-gray-500 truncate max-w-[200px]">{link.url}</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePortfolioLink(index)}
-                        className="text-gray-500 hover:text-red-500 hover:bg-gray-100"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                  <Label className="text-gray-300">Phone</Label>
+                  <Input
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+91 9876543210"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-300">Hourly Rate (₹)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={hourlyRate}
+                    onChange={e => setHourlyRate(e.target.value)}
+                    placeholder="e.g. 500"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+                  />
                 </div>
               </div>
-            )}
 
-            {/* Add New Link Section */}
-            <div className="space-y-3">
-              <Label className="text-gray-700 text-sm font-medium">Add New Link</Label>
-              <div className="grid grid-cols-1 gap-2">
-                <Input
-                  placeholder="Title (e.g. Personal Website)"
-                  value={newLink.title}
-                  onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-                <Input
-                  placeholder="URL (e.g. https://myportfolio.com)"
-                  value={newLink.url}
-                  onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
-                  className="border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500"
-                />
-                <Select
-                  value={newLink.type}
-                  onValueChange={(value: any) => setNewLink({ ...newLink, type: value })}
-                >
-                  <SelectTrigger className="border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Link Type" />
+              <div className="space-y-2">
+                <Label className="text-gray-300">Availability</Label>
+                <Select value={availability} onValueChange={setAvailability}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="Select availability" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="website">Website</SelectItem>
-                    <SelectItem value="github">GitHub</SelectItem>
-                    <SelectItem value="linkedin">LinkedIn</SelectItem>
-                    <SelectItem value="twitter">Twitter</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                  <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                    <SelectItem value="full-time">Full Time</SelectItem>
+                    <SelectItem value="part-time">Part Time</SelectItem>
+                    <SelectItem value="weekends">Weekends Only</SelectItem>
+                    <SelectItem value="not-available">Not Available</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Skills */}
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="border-b border-white/10 pb-3">
+              <CardTitle className="text-white text-lg">Skills</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {skills.map(skill => (
+                  <Badge
+                    key={skill}
+                    className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30 flex items-center gap-1 px-3 py-1"
+                  >
+                    {skill}
+                    <button type="button" onClick={() => removeSkill(skill)}>
+                      <X className="h-3 w-3 ml-1" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={skillInput}
+                  onChange={e => setSkillInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault()
+                      addSkill(skillInput)
+                    }
+                  }}
+                  placeholder="Add a skill (press Enter)"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+                />
                 <Button
                   type="button"
-                  onClick={addPortfolioLink}
-                  disabled={!newLink.title || !newLink.url}
-                  className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-5 mt-2"
+                  onClick={() => addSkill(skillInput)}
+                  disabled={!skillInput.trim()}
+                  className="bg-white/10 hover:bg-white/20 text-white"
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Add Link
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex flex-wrap gap-1">
+                {SKILL_SUGGESTIONS.filter(s => !skills.includes(s)).slice(0, 8).map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => addSkill(s)}
+                    className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400 hover:bg-[#FFD700]/20 hover:text-[#FFD700] border border-white/10 transition-colors"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="bg-black hover:bg-gray-800 text-white font-semibold px-8"
-          >
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </form>
+          {/* Portfolio Links */}
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="border-b border-white/10 pb-3">
+              <CardTitle className="text-white text-lg">Portfolio Links</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                {portfolioLinks.map(link => (
+                  <div
+                    key={link}
+                    className="flex items-center justify-between bg-white/5 px-4 py-2 rounded-lg border border-white/10"
+                  >
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#FFD700] text-sm truncate flex items-center gap-2 hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      {link}
+                    </a>
+                    <button type="button" onClick={() => removeLink(link)} className="text-gray-500 hover:text-red-400 ml-2">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={linkInput}
+                  onChange={e => setLinkInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addLink() } }}
+                  placeholder="https://yourportfolio.com"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+                />
+                <Button
+                  type="button"
+                  onClick={addLink}
+                  disabled={!linkInput.trim()}
+                  className="bg-white/10 hover:bg-white/20 text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
-      {/* Role Change Warning Dialog */}
-      <AlertDialog open={showRoleWarning} onOpenChange={setShowRoleWarning}>
-        <AlertDialogContent className="bg-white border border-gray-200">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-gray-900 text-xl">Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600">
-              Changing your role may affect your proposals, projects, and how others see you on the platform.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => setShowRoleWarning(false)}
-              className="bg-black hover:bg-gray-800 text-white"
-            >
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      <div className="flex gap-4 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          className="border-white/20 text-gray-300 hover:bg-white/10"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={loading || !fullName}
+          className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold px-8"
+        >
+          {loading ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
   )
 }
