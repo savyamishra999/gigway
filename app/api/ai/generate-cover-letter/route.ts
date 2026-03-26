@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import Anthropic from "@anthropic-ai/sdk"
+import OpenAI from "openai"
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,20 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Project title and description are required" }, { status: 400 })
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: "AI service not configured" }, { status: 500 })
     }
 
-    const client = new Anthropic({ apiKey })
+    const openai = new OpenAI({ apiKey })
 
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `You are an expert cover letter writer for the Indian freelance market.
+    const prompt = `You are an expert cover letter writer for the Indian freelance market.
 
 Write a compelling cover letter/proposal for a freelancer applying to this project.
 
@@ -44,17 +38,16 @@ Requirements:
 - Sound genuine, not generic
 - Suitable for the Indian market context
 
-Return only the cover letter text, no extra formatting.`,
-        },
-      ],
+Return only the cover letter text, no extra formatting.`
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1000,
     })
 
-    const content = message.content[0]
-    if (content.type !== "text") {
-      return NextResponse.json({ error: "Unexpected AI response" }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, coverLetter: content.text.trim() })
+    const coverLetter = response.choices[0].message.content?.trim() || ""
+    return NextResponse.json({ success: true, coverLetter })
   } catch (err) {
     console.error("[ai/generate-cover-letter]", err)
     return NextResponse.json({ error: "AI service error" }, { status: 500 })

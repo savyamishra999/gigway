@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /profile/edit/
+Disallow: /onboarding/
+Disallow: /messages/
+
+Sitemap: https://gigway.in/sitemap.xml

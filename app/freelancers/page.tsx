@@ -69,13 +69,13 @@ export default function FreelancersPage() {
   }, [fetchFreelancers])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a]">
+    <div className="min-h-screen bg-[#0A0A0F]">
       <div className="container mx-auto px-4 py-10 max-w-6xl">
         <h1 className="text-3xl font-bold text-white mb-8">Find Freelancers</h1>
 
         {/* Search */}
         <div className="relative mb-5">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -91,7 +91,7 @@ export default function FreelancersPage() {
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
               skillFilter === ""
                 ? "bg-[#FFD700] text-black border-[#FFD700]"
-                : "bg-white/5 text-gray-400 border-white/10 hover:border-white/30"
+                : "bg-white/5 text-[#6B7280] border-white/10 hover:border-white/30"
             }`}
           >
             All Skills
@@ -103,7 +103,7 @@ export default function FreelancersPage() {
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                 skillFilter === skill
                   ? "bg-[#FFD700] text-black border-[#FFD700]"
-                  : "bg-white/5 text-gray-400 border-white/10 hover:border-white/30"
+                  : "bg-white/5 text-[#6B7280] border-white/10 hover:border-white/30"
               }`}
             >
               {skill}
@@ -114,7 +114,7 @@ export default function FreelancersPage() {
         {/* Max Rate + Verified */}
         <div className="flex flex-wrap items-center gap-4 mb-8">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] text-sm">₹</span>
             <Input
               type="number"
               value={maxRate}

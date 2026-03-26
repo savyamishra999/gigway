@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import Anthropic from "@anthropic-ai/sdk"
+import OpenAI from "openai"
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,20 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Resume text is required" }, { status: 400 })
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: "AI service not configured" }, { status: 500 })
     }
 
-    const client = new Anthropic({ apiKey })
+    const openai = new OpenAI({ apiKey })
 
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: `You are an expert resume writer and career coach specializing in the Indian freelance and tech market.
+    const prompt = `You are an expert resume writer and career coach specializing in the Indian freelance and tech market.
 
 Optimize the following resume/profile for someone targeting: ${targetRole || "freelance opportunities on GigWay"}
 
@@ -39,23 +33,22 @@ Please provide:
 3. 5 power keywords they should add
 4. A suggested tagline (max 10 words)
 
-Format your response as JSON with keys: summary, improvements (array), keywords (array), tagline`,
-        },
-      ],
+Format your response as JSON with keys: summary, improvements (array), keywords (array), tagline`
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1000,
     })
 
-    const content = message.content[0]
-    if (content.type !== "text") {
-      return NextResponse.json({ error: "Unexpected AI response" }, { status: 500 })
-    }
+    const text = response.choices[0].message.content || ""
 
-    // Try to parse JSON, fallback to raw text
     let result: Record<string, unknown>
     try {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/)
-      result = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: content.text }
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      result = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: text }
     } catch {
-      result = { raw: content.text }
+      result = { raw: text }
     }
 
     return NextResponse.json({ success: true, result })

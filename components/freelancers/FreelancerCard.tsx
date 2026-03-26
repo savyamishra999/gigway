@@ -34,28 +34,32 @@ const availabilityLabel: Record<string, string> = {
 export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
   const initial = freelancer.full_name?.[0]?.toUpperCase() || "?"
   const rating = freelancer.avg_rating ?? 0
-  const avColor = availabilityColor[freelancer.availability || ""] || "text-gray-400"
+  const avColor = availabilityColor[freelancer.availability || ""] || "text-[#6B7280]"
   const avLabel = availabilityLabel[freelancer.availability || ""] || freelancer.availability || ""
 
   return (
     <Link href={`/freelancers/${freelancer.id}`}>
-      <div className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-[#FFD700]/40 hover:bg-white/10 transition-all cursor-pointer group">
+      <div className="bg-[#12121A] border border-[#1E1E2E] rounded-xl p-5 hover:border-[#4F46E5]/40 hover:bg-[#12121A] transition-all cursor-pointer group">
         {/* Header */}
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-12 h-12 rounded-full bg-[#FFD700] flex items-center justify-center text-black font-bold text-lg flex-shrink-0">
-            {initial}
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+            {freelancer.avatar_url
+              ? <img src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
+              : initial}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-white truncate group-hover:text-[#FFD700] transition-colors">
+              <h3 className="font-semibold text-white truncate group-hover:text-[#818CF8] transition-colors">
                 {freelancer.full_name || "Unnamed"}
               </h3>
               {freelancer.is_verified && (
-                <CheckCircle className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                <span className="ml-0.5 inline-flex items-center bg-[#4F46E5]/20 text-[#818CF8] text-[10px] px-1.5 py-0.5 rounded-full font-semibold border border-[#4F46E5]/30 flex-shrink-0">
+                  ✓ Verified
+                </span>
               )}
             </div>
             {freelancer.tagline && (
-              <p className="text-xs text-gray-400 truncate mt-0.5">{freelancer.tagline}</p>
+              <p className="text-xs text-[#6B7280] truncate mt-0.5">{freelancer.tagline}</p>
             )}
           </div>
         </div>
@@ -66,16 +70,16 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
             {[1, 2, 3, 4, 5].map(i => (
               <Star
                 key={i}
-                className={`h-3.5 w-3.5 ${i <= Math.round(rating) ? "fill-[#FFD700] text-[#FFD700]" : "text-gray-600"}`}
+                className={`h-3.5 w-3.5 ${i <= Math.round(rating) ? "fill-[#F97316] text-[#F97316]" : "text-gray-600"}`}
               />
             ))}
-            <span className="text-xs text-gray-400 ml-1">{rating.toFixed(1)}</span>
+            <span className="text-xs text-[#6B7280] ml-1">{rating.toFixed(1)}</span>
           </div>
         )}
 
         {/* Bio */}
         {freelancer.bio && (
-          <p className="text-sm text-gray-400 line-clamp-2 mb-3">{freelancer.bio}</p>
+          <p className="text-sm text-[#6B7280] line-clamp-2 mb-3">{freelancer.bio}</p>
         )}
 
         {/* Skills */}
@@ -84,13 +88,13 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
             {freelancer.skills.slice(0, 3).map(skill => (
               <Badge
                 key={skill}
-                className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20 text-xs px-2 py-0.5"
+                className="bg-[#4F46E5]/10 text-[#818CF8] border-[#4F46E5]/20 text-xs px-2 py-0.5"
               >
                 {skill}
               </Badge>
             ))}
             {freelancer.skills.length > 3 && (
-              <Badge className="bg-white/5 text-gray-400 border-white/10 text-xs px-2 py-0.5">
+              <Badge className="bg-white/5 text-[#6B7280] border-white/10 text-xs px-2 py-0.5">
                 +{freelancer.skills.length - 3}
               </Badge>
             )}
@@ -99,7 +103,7 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between mt-2">
-          <span className="text-[#FFD700] font-bold text-sm">
+          <span className="text-[#F97316] font-bold text-sm">
             {freelancer.hourly_rate ? `₹${freelancer.hourly_rate}/hr` : "Rate negotiable"}
           </span>
           {avLabel && (

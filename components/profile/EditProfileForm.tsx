@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, ExternalLink } from "lucide-react"
+import { X, Plus, ExternalLink, Camera } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -32,6 +32,8 @@ interface Profile {
   phone?: string | null
   availability?: string | null
   portfolio_links?: string[] | null
+  verification_status?: string | null
+  is_verified?: boolean | null
 }
 
 const SKILL_SUGGESTIONS = [
@@ -44,6 +46,10 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
   const isFreelancer = profile?.user_type === "freelancer" || profile?.user_type === "both"
   const isClient = profile?.user_type === "client"
 
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "")
+  const [verificationStatus, setVerificationStatus] = useState(profile?.verification_status || "unverified")
+  const [requestingVerification, setRequestingVerification] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [fullName, setFullName] = useState(profile?.full_name || "")
   const [tagline, setTagline] = useState(profile?.tagline || "")
   const [bio, setBio] = useState(profile?.bio || "")
@@ -60,6 +66,28 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const router = useRouter()
   const supabase = createClient()
+
+  const requestVerification = async () => {
+    setRequestingVerification(true)
+    const { error } = await supabase
+      .from("profiles")
+      .update({ verification_status: "pending" })
+      .eq("id", userId)
+    if (!error) setVerificationStatus("pending")
+    setRequestingVerification(false)
+  }
+
+  const uploadAvatar = async (file: File) => {
+    setUploading(true)
+    const fileExt = file.name.split(".").pop()
+    const filePath = `${userId}/${Date.now()}.${fileExt}`
+    const { error } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true })
+    if (!error) {
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath)
+      setAvatarUrl(data.publicUrl)
+    }
+    setUploading(false)
+  }
 
   const addSkill = (skill: string) => {
     const trimmed = skill.trim()
@@ -90,6 +118,7 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
       full_name: fullName,
       bio: bio || null,
       location: location || null,
+      avatar_url: avatarUrl || null,
     }
 
     if (isFreelancer) {
@@ -119,16 +148,44 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {message && (
-        <div
-          className={`p-4 rounded-lg border text-sm font-medium ${
-            message.type === "success"
-              ? "bg-green-500/10 border-green-500/30 text-green-400"
-              : "bg-red-500/10 border-red-500/30 text-red-400"
-          }`}
-        >
+        <div className={`p-4 rounded-lg border text-sm font-medium ${
+          message.type === "success"
+            ? "bg-green-500/10 border-green-500/30 text-green-400"
+            : "bg-red-500/10 border-red-500/30 text-red-400"
+        }`}>
           {message.text}
         </div>
       )}
+
+      {/* Avatar Upload */}
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-[#4F46E5]/20 flex items-center justify-center">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl font-bold text-[#818CF8]">{fullName?.[0]?.toUpperCase() || "?"}</span>
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#4F46E5] flex items-center justify-center cursor-pointer hover:bg-[#6366F1] transition-colors">
+                <Camera className="h-3.5 w-3.5 text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={e => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+                />
+              </label>
+            </div>
+            <p className="text-[#6B7280] text-sm">
+              {uploading ? "Uploading..." : "Click the camera icon to change your photo"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Basic Info */}
       <Card className="bg-white/5 border-white/10">
@@ -346,19 +403,67 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
         </>
       )}
 
+      {/* Verification Section */}
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader className="border-b border-white/10 pb-3">
+          <CardTitle className="text-white text-lg">GigWay Verification</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          {(profile?.is_verified || verificationStatus === "verified") ? (
+            <div className="flex items-center gap-3 text-[#10B981]">
+              <div className="w-10 h-10 rounded-full bg-[#10B981]/20 flex items-center justify-center">
+                <span className="text-lg">✓</span>
+              </div>
+              <div>
+                <p className="font-semibold">GigWay Verified</p>
+                <p className="text-[#6B7280] text-sm">Your profile is verified</p>
+              </div>
+            </div>
+          ) : verificationStatus === "pending" ? (
+            <div className="flex items-center gap-3 text-[#F97316]">
+              <div className="w-10 h-10 rounded-full bg-[#F97316]/20 flex items-center justify-center">
+                <span className="text-lg">⏳</span>
+              </div>
+              <div>
+                <p className="font-semibold text-white">Under Review</p>
+                <p className="text-[#6B7280] text-sm">Our team is reviewing your profile (24-48 hours)</p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-white font-semibold mb-1">Get GigWay Verified ✓</p>
+              <p className="text-[#6B7280] text-sm mb-4">Verified profiles get 3x more views and higher trust from clients.</p>
+              <div className="flex gap-3 text-sm mb-5">
+                <span className="flex items-center gap-1.5 text-[#10B981]"><span>✓</span> Email confirmed</span>
+                <span className="flex items-center gap-1.5 text-[#6B7280]"><span>○</span> Phone verified</span>
+                <span className="flex items-center gap-1.5 text-[#6B7280]"><span>○</span> ID check</span>
+              </div>
+              <Button
+                type="button"
+                onClick={requestVerification}
+                disabled={requestingVerification}
+                className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-semibold hover:opacity-90"
+              >
+                {requestingVerification ? "Submitting..." : "Start Verification"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex gap-4 justify-end">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
-          className="border-white/20 text-gray-300 hover:bg-white/10"
+          className="border-white/20 text-[#6B7280] hover:bg-white/10"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={loading || !fullName}
-          className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold px-8"
+          className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-bold px-8 hover:opacity-90"
         >
           {loading ? "Saving..." : "Save Changes"}
         </Button>

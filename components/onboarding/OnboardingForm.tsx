@@ -86,6 +86,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
       updates.company = formData.company || null
     }
 
+    updates.profile_completed = true
     const { error } = await supabase.from("profiles").update(updates).eq("id", userId)
 
     setLoading(false)

@@ -35,7 +35,7 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   "full-time": "bg-green-500/20 text-green-400 border-green-500/30",
   "part-time": "bg-blue-500/20 text-blue-400 border-blue-500/30",
   "internship": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "remote": "bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30",
+  "remote": "bg-[#4F46E5]/20 text-[#818CF8] border-[#4F46E5]/30",
   "contract": "bg-orange-500/20 text-orange-400 border-orange-500/30",
 }
 
@@ -65,7 +65,8 @@ export default function JobsPage() {
 
     if (jobType) query = query.eq("job_type", jobType)
 
-    const { data } = await query
+    const { data, error } = await query
+    if (error) { setJobs([]); setLoading(false); return }
     let results = (data as Job[]) || []
 
     if (search) {
@@ -88,17 +89,17 @@ export default function JobsPage() {
   }, [fetchJobs])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a]">
+    <div className="min-h-screen bg-[#0A0A0F]">
       <div className="container mx-auto px-4 py-10 max-w-5xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">Job Listings</h1>
-            <p className="text-gray-400 text-sm mt-1">Find full-time, part-time, and remote opportunities</p>
+            <p className="text-[#6B7280] text-sm mt-1">Find full-time, part-time, and remote opportunities</p>
           </div>
           <Link
             href="/jobs/new"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
+            className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] hover:opacity-90 text-white font-semibold px-5 py-2 rounded-lg transition-opacity text-sm shadow-lg shadow-[#4F46E5]/20"
           >
             + Post Job
           </Link>
@@ -106,12 +107,12 @@ export default function JobsPage() {
 
         {/* Search */}
         <div className="relative mb-5">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search jobs, companies, skills..."
-            className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 pl-9 focus:border-[#FFD700]"
+            className="bg-[#12121A] border-[#1E1E2E] text-white placeholder:text-[#6B7280] pl-9 focus:border-[#4F46E5]"
           />
         </div>
 
@@ -123,8 +124,8 @@ export default function JobsPage() {
               onClick={() => setJobType(type.value)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                 jobType === type.value
-                  ? "bg-[#FFD700] text-black border-[#FFD700]"
-                  : "bg-white/5 text-gray-400 border-white/10 hover:border-white/30"
+                  ? "bg-[#4F46E5] text-white border-[#4F46E5] shadow-lg shadow-[#4F46E5]/20"
+                  : "bg-transparent text-[#6B7280] border-[#1E1E2E] hover:border-[#4F46E5]/50 hover:text-white"
               }`}
             >
               {type.label}
@@ -134,46 +135,53 @@ export default function JobsPage() {
 
         {/* Results */}
         {loading ? (
-          <div className="text-center py-20 text-gray-500">Loading jobs...</div>
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-[#12121A] border border-[#1E1E2E] rounded-xl p-5 h-28 skeleton" />
+            ))}
+          </div>
         ) : jobs.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-16 text-center">
-            <Briefcase className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No jobs found.</p>
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-16 text-center">
+            <Briefcase className="h-12 w-12 text-[#374151] mx-auto mb-4" />
+            <p className="text-[#6B7280] mb-2">No jobs found.</p>
+            <Link href="/jobs/new" className="text-[#4F46E5] hover:underline text-sm">
+              Post a job →
+            </Link>
           </div>
         ) : (
           <>
-            <p className="text-gray-500 text-sm mb-4">{jobs.length} job{jobs.length !== 1 ? "s" : ""} found</p>
+            <p className="text-[#6B7280] text-sm mb-4">{jobs.length} job{jobs.length !== 1 ? "s" : ""} found</p>
             <div className="space-y-4">
               {jobs.map(job => (
                 <Link key={job.id} href={`/jobs/${job.id}`}>
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-[#FFD700]/40 hover:bg-white/8 transition-all group">
+                  <div className="bg-[#12121A] border border-[#1E1E2E] rounded-xl p-5 hover:border-[#4F46E5]/40 transition-all group">
                     <div className="flex items-start justify-between gap-4">
                       {/* Company Avatar */}
-                      <div className="w-12 h-12 rounded-xl bg-[#FFD700]/20 flex items-center justify-center text-[#FFD700] font-bold text-lg flex-shrink-0">
+                      <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/20 flex items-center justify-center text-[#818CF8] font-bold text-lg flex-shrink-0">
                         {(job.company_name || job.profiles?.company || job.profiles?.full_name || "C")[0].toUpperCase()}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="text-white font-semibold text-lg group-hover:text-[#FFD700] transition-colors">
+                            <h3 className="text-white font-semibold text-lg group-hover:text-[#818CF8] transition-colors">
                               {job.title}
                             </h3>
-                            <p className="text-gray-400 text-sm mt-0.5">
+                            <p className="text-[#6B7280] text-sm mt-0.5">
                               {job.company_name || job.profiles?.company || job.profiles?.full_name || "Company"}
                             </p>
                           </div>
                           {job.job_type && (
-                            <Badge className={`border flex-shrink-0 capitalize ${JOB_TYPE_COLORS[job.job_type] || "bg-white/5 text-gray-400 border-white/10"}`}>
+                            <Badge className={`border flex-shrink-0 capitalize ${JOB_TYPE_COLORS[job.job_type] || "bg-[#1E1E2E] text-[#6B7280] border-[#1E1E2E]"}`}>
                               {job.job_type}
                             </Badge>
                           )}
                         </div>
 
                         {/* Salary + Location */}
-                        <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-400">
+                        <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-[#6B7280]">
                           {(job.salary_min || job.salary_max) && (
-                            <span className="text-[#FFD700] font-semibold">
+                            <span className="text-[#10B981] font-semibold">
                               {job.salary_min && job.salary_max
                                 ? `₹${job.salary_min.toLocaleString()} – ₹${job.salary_max.toLocaleString()}`
                                 : job.salary_min
@@ -199,13 +207,13 @@ export default function JobsPage() {
                             {job.skills_required.slice(0, 4).map(skill => (
                               <Badge
                                 key={skill}
-                                className="bg-white/5 text-gray-400 border-white/10 text-xs px-2 py-0.5"
+                                className="bg-[#4F46E5]/10 text-[#818CF8] border-[#4F46E5]/20 text-xs px-2 py-0.5"
                               >
                                 {skill}
                               </Badge>
                             ))}
                             {job.skills_required.length > 4 && (
-                              <Badge className="bg-white/5 text-gray-500 border-white/10 text-xs px-2 py-0.5">
+                              <Badge className="bg-[#1E1E2E] text-[#6B7280] border-[#1E1E2E] text-xs px-2 py-0.5">
                                 +{job.skills_required.length - 4}
                               </Badge>
                             )}
