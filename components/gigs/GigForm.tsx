@@ -41,6 +41,7 @@ export default function GigForm({ userId }: { userId: string }) {
     const { data, error: insertError } = await supabase
       .from("gigs")
       .insert({
+        freelancer_id: userId,
         owner_id: userId,
         title,
         description,

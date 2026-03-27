@@ -22,7 +22,7 @@ export default async function AIToolsPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-[#4F46E5]/10 border border-[#4F46E5]/30 px-4 py-1.5 rounded-full mb-4">
             <Zap className="h-3.5 w-3.5 text-[#818CF8]" />
-            <span className="text-[#818CF8] text-xs font-semibold">Powered by Claude AI</span>
+            <span className="text-[#818CF8] text-xs font-semibold">Powered by OpenAI</span>
           </div>
           <h1 className="text-4xl font-black text-white mb-3">
             AI <span className="bg-gradient-to-r from-[#4F46E5] to-[#F97316] bg-clip-text text-transparent">Superpowers</span>

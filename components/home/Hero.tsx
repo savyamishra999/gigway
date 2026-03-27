@@ -1,7 +1,6 @@
-"use client"
-
 import Link from "next/link"
 import { ArrowRight, Star, CheckCircle } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
 
 const STATS = [
   { value: "15,000+", label: "Freelancers" },
@@ -10,13 +9,18 @@ const STATS = [
   { value: "₹2Cr+", label: "Earned" },
 ]
 
-const SAMPLE_FREELANCERS = [
-  { name: "Priya Sharma", skill: "UI/UX Designer", rating: 4.9, rate: "₹800/hr" },
-  { name: "Rahul Verma", skill: "Full Stack Dev", rating: 5.0, rate: "₹1200/hr" },
-  { name: "Ananya Singh", skill: "Content Writer", rating: 4.8, rate: "₹400/hr" },
-]
+export default async function Hero() {
+  const supabase = await createClient()
+  const { data: featuredFreelancers } = await supabase
+    .from("profiles")
+    .select("id, full_name, tagline, hourly_rate, avg_rating, availability, is_verified")
+    .eq("profile_completed", true)
+    .not("full_name", "is", null)
+    .order("avg_rating", { ascending: false })
+    .limit(3)
 
-export default function Hero() {
+  const displayFreelancers = featuredFreelancers ?? []
+
   return (
     <section className="relative overflow-hidden mesh-bg min-h-[95vh] flex items-center">
       {/* Animated background blobs */}
@@ -90,52 +94,62 @@ export default function Hero() {
           </div>
 
           {/* Right: Floating Freelancer Cards */}
-          <div className="hidden lg:flex flex-col gap-5 relative">
-            {/* Decorative ring */}
-            <div className="absolute inset-0 -m-8 rounded-3xl border border-[#4F46E5]/10" />
+          {displayFreelancers.length > 0 && (
+            <div className="hidden lg:flex flex-col gap-5 relative">
+              {/* Decorative ring */}
+              <div className="absolute inset-0 -m-8 rounded-3xl border border-[#4F46E5]/10" />
 
-            {SAMPLE_FREELANCERS.map((f, i) => (
-              <div
-                key={f.name}
-                className={`glass-card rounded-2xl p-5 flex items-center gap-4 cursor-default ${
-                  i === 0 ? "animate-float ml-8" : i === 1 ? "animate-float-delayed" : "animate-float-delayed-2 ml-12"
-                }`}
-              >
-                {/* Avatar */}
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                  {f.name[0]}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <p className="text-white font-semibold text-sm truncate">{f.name}</p>
-                    <CheckCircle className="h-3.5 w-3.5 text-[#4F46E5] flex-shrink-0" />
+              {displayFreelancers.map((f, i) => (
+                <div
+                  key={f.id}
+                  className={`glass-card rounded-2xl p-5 flex items-center gap-4 cursor-default ${
+                    i === 0 ? "animate-float ml-8" : i === 1 ? "animate-float-delayed" : "animate-float-delayed-2 ml-12"
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                    {f.full_name?.[0]?.toUpperCase() ?? "?"}
                   </div>
-                  <p className="text-[#9CA3AF] text-xs truncate">{f.skill}</p>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <div className="flex items-center gap-0.5">
-                      <Star className="h-3 w-3 fill-[#F97316] text-[#F97316]" />
-                      <span className="text-xs text-[#F97316] font-semibold">{f.rating}</span>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <p className="text-white font-semibold text-sm truncate">{f.full_name}</p>
+                      {f.is_verified && (
+                        <CheckCircle className="h-3.5 w-3.5 text-[#4F46E5] flex-shrink-0" />
+                      )}
                     </div>
-                    <span className="text-xs text-[#4F46E5] font-bold">{f.rate}</span>
+                    <p className="text-[#9CA3AF] text-xs truncate">{f.tagline || "Freelancer"}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      {(f.avg_rating ?? 0) > 0 && (
+                        <div className="flex items-center gap-0.5">
+                          <Star className="h-3 w-3 fill-[#F97316] text-[#F97316]" />
+                          <span className="text-xs text-[#F97316] font-semibold">{(f.avg_rating ?? 0).toFixed(1)}</span>
+                        </div>
+                      )}
+                      {f.hourly_rate && (
+                        <span className="text-xs text-[#4F46E5] font-bold">₹{f.hourly_rate}/hr</span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Available dot */}
-                <div className="flex-shrink-0">
-                  <span className="flex items-center gap-1 text-[#10B981] text-xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                    Available
-                  </span>
+                  {/* Available dot */}
+                  {f.availability && f.availability !== "not-available" && (
+                    <div className="flex-shrink-0">
+                      <span className="flex items-center gap-1 text-[#10B981] text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                        Available
+                      </span>
+                    </div>
+                  )}
                 </div>
+              ))}
+
+              {/* Bottom decoration */}
+              <div className="glass-card rounded-2xl p-4 text-center ml-4">
+                <p className="text-[#9CA3AF] text-xs">🔒 100% Secure Payments · ⚡ Instant Connect · 🌟 Verified Clients</p>
               </div>
-            ))}
-
-            {/* Bottom decoration */}
-            <div className="glass-card rounded-2xl p-4 text-center ml-4">
-              <p className="text-[#9CA3AF] text-xs">🔒 100% Secure Payments · ⚡ Instant Connect · 🌟 Verified Clients</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

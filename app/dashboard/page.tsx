@@ -36,7 +36,7 @@ export default async function DashboardPage() {
     supabase.from("notifications").select("*").eq("user_id", user.id).eq("is_read", false)
       .order("created_at", { ascending: false }).limit(5),
     supabase.from("gigs").select("id, title, price, category, delivery_days, rating, status")
-      .eq("owner_id", user.id).order("created_at", { ascending: false }).limit(6),
+      .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(6),
     supabase.from("jobs").select("id, title, job_type, status, created_at")
       .eq("poster_id", user.id).order("created_at", { ascending: false }).limit(6),
     supabase.from("proposals").select("id, status, bid_amount, created_at, projects:project_id(id, title)")
