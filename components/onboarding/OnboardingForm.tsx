@@ -7,16 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Briefcase, Users, X, Plus } from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { X, Plus } from "lucide-react"
 
 const SKILL_SUGGESTIONS = [
   "React", "Next.js", "TypeScript", "JavaScript", "Node.js", "Python", "Django",
@@ -26,21 +18,27 @@ const SKILL_SUGGESTIONS = [
   "Swift", "Go", "Rust", "PHP", "Laravel", "WordPress",
 ]
 
+const JOB_FUNCTIONS = [
+  "Full Stack Developer", "Frontend Developer", "Backend Developer",
+  "UI/UX Designer", "Graphic Designer", "Mobile Developer",
+  "Data Scientist", "DevOps Engineer", "Content Writer", "Digital Marketer",
+  "Video Editor", "SEO Specialist", "WordPress Developer", "Other",
+]
+
 export default function OnboardingForm({ userId }: { userId: string }) {
-  const [step, setStep] = useState(1)
-  const [role, setRole] = useState<"freelancer" | "client" | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [skillInput, setSkillInput] = useState("")
+  const [linkInput, setLinkInput] = useState("")
   const [formData, setFormData] = useState({
-    fullName: "",
-    tagline: "",
+    full_name: "",
+    job_function: "",
     bio: "",
     location: "",
     phone: "",
+    hourly_rate: "",
     skills: [] as string[],
-    hourlyRate: "",
-    availability: "",
-    company: "",
+    portfolio_links: [] as string[],
   })
   const router = useRouter()
   const supabase = createClient()
@@ -53,295 +51,203 @@ export default function OnboardingForm({ userId }: { userId: string }) {
     setSkillInput("")
   }
 
-  const removeSkill = (skill: string) => {
+  const removeSkill = (skill: string) =>
     setFormData(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skill) }))
-  }
 
-  const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault()
-      addSkill(skillInput)
+  const addLink = () => {
+    const trimmed = linkInput.trim()
+    if (trimmed && !formData.portfolio_links.includes(trimmed)) {
+      setFormData(prev => ({ ...prev, portfolio_links: [...prev.portfolio_links, trimmed] }))
+      setLinkInput("")
     }
   }
+
+  const removeLink = (link: string) =>
+    setFormData(prev => ({ ...prev, portfolio_links: prev.portfolio_links.filter(l => l !== link) }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!role) return
+    if (!formData.full_name.trim()) { setError("Full name is required"); return }
     setLoading(true)
+    setError("")
 
-    const updates: Record<string, unknown> = {
-      user_type: role,
-      full_name: formData.fullName,
-      bio: formData.bio || null,
-      location: formData.location || null,
-    }
-
-    if (role === "freelancer") {
-      updates.tagline = formData.tagline || null
-      updates.phone = formData.phone || null
-      updates.skills = formData.skills
-      updates.hourly_rate = formData.hourlyRate ? parseFloat(formData.hourlyRate) : null
-      updates.availability = formData.availability || null
-    } else {
-      updates.company = formData.company || null
-    }
-
-    updates.profile_completed = true
-    const { error } = await supabase.from("profiles").update(updates).eq("id", userId)
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        full_name: formData.full_name.trim(),
+        job_function: formData.job_function || null,
+        bio: formData.bio || null,
+        location: formData.location || null,
+        phone: formData.phone || null,
+        hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+        skills: formData.skills,
+        portfolio_links: formData.portfolio_links,
+        profile_completed: true,
+      })
+      .eq("id", userId)
 
     setLoading(false)
-    if (error) {
-      alert("Error saving profile: " + error.message)
-    } else {
-      router.push("/dashboard")
+    if (updateError) {
+      setError("Failed to save profile: " + updateError.message)
+      return
     }
-  }
-
-  if (step === 1) {
-    return (
-      <div className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card
-            className={`cursor-pointer p-6 border-2 transition-all ${
-              role === "freelancer"
-                ? "border-[#FFD700] bg-[#FFD700]/10"
-                : "border-white/10 bg-white/5 hover:border-white/20"
-            }`}
-            onClick={() => setRole("freelancer")}
-          >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-4">
-              <Briefcase className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">I&apos;m a Freelancer</h3>
-            <p className="text-sm text-gray-400">I want to find work and earn money</p>
-          </Card>
-
-          <Card
-            className={`cursor-pointer p-6 border-2 transition-all ${
-              role === "client"
-                ? "border-[#FFD700] bg-[#FFD700]/10"
-                : "border-white/10 bg-white/5 hover:border-white/20"
-            }`}
-            onClick={() => setRole("client")}
-          >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center mb-4">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">I&apos;m a Client</h3>
-            <p className="text-sm text-gray-400">I want to hire freelancers for my projects</p>
-          </Card>
-        </div>
-
-        <Button
-          onClick={() => setStep(2)}
-          disabled={!role}
-          className="w-full py-6 text-lg font-semibold bg-[#FFD700] hover:bg-[#FFD700]/90 text-black"
-        >
-          Continue &rarr;
-        </Button>
-      </div>
-    )
+    router.push("/dashboard")
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="flex items-center gap-3 mb-2">
-        <Badge className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">
-          {role === "freelancer" ? "Freelancer" : "Client"}
-        </Badge>
-        <button
-          type="button"
-          onClick={() => setStep(1)}
-          className="text-sm text-gray-400 hover:text-white underline"
-        >
-          Change
-        </button>
-      </div>
+    <form onSubmit={handleSubmit} className="bg-[#1E293B] border border-[#334155] rounded-2xl p-8 space-y-6">
+      {error && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
+      )}
 
       {/* Full Name */}
       <div className="space-y-2">
-        <Label className="text-gray-300">Full Name *</Label>
+        <Label className="text-[#F8FAFC] font-medium">Full Name *</Label>
         <Input
-          value={formData.fullName}
-          onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-          placeholder="e.g. Mohit Sharma"
+          value={formData.full_name}
+          onChange={e => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+          placeholder="e.g. Priya Sharma"
           required
-          className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+          className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1] h-11"
         />
       </div>
 
-      {role === "freelancer" && (
-        <>
-          {/* Tagline */}
-          <div className="space-y-2">
-            <Label className="text-gray-300">Tagline</Label>
-            <Input
-              value={formData.tagline}
-              onChange={e => setFormData(prev => ({ ...prev, tagline: e.target.value }))}
-              placeholder="e.g. Full-Stack Developer | React Expert"
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-            />
-          </div>
+      {/* Job Function */}
+      <div className="space-y-2">
+        <Label className="text-[#F8FAFC] font-medium">What do you do?</Label>
+        <div className="flex flex-wrap gap-2">
+          {JOB_FUNCTIONS.map(fn => (
+            <button
+              key={fn}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, job_function: fn }))}
+              className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
+                formData.job_function === fn
+                  ? "bg-[#6366F1] text-white border-[#6366F1]"
+                  : "bg-transparent text-[#94A3B8] border-[#334155] hover:border-[#6366F1]/50 hover:text-white"
+              }`}
+            >
+              {fn}
+            </button>
+          ))}
+        </div>
+        {formData.job_function === "Other" && (
+          <Input
+            placeholder="Describe what you do"
+            className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1] h-11 mt-2"
+            onBlur={e => setFormData(prev => ({ ...prev, job_function: e.target.value || "Other" }))}
+          />
+        )}
+      </div>
 
-          {/* Bio */}
-          <div className="space-y-2">
-            <Label className="text-gray-300">Bio</Label>
-            <Textarea
-              value={formData.bio}
-              onChange={e => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Tell clients about yourself..."
-              rows={3}
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-            />
-          </div>
+      {/* Bio */}
+      <div className="space-y-2">
+        <Label className="text-[#F8FAFC] font-medium">Bio</Label>
+        <Textarea
+          value={formData.bio}
+          onChange={e => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+          placeholder="Tell others about yourself, your experience, and what you're passionate about..."
+          rows={3}
+          className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1]"
+        />
+      </div>
 
-          {/* Location + Phone */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300">Location</Label>
-              <Input
-                value={formData.location}
-                onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="e.g. Mumbai, India"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Phone</Label>
-              <Input
-                value={formData.phone}
-                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+91 9876543210"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-              />
-            </div>
-          </div>
+      {/* Location + Phone */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-[#F8FAFC] font-medium">Location</Label>
+          <Input
+            value={formData.location}
+            onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+            placeholder="e.g. Mumbai, India"
+            className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1] h-11"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[#F8FAFC] font-medium">Hourly Rate (₹)</Label>
+          <Input
+            type="number"
+            min="0"
+            value={formData.hourly_rate}
+            onChange={e => setFormData(prev => ({ ...prev, hourly_rate: e.target.value }))}
+            placeholder="e.g. 500"
+            className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1] h-11"
+          />
+        </div>
+      </div>
 
-          {/* Skills */}
-          <div className="space-y-2">
-            <Label className="text-gray-300">Skills</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.skills.map(skill => (
-                <Badge
-                  key={skill}
-                  className="bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30 flex items-center gap-1"
-                >
-                  {skill}
-                  <button type="button" onClick={() => removeSkill(skill)}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={handleSkillKeyDown}
-                placeholder="Type a skill and press Enter"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-              />
-              <Button
-                type="button"
-                onClick={() => addSkill(skillInput)}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/10"
-                disabled={!skillInput.trim()}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {SKILL_SUGGESTIONS.filter(s => !formData.skills.includes(s)).slice(0, 8).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => addSkill(s)}
-                  className="text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400 hover:bg-[#FFD700]/20 hover:text-[#FFD700] border border-white/10 transition-colors"
-                >
-                  + {s}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Skills */}
+      <div className="space-y-2">
+        <Label className="text-[#F8FAFC] font-medium">Skills</Label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {formData.skills.map(skill => (
+            <Badge key={skill} className="bg-[#6366F1]/20 text-[#A5B4FC] border-[#6366F1]/30 flex items-center gap-1">
+              {skill}
+              <button type="button" onClick={() => removeSkill(skill)}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={skillInput}
+            onChange={e => setSkillInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addSkill(skillInput) }
+            }}
+            placeholder="Type a skill and press Enter"
+            className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1]"
+          />
+          <Button type="button" onClick={() => addSkill(skillInput)} disabled={!skillInput.trim()}
+            className="bg-[#1E293B] hover:bg-[#334155] text-white border border-[#334155]">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {SKILL_SUGGESTIONS.filter(s => !formData.skills.includes(s)).slice(0, 10).map(s => (
+            <button key={s} type="button" onClick={() => addSkill(s)}
+              className="text-xs px-2 py-1 rounded-full bg-[#0F172A] text-[#94A3B8] hover:bg-[#6366F1]/20 hover:text-[#A5B4FC] border border-[#334155] transition-colors">
+              + {s}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* Hourly Rate + Availability */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300">Hourly Rate (₹)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.hourlyRate}
-                onChange={e => setFormData(prev => ({ ...prev, hourlyRate: e.target.value }))}
-                placeholder="e.g. 500"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-              />
+      {/* Portfolio Links */}
+      <div className="space-y-2">
+        <Label className="text-[#F8FAFC] font-medium">Portfolio Links</Label>
+        <div className="space-y-2 mb-2">
+          {formData.portfolio_links.map(link => (
+            <div key={link} className="flex items-center justify-between bg-[#0F172A] px-3 py-2 rounded-lg border border-[#334155]">
+              <span className="text-[#A5B4FC] text-sm truncate">{link}</span>
+              <button type="button" onClick={() => removeLink(link)} className="text-[#94A3B8] hover:text-red-400 ml-2 flex-shrink-0">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Availability</Label>
-              <Select
-                value={formData.availability}
-                onValueChange={v => setFormData(prev => ({ ...prev, availability: v }))}
-              >
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
-                  <SelectItem value="full-time">Full Time</SelectItem>
-                  <SelectItem value="part-time">Part Time</SelectItem>
-                  <SelectItem value="weekends">Weekends Only</SelectItem>
-                  <SelectItem value="not-available">Not Available</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </>
-      )}
-
-      {role === "client" && (
-        <>
-          {/* Company */}
-          <div className="space-y-2">
-            <Label className="text-gray-300">Company</Label>
-            <Input
-              value={formData.company}
-              onChange={e => setFormData(prev => ({ ...prev, company: e.target.value }))}
-              placeholder="e.g. Acme Corp"
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-            />
-          </div>
-
-          {/* Bio */}
-          <div className="space-y-2">
-            <Label className="text-gray-300">Bio</Label>
-            <Textarea
-              value={formData.bio}
-              onChange={e => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Tell freelancers about your company and projects..."
-              rows={3}
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-            />
-          </div>
-
-          {/* Location */}
-          <div className="space-y-2">
-            <Label className="text-gray-300">Location</Label>
-            <Input
-              value={formData.location}
-              onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
-              placeholder="e.g. Bangalore, India"
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
-            />
-          </div>
-        </>
-      )}
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={linkInput}
+            onChange={e => setLinkInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addLink() } }}
+            placeholder="https://yourportfolio.com"
+            className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1]"
+          />
+          <Button type="button" onClick={addLink} disabled={!linkInput.trim()}
+            className="bg-[#1E293B] hover:bg-[#334155] text-white border border-[#334155]">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       <Button
         type="submit"
-        disabled={loading || !formData.fullName}
-        className="w-full py-6 text-lg font-semibold bg-[#FFD700] hover:bg-[#FFD700]/90 text-black"
+        disabled={loading || !formData.full_name.trim()}
+        className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:opacity-90 text-white shadow-lg shadow-[#6366F1]/20"
       >
-        {loading ? "Saving..." : "Complete Setup →"}
+        {loading ? "Setting up your profile..." : "Complete Setup →"}
       </Button>
     </form>
   )

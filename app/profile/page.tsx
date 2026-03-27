@@ -30,7 +30,7 @@ export default async function ProfilePage() {
     .order("created_at", { ascending: false })
 
   const avgRating = profile?.avg_rating ?? 0
-  const isFreelancer = profile?.user_type === "freelancer" || profile?.user_type === "both"
+  const isFreelancer = !!(profile?.skills && profile.skills.length > 0)
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
 
   const availabilityLabel: Record<string, { label: string; color: string }> = {

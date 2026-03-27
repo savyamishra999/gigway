@@ -58,6 +58,7 @@ export default function JobForm({ userId }: { userId: string }) {
     const { data, error: insertError } = await supabase
       .from("jobs")
       .insert({
+        poster_id: userId,
         client_id: userId,
         title,
         description,
@@ -78,9 +79,9 @@ export default function JobForm({ userId }: { userId: string }) {
     setLoading(false)
     if (insertError) {
       setError("Error posting job: " + insertError.message)
-    } else {
-      router.push(`/jobs/${data.id}`)
+      return
     }
+    router.push("/jobs")
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Briefcase, Zap, Bookmark, Sparkles, Gift } from "lucide-react"
+import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Zap, Bookmark, Sparkles, Gift } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-interface Profile { full_name: string | null; user_type: string | null }
+interface Profile { full_name: string | null; avatar_url?: string | null }
 
 const NAV_LINKS = [
   { href: "/gigs",        label: "Gigs"        },
@@ -35,7 +35,7 @@ export default function Navbar() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       if (user) {
-        supabase.from("profiles").select("full_name,user_type").eq("id", user.id).single()
+        supabase.from("profiles").select("full_name,avatar_url").eq("id", user.id).single()
           .then(({ data }) => setProfile(data))
         supabase.from("notifications").select("id", { count: "exact", head: true })
           .eq("user_id", user.id).eq("is_read", false)
@@ -111,8 +111,10 @@ export default function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 h-9 px-2 hover:bg-white/5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-sm">
-                      {initial}
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-[#6366F1] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {profile?.avatar_url
+                        ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        : initial}
                     </div>
                     <span className="text-white text-sm max-w-[80px] truncate">{firstName}</span>
                     <ChevronDown className="h-4 w-4 text-[#6B7280]" />

@@ -2,52 +2,44 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import OpenAI from "openai"
 
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { projectTitle, projectDescription, freelancerBio, skills, tone } = await req.json()
-    if (!projectTitle || !projectDescription) {
-      return NextResponse.json({ error: "Project title and description are required" }, { status: 400 })
+    const { projectDescription, userSkills, userName } = await req.json()
+    if (!projectDescription) {
+      return NextResponse.json({ error: "Project description is required" }, { status: 400 })
     }
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: "AI service not configured" }, { status: 500 })
-    }
-
-    const openai = new OpenAI({ apiKey })
-
-    const prompt = `You are an expert cover letter writer for the Indian freelance market.
-
-Write a compelling cover letter/proposal for a freelancer applying to this project.
-
-Project Title: ${projectTitle}
-Project Description: ${projectDescription}
-${freelancerBio ? `Freelancer Bio: ${freelancerBio}` : ""}
-${skills?.length ? `Skills: ${skills.join(", ")}` : ""}
-Tone: ${tone || "professional but personable"}
-
-Requirements:
-- 150-200 words
-- Start with a hook that shows understanding of the project
-- Highlight relevant experience
-- End with a clear call to action
-- Sound genuine, not generic
-- Suitable for the Indian market context
-
-Return only the cover letter text, no extra formatting.`
-
-    const response = await openai.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert cover letter writer for the Indian freelance market. Write compelling, concise proposals.",
+        },
+        {
+          role: "user",
+          content: `Write a cover letter for a freelancer applying to this project.
+Name: ${userName || "Freelancer"}
+Project Description: ${projectDescription}
+Skills: ${Array.isArray(userSkills) ? userSkills.join(", ") : userSkills || "Not provided"}
+
+Requirements: 150-200 words, start with a hook, highlight relevant experience, end with a call to action. Sound genuine, not generic.
+
+Return JSON: { "cover_letter": "..." }`,
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 600,
     })
 
-    const coverLetter = response.choices[0].message.content?.trim() || ""
-    return NextResponse.json({ success: true, coverLetter })
+    const result = JSON.parse(completion.choices[0].message.content || "{}")
+    return NextResponse.json(result)
   } catch (err) {
     console.error("[ai/generate-cover-letter]", err)
     return NextResponse.json({ error: "AI service error" }, { status: 500 })

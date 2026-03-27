@@ -9,12 +9,11 @@ export default async function NewGigPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_type")
+    .select("profile_completed")
     .eq("id", user.id)
     .single()
 
-  if (!profile?.user_type) redirect("/onboarding")
-  if (profile.user_type === "client") redirect("/dashboard?error=freelancers_only")
+  if (!profile?.profile_completed) redirect("/onboarding")
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-10">

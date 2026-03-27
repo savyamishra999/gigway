@@ -29,15 +29,13 @@ export async function GET(request: Request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Ensure profile row exists
         const { data: profile } = await supabase
           .from('profiles')
-          .select('user_type, full_name, profile_completed')
+          .select('profile_completed')
           .eq('id', user.id)
           .single()
 
         if (!profile) {
-          // Create minimal profile row
           await supabase.from('profiles').insert({
             id: user.id,
             email: user.email,
@@ -46,8 +44,7 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/onboarding`)
         }
 
-        // If profile not completed or no user_type, send to onboarding
-        if (!profile.user_type || !profile.full_name || profile.profile_completed === false) {
+        if (profile.profile_completed === false) {
           return NextResponse.redirect(`${origin}/onboarding`)
         }
 

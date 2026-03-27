@@ -8,17 +8,16 @@ export default async function NewJobPage() {
 
   if (!user) redirect("/login")
 
-  // Only clients can post jobs
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_type")
+    .select("profile_completed")
     .eq("id", user.id)
     .single()
 
-  if (!profile?.user_type) redirect("/onboarding")
+  if (!profile?.profile_completed) redirect("/onboarding")
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] py-10">
+    <div className="min-h-screen bg-[#0F172A] py-10">
       <div className="container mx-auto px-4 max-w-2xl">
         <JobForm userId={user.id} />
       </div>

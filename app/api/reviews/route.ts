@@ -53,6 +53,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Recalculate avg_rating
+  const { data: allReviews } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("reviewee_id", reviewee_id)
+
+  if (allReviews && allReviews.length > 0) {
+    const avg = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
+    await supabase.from("profiles").update({
+      avg_rating: Math.round(avg * 10) / 10,
+      total_reviews: allReviews.length,
+    }).eq("id", reviewee_id)
+  }
+
   // Notify reviewee
   await supabase.from("notifications").insert({
     user_id: reviewee_id,

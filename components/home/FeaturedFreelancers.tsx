@@ -8,7 +8,7 @@ export default async function FeaturedFreelancers() {
     .from("profiles")
     .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, avg_rating, availability")
     .eq("is_verified", true)
-    .in("user_type", ["freelancer", "both"])
+    .eq("profile_completed", true)
     .order("avg_rating", { ascending: false })
     .limit(6)
 

@@ -12,23 +12,23 @@ export default async function OnboardingPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_type, full_name")
+    .select("profile_completed")
     .eq("id", user.id)
     .single()
 
-  // Already fully onboarded
-  if (profile?.user_type && profile?.full_name) {
+  if (profile?.profile_completed === true) {
     redirect("/dashboard")
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#0F172A] p-4">
       <div className="w-full max-w-2xl">
         <h1 className="text-4xl font-bold text-center text-white mb-4">
-          Welcome to <span className="text-[#FFD700]">GigWAY</span>
+          Welcome to{" "}
+          <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">GigWAY</span>
         </h1>
-        <p className="text-center text-gray-300 mb-8">
-          Tell us how you want to use GigWAY
+        <p className="text-center text-[#94A3B8] mb-8">
+          Tell us a bit about yourself to get started
         </p>
         <OnboardingForm userId={user.id} />
       </div>

@@ -6,36 +6,35 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const category = searchParams.get("category")
-  const job_type = searchParams.get("job_type")
   const search = searchParams.get("search")
 
   let query = supabase
-    .from("jobs")
-    .select("*, profiles:client_id(full_name, company, avatar_url)")
+    .from("gigs")
+    .select("*, profiles:owner_id(full_name, avg_rating, is_verified)")
     .eq("status", "active")
     .order("created_at", { ascending: false })
 
-  if (category) query = query.eq("category", category)
-  if (job_type) query = query.eq("job_type", job_type)
+  if (category && category !== "all") query = query.ilike("category", category)
 
-  const { data: jobs, error } = await query
+  const { data: gigs, error } = await query
 
   if (error) {
+    console.error("Route error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  let results = jobs || []
+  let results = gigs || []
 
   if (search) {
     const s = search.toLowerCase()
     results = results.filter(
-      (j: { title?: string; description?: string }) =>
-        j.title?.toLowerCase().includes(s) ||
-        j.description?.toLowerCase().includes(s)
+      (g: { title?: string; tags?: string[] }) =>
+        g.title?.toLowerCase().includes(s) ||
+        g.tags?.some((t: string) => t.toLowerCase().includes(s))
     )
   }
 
-  return NextResponse.json({ jobs: results })
+  return NextResponse.json({ gigs: results })
 }
 
 export async function POST(request: Request) {
@@ -47,32 +46,31 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { title, description, category, job_type, budget, location, skills_required } = body
+  const { title, description, category, price, delivery_days, tags } = body
 
-  if (!title || !description || !category) {
+  if (!title || !price || !category) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
   }
 
-  const { data: job, error } = await supabase
-    .from("jobs")
+  const { data: gig, error } = await supabase
+    .from("gigs")
     .insert({
-      poster_id: user.id,
-      client_id: user.id,
+      owner_id: user.id,
       title,
-      description,
-      category,
-      job_type: job_type || "full-time",
-      budget: budget ? parseFloat(budget) : null,
-      location: location || null,
-      skills_required: skills_required || [],
+      description: description || null,
+      category: category.toLowerCase(),
+      price: parseFloat(price),
+      delivery_days: parseInt(delivery_days) || 3,
+      tags: tags || [],
       status: "active",
     })
     .select("id")
     .single()
 
   if (error) {
+    console.error("Route error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, job_id: job.id }, { status: 201 })
+  return NextResponse.json({ success: true, gig_id: gig.id }, { status: 201 })
 }

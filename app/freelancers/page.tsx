@@ -35,7 +35,7 @@ export default function FreelancersPage() {
     let query = supabase
       .from("profiles")
       .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, avg_rating, availability")
-      .in("user_type", ["freelancer", "both"])
+      .eq("profile_completed", true)
       .order("avg_rating", { ascending: false })
 
     if (maxRate) query = query.lte("hourly_rate", parseFloat(maxRate))
