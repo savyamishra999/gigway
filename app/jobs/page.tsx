@@ -10,16 +10,16 @@ import { Search, MapPin, Clock, Briefcase } from "lucide-react"
 interface Job {
   id: string
   title: string
-  description: string
+  description?: string
   company_name: string | null
   location: string | null
   job_type: string
   salary_min: number | null
   salary_max: number | null
   skills_required: string[] | null
-  category: string | null
+  category?: string | null
   created_at: string
-  profiles: { full_name: string | null; company: string | null } | null
+  client_id?: string | null
 }
 
 const JOB_TYPES = [
@@ -53,20 +53,31 @@ export default function JobsPage() {
   const [search, setSearch] = useState("")
   const [jobType, setJobType] = useState("")
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const supabase = createClient()
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
+    setError("")
     let query = supabase
       .from("jobs")
-      .select("*, profiles:client_id(full_name, company)")
+      .select("id, title, company_name, location, job_type, salary_min, salary_max, skills_required, created_at, client_id")
       .eq("status", "active")
       .order("created_at", { ascending: false })
 
     if (jobType) query = query.eq("job_type", jobType)
 
-    const { data, error } = await query
-    if (error) { setJobs([]); setLoading(false); return }
+    const { data, error: fetchError } = await query
+    console.log("Jobs result:", { data, error: fetchError })
+
+    if (fetchError) {
+      console.error("Jobs error:", fetchError)
+      setError(fetchError.message)
+      setJobs([])
+      setLoading(false)
+      return
+    }
+
     let results = (data as Job[]) || []
 
     if (search) {
@@ -82,7 +93,7 @@ export default function JobsPage() {
 
     setJobs(results)
     setLoading(false)
-  }, [search, jobType]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, jobType, supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchJobs()
@@ -140,10 +151,15 @@ export default function JobsPage() {
               <div key={i} className="bg-[#12121A] border border-[#1E1E2E] rounded-xl p-5 h-28 skeleton" />
             ))}
           </div>
+        ) : error ? (
+          <div className="bg-[#12121A] border border-red-500/30 rounded-2xl p-10 text-center">
+            <p className="text-red-400 font-semibold mb-1">Failed to load jobs</p>
+            <p className="text-[#6B7280] text-sm">Error: {error}</p>
+          </div>
         ) : jobs.length === 0 ? (
           <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-16 text-center">
             <Briefcase className="h-12 w-12 text-[#374151] mx-auto mb-4" />
-            <p className="text-[#6B7280] mb-2">No jobs found.</p>
+            <p className="text-[#6B7280] mb-2">No jobs yet. Be the first to post!</p>
             <Link href="/jobs/new" className="text-[#4F46E5] hover:underline text-sm">
               Post a job →
             </Link>
@@ -158,7 +174,7 @@ export default function JobsPage() {
                     <div className="flex items-start justify-between gap-4">
                       {/* Company Avatar */}
                       <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/20 flex items-center justify-center text-[#818CF8] font-bold text-lg flex-shrink-0">
-                        {(job.company_name || job.profiles?.company || job.profiles?.full_name || "C")[0].toUpperCase()}
+                        {(job.company_name || "C")[0].toUpperCase()}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -168,7 +184,7 @@ export default function JobsPage() {
                               {job.title}
                             </h3>
                             <p className="text-[#6B7280] text-sm mt-0.5">
-                              {job.company_name || job.profiles?.company || job.profiles?.full_name || "Company"}
+                              {job.company_name || "Company"}
                             </p>
                           </div>
                           {job.job_type && (

@@ -10,10 +10,10 @@ interface Gig {
   category: string | null
   tags: string[] | null
   rating: number
-  total_reviews: number
+  total_reviews?: number
   orders_count: number
   image_url: string | null
-  profiles: { full_name: string | null; avg_rating: number | null; is_verified: boolean } | null
+  profiles?: { full_name: string | null; avg_rating: number | null; is_verified: boolean } | null
 }
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -60,7 +60,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
               <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
                 <Star className="h-3 w-3 fill-[#F97316] text-[#F97316]" />
                 <span className="text-[#F97316] text-xs font-semibold">{displayRating.toFixed(1)}</span>
-                {gig.total_reviews > 0 && (
+                {(gig.total_reviews ?? 0) > 0 && (
                   <span className="text-[#6B7280] text-xs">({gig.total_reviews})</span>
                 )}
               </div>

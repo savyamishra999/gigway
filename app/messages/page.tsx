@@ -1,126 +1,111 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
-import { MessageSquare } from "lucide-react"
 
-interface Conversation {
-  otherId: string
-  otherName: string
-  otherAvatar: string | null
-  lastMessage: string
-  lastTime: string
-  unread: number
-}
+export default function MessagesPage() {
+  const [user, setUser] = useState<{ id: string } | null>(null)
+  const [conversations, setConversations] = useState<{
+    userId: string
+    lastMessage: string
+    lastTime: string
+    unread: number
+    profile: { full_name: string | null; avatar_url: string | null } | null
+  }[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "just now"
-  if (mins < 60) return `${mins}m`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d`
-  return new Date(dateStr).toLocaleDateString()
-}
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) { setLoading(false); return }
+      setUser(authUser)
 
-export default async function MessagesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, content, created_at, is_read, sender_id, receiver_id")
+        .or(`sender_id.eq.${authUser.id},receiver_id.eq.${authUser.id}`)
+        .order("created_at", { ascending: false })
 
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("id, sender_id, receiver_id, content, created_at, is_read")
-    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-    .order("created_at", { ascending: false })
+      console.log("Messages:", { data, error })
 
-  const convMap = new Map<string, { lastMessage: string; lastTime: string; unread: number }>()
+      if (data) {
+        const convMap: Record<string, { userId: string; lastMessage: string; lastTime: string; unread: number }> = {}
+        data.forEach(msg => {
+          const otherId = msg.sender_id === authUser.id ? msg.receiver_id : msg.sender_id
+          if (!convMap[otherId]) {
+            convMap[otherId] = { userId: otherId, lastMessage: msg.content, lastTime: msg.created_at, unread: 0 }
+          }
+          if (msg.receiver_id === authUser.id && !msg.is_read) {
+            convMap[otherId].unread++
+          }
+        })
 
-  for (const msg of messages ?? []) {
-    const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id
-    if (!convMap.has(otherId)) {
-      convMap.set(otherId, {
-        lastMessage: msg.content,
-        lastTime: msg.created_at,
-        unread: (!msg.is_read && msg.receiver_id === user.id) ? 1 : 0,
-      })
-    } else {
-      const existing = convMap.get(otherId)!
-      if (!msg.is_read && msg.receiver_id === user.id) existing.unread++
+        const convList = Object.values(convMap)
+        const withProfiles = await Promise.all(
+          convList.map(async (conv) => {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name, avatar_url")
+              .eq("id", conv.userId)
+              .single()
+            return { ...conv, profile: profile ?? null }
+          })
+        )
+        setConversations(withProfiles)
+      }
+      setLoading(false)
     }
+    init()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+        <p className="text-[#94A3B8]">Loading messages...</p>
+      </div>
+    )
   }
 
-  const otherIds = Array.from(convMap.keys())
-  const conversations: Conversation[] = []
-
-  if (otherIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url")
-      .in("id", otherIds)
-
-    const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? [])
-
-    for (const [otherId, conv] of convMap.entries()) {
-      const profile = profileMap.get(otherId)
-      conversations.push({
-        otherId,
-        otherName: profile?.full_name ?? "Unknown User",
-        otherAvatar: profile?.avatar_url ?? null,
-        ...conv,
-      })
-    }
-    conversations.sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime())
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center gap-4">
+        <p className="text-[#94A3B8] text-lg">Please login to view messages</p>
+        <Link href="/login" className="bg-[#6366F1] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-[#4F46E5] transition-colors">
+          Login
+        </Link>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] py-10">
-      <div className="container mx-auto px-4 max-w-2xl">
-        <div className="flex items-center gap-3 mb-8">
-          <MessageSquare className="h-6 w-6 text-[#818CF8]" />
-          <h1 className="text-2xl font-black text-white">Messages</h1>
-        </div>
+    <div className="min-h-screen bg-[#0F172A] py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-[#F8FAFC] text-2xl font-bold mb-6">Messages</h1>
 
         {conversations.length === 0 ? (
-          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-16 text-center">
-            <MessageSquare className="h-12 w-12 text-[#1E1E2E] mx-auto mb-4" />
-            <p className="text-[#6B7280]">No conversations yet.</p>
-            <p className="text-[#4B5563] text-sm mt-1">Start a conversation by messaging a freelancer or client.</p>
+          <div className="text-center py-16">
+            <p className="text-[#94A3B8] text-lg mb-2">No conversations yet</p>
+            <p className="text-[#475569] text-sm">Start a conversation from a freelancer profile</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {conversations.map(conv => (
-              <Link key={conv.otherId} href={`/messages/${conv.otherId}`}>
-                <div className="flex items-center gap-4 p-4 bg-[#12121A] border border-[#1E1E2E] rounded-xl hover:border-[#4F46E5]/40 transition-all group">
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0">
-                    {conv.otherAvatar ? (
-                      <img src={conv.otherAvatar} alt={conv.otherName} className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg">
-                        {conv.otherName[0]?.toUpperCase() ?? "?"}
-                      </div>
-                    )}
-                    {conv.unread > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#10B981] rounded-full border-2 border-[#12121A]" />
-                    )}
+              <Link key={conv.userId} href={`/messages/${conv.userId}`} className="no-underline">
+                <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 flex items-center gap-3 hover:border-[#6366F1]/40 transition-colors cursor-pointer">
+                  <div className="w-11 h-11 rounded-full bg-[#4F46E5] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 overflow-hidden">
+                    {conv.profile?.avatar_url
+                      ? <img src={conv.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                      : (conv.profile?.full_name?.[0] ?? "?").toUpperCase()
+                    }
                   </div>
-
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <p className={`font-semibold truncate ${conv.unread > 0 ? "text-white" : "text-[#9CA3AF]"}`}>
-                        {conv.otherName}
-                      </p>
-                      <span className="text-xs text-[#4B5563] flex-shrink-0 ml-2">{timeAgo(conv.lastTime)}</span>
-                    </div>
-                    <p className={`text-sm truncate ${conv.unread > 0 ? "text-[#9CA3AF]" : "text-[#4B5563]"}`}>
-                      {conv.lastMessage}
-                    </p>
+                    <p className="text-[#F8FAFC] font-semibold mb-0.5">{conv.profile?.full_name ?? "Unknown User"}</p>
+                    <p className="text-[#94A3B8] text-sm truncate">{conv.lastMessage}</p>
                   </div>
-
                   {conv.unread > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-[#4F46E5] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    <span className="bg-[#6366F1] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {conv.unread > 9 ? "9+" : conv.unread}
                     </span>
                   )}

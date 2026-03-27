@@ -24,9 +24,8 @@ const SORT_OPTIONS = [
 interface Gig {
   id: string; title: string; price: number; delivery_days: number
   category: string | null; tags: string[] | null; rating: number
-  total_reviews: number; orders_count: number; image_url: string | null
-  created_at: string
-  profiles: { full_name: string | null; avg_rating: number | null; is_verified: boolean } | null
+  orders_count: number; image_url: string | null
+  created_at: string; freelancer_id: string | null; owner_id: string | null
 }
 
 export default function GigsPage() {
@@ -36,13 +35,15 @@ export default function GigsPage() {
   const [priceIdx, setPriceIdx] = useState(0)
   const [sort, setSort] = useState("newest")
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const supabase = createClient()
 
   const fetchGigs = useCallback(async () => {
     setLoading(true)
+    setError("")
     let query = supabase
       .from("gigs")
-      .select("*, profiles:freelancer_id(full_name, avg_rating, is_verified)")
+      .select("id, title, price, delivery_days, category, tags, rating, orders_count, freelancer_id, owner_id, created_at")
       .eq("status", "active")
 
     if (category !== "All") query = query.ilike("category", category)
@@ -52,7 +53,17 @@ export default function GigsPage() {
     else if (sort === "price_desc") query = query.order("price", { ascending: false })
     else query = query.order("created_at", { ascending: false })
 
-    const { data } = await query
+    const { data, error: fetchError } = await query
+    console.log("Gigs result:", { data, error: fetchError })
+
+    if (fetchError) {
+      console.error("Gigs error:", fetchError)
+      setError(fetchError.message)
+      setGigs([])
+      setLoading(false)
+      return
+    }
+
     let results = (data as Gig[]) || []
 
     const { min, max } = PRICE_FILTERS[priceIdx]
@@ -151,11 +162,16 @@ export default function GigsPage() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-400 font-semibold mb-2">Failed to load gigs</p>
+            <p className="text-[#6B7280] text-sm">Error: {error}</p>
+          </div>
         ) : gigs.length === 0 ? (
           <div className="text-center py-20 text-[#6B7280]">
-            <p className="text-lg">No gigs found.</p>
-            <Link href="/gigs/new" className="text-[#4F46E5] hover:underline text-sm mt-2 inline-block">
-              Be the first to post a gig →
+            <p className="text-lg mb-2">No gigs yet!</p>
+            <Link href="/gigs/new" className="text-[#4F46E5] hover:underline text-sm inline-block">
+              Create the first gig →
             </Link>
           </div>
         ) : (
