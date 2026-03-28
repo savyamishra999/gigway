@@ -8,7 +8,10 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     const { bio, skills, jobFunction } = await req.json()
 
@@ -17,26 +20,48 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "system",
-          content: "You are an expert career coach for Indian freelancers. Give practical, concise advice.",
+          content: "You are an expert career coach for Indian freelancers. Return ONLY valid JSON.",
         },
         {
           role: "user",
-          content: `Optimize this freelancer profile for the Indian market:
+          content: `Optimize this freelancer profile:
+
 Bio: ${bio || "Not provided"}
 Skills: ${Array.isArray(skills) ? skills.join(", ") : skills || "Not provided"}
 Job Function: ${jobFunction || "Not provided"}
 
-Return JSON: { "improved_bio": "...", "tagline": "...", "skill_suggestions": ["..."], "tips": ["..."] }`,
+Return ONLY JSON in this format:
+{
+  "improved_bio": "...",
+  "tagline": "...",
+  "skill_suggestions": ["..."],
+  "tips": ["..."]
+}`,
         },
       ],
-      response_format: { type: "json_object" },
       max_tokens: 800,
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || "{}")
+    const text = completion.choices?.[0]?.message?.content
+
+    let result
+    try {
+      result = JSON.parse(text || "{}")
+    } catch (e) {
+      console.error("JSON parse failed:", text)
+      return NextResponse.json(
+        { error: "Invalid AI response", raw: text },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(result)
-  } catch (err) {
-    console.error("[ai/optimize-resume]", err)
-    return NextResponse.json({ error: "AI service error" }, { status: 500 })
+
+  } catch (err: any) {
+    console.error("AI ERROR FULL:", err)
+    return NextResponse.json(
+      { error: err.message || "AI service failed" },
+      { status: 500 }
+    )
   }
 }
