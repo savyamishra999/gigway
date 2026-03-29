@@ -3,8 +3,9 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, Calendar, Building2, DollarSign } from "lucide-react"
+import { MapPin, Clock, Calendar, Building2, DollarSign, Pencil } from "lucide-react"
 import JobApplyButton from "@/components/jobs/JobApplyButton"
+import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
 
 export async function generateMetadata(
@@ -191,8 +192,15 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
               )}
 
               {user && isOwner && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-                  <p className="text-gray-400">You posted this job. {applicantCount || 0} applicants so far.</p>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                  <p className="text-gray-400 mb-4">You posted this job. {applicantCount || 0} applicants so far.</p>
+                  <div className="flex gap-3">
+                    <Link href={`/jobs/${id}/edit`}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/20 text-[#818CF8] hover:bg-[#4F46E5]/10 text-sm font-semibold transition-all">
+                      <Pencil className="h-4 w-4" /> Edit Job
+                    </Link>
+                    <DeleteButton table="jobs" id={id} redirectTo="/jobs" label="Delete" />
+                  </div>
                 </div>
               )}
             </div>

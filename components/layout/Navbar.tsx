@@ -25,6 +25,7 @@ export default function Navbar() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [unread, setUnread] = useState(0)
+  const [unreadMsgs, setUnreadMsgs] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
@@ -32,6 +33,8 @@ export default function Navbar() {
   const pathname = usePathname()
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       if (user) {
@@ -40,8 +43,27 @@ export default function Navbar() {
         supabase.from("notifications").select("id", { count: "exact", head: true })
           .eq("user_id", user.id).eq("is_read", false)
           .then(({ count }) => setUnread(count ?? 0))
+        supabase.from("messages").select("id", { count: "exact", head: true })
+          .eq("receiver_id", user.id).eq("is_read", false)
+          .then(({ count }) => setUnreadMsgs(count ?? 0))
+
+        // Realtime: new messages
+        channel = supabase.channel("navbar-msgs")
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages",
+            filter: `receiver_id=eq.${user.id}` }, () => {
+            setUnreadMsgs(prev => prev + 1)
+          })
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages",
+            filter: `receiver_id=eq.${user.id}` }, () => {
+            supabase.from("messages").select("id", { count: "exact", head: true })
+              .eq("receiver_id", user.id).eq("is_read", false)
+              .then(({ count }) => setUnreadMsgs(count ?? 0))
+          })
+          .subscribe()
       }
     })
+
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [pathname]) // eslint-disable-line
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
@@ -94,8 +116,13 @@ export default function Navbar() {
                 </Button>
               </Link>
               <Link href="/messages">
-                <Button variant="ghost" size="icon" className="text-[#6B7280] hover:text-white hover:bg-white/5">
+                <Button variant="ghost" size="icon" className="text-[#6B7280] hover:text-white hover:bg-white/5 relative">
                   <MessageSquare className="h-5 w-5" />
+                  {unreadMsgs > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#4F46E5] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadMsgs > 9 ? "9+" : unreadMsgs}
+                    </span>
+                  )}
                 </Button>
               </Link>
               <Link href="/notifications">

@@ -7,22 +7,59 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Sparkles } from "lucide-react"
 
 interface ProposalFormProps {
   projectId: string
   userId: string
   onSuccess?: () => void
+  projectTitle?: string
+  projectDescription?: string
 }
 
 const MAX_COVER_LETTER = 500
 
-export default function ProposalForm({ projectId, userId, onSuccess }: ProposalFormProps) {
+export default function ProposalForm({ projectId, userId, onSuccess, projectTitle, projectDescription }: ProposalFormProps) {
   const [coverLetter, setCoverLetter] = useState("")
   const [bidAmount, setBidAmount] = useState("")
   const [estimatedDays, setEstimatedDays] = useState("")
   const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const supabase = createClient()
+
+  const generateWithAI = async () => {
+    setGenerating(true)
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, bio, skills, job_function")
+        .eq("id", userId)
+        .single()
+
+      const res = await fetch("/api/ai/generate-cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectTitle: projectTitle || "Project",
+          projectDescription: projectDescription || "",
+          freelancerName: profile?.full_name || "",
+          skills: profile?.skills?.join(", ") || "",
+          bio: profile?.bio || "",
+        }),
+      })
+      const data = await res.json()
+      if (data.coverLetter) {
+        const trimmed = data.coverLetter.slice(0, MAX_COVER_LETTER)
+        setCoverLetter(trimmed)
+      } else {
+        setMessage({ type: "error", text: "AI generation failed. Please try again." })
+      }
+    } catch {
+      setMessage({ type: "error", text: "AI generation failed. Please try again." })
+    }
+    setGenerating(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,11 +151,22 @@ export default function ProposalForm({ projectId, userId, onSuccess }: ProposalF
           )}
 
           <div className="space-y-2">
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between">
               <Label className="text-gray-300">Cover Letter *</Label>
-              <span className={`text-xs ${coverLetter.length > MAX_COVER_LETTER ? "text-red-400" : "text-gray-500"}`}>
-                {coverLetter.length}/{MAX_COVER_LETTER}
-              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={generateWithAI}
+                  disabled={generating}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#818CF8] hover:text-[#A5B4FC] disabled:opacity-50 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {generating ? "Generating..." : "Generate with AI ✨"}
+                </button>
+                <span className={`text-xs ${coverLetter.length > MAX_COVER_LETTER ? "text-red-400" : "text-gray-500"}`}>
+                  {coverLetter.length}/{MAX_COVER_LETTER}
+                </span>
+              </div>
             </div>
             <Textarea
               value={coverLetter}

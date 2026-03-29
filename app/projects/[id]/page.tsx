@@ -3,10 +3,11 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, DollarSign, Users, Clock, ShieldCheck } from "lucide-react"
+import { Calendar, DollarSign, Users, Clock, ShieldCheck, Pencil } from "lucide-react"
 import ProposalForm from "@/components/projects/ProposalForm"
 import ReviewForm from "@/components/reviews/ReviewForm"
 import ReleasePaymentButton from "@/components/escrow/ReleasePaymentButton"
+import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -178,11 +179,20 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
               )}
 
               {user && isOwner && (
-                <Link href={`/projects/${id}/proposals`}>
-                  <Button className="w-full bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-bold shadow-lg shadow-[#4F46E5]/20 hover:opacity-90 py-5 text-base">
-                    View Proposals ({proposalCount || 0})
-                  </Button>
-                </Link>
+                <div className="space-y-3">
+                  <Link href={`/projects/${id}/proposals`}>
+                    <Button className="w-full bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-bold shadow-lg shadow-[#4F46E5]/20 hover:opacity-90 py-5 text-base">
+                      View Proposals ({proposalCount || 0})
+                    </Button>
+                  </Link>
+                  <div className="flex gap-3">
+                    <Link href={`/projects/${id}/edit`}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#1E1E2E] text-[#818CF8] hover:bg-[#4F46E5]/10 text-sm font-semibold transition-all">
+                      <Pencil className="h-4 w-4" /> Edit
+                    </Link>
+                    <DeleteButton table="projects" id={id} redirectTo="/projects" label="Delete" />
+                  </div>
+                </div>
               )}
 
               {user && !isOwner && hasApplied && (
@@ -192,7 +202,12 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
               )}
 
               {user && !isOwner && !hasApplied && isOpen && (
-                <ProposalForm projectId={id} userId={user.id} />
+                <ProposalForm
+                  projectId={id}
+                  userId={user.id}
+                  projectTitle={project.title}
+                  projectDescription={project.description}
+                />
               )}
 
               {user && !isOwner && !hasApplied && !isOpen && !isCompleted && (

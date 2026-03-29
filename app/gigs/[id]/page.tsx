@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { Star, Clock, Package, CheckCircle, ExternalLink } from "lucide-react"
+import { Star, Clock, Package, CheckCircle, ExternalLink, Pencil } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import GigCard from "@/components/gigs/GigCard"
+import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
 
 export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -28,7 +29,9 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
     .eq("id", id)
     .single()
 
-  if (!gig || gig.status !== "active") return notFound()
+  if (!gig || (gig.status !== "active" && user?.id !== gig.freelancer_id)) return notFound()
+
+  const isOwner = user?.id === gig.freelancer_id
 
   const { data: reviews } = await supabase
     .from("reviews")
@@ -67,11 +70,24 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
 
             {/* Title */}
             <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
-              {gig.category && (
-                <Badge className="bg-[#4F46E5]/20 text-[#818CF8] border-[#4F46E5]/30 capitalize mb-3">
-                  {gig.category}
-                </Badge>
-              )}
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  {gig.category && (
+                    <Badge className="bg-[#4F46E5]/20 text-[#818CF8] border-[#4F46E5]/30 capitalize">
+                      {gig.category}
+                    </Badge>
+                  )}
+                </div>
+                {isOwner && (
+                  <div className="flex items-center gap-2">
+                    <Link href={`/gigs/${id}/edit`}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#1E1E2E] text-[#818CF8] hover:bg-[#4F46E5]/10 text-sm font-semibold transition-all">
+                      <Pencil className="h-4 w-4" /> Edit
+                    </Link>
+                    <DeleteButton table="gigs" id={id} redirectTo="/gigs" label="Delete" />
+                  </div>
+                )}
+              </div>
               <h1 className="text-2xl font-black text-white mb-4">{gig.title}</h1>
 
               {/* Freelancer mini row */}

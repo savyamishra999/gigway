@@ -81,7 +81,7 @@ export default function JobForm({ userId }: { userId: string }) {
       setError("Error posting job: " + insertError.message)
       return
     }
-    router.push("/jobs")
+    router.push(`/jobs/${data.id}`)
   }
 
   return (
