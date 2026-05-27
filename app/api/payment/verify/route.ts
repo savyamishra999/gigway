@@ -8,6 +8,8 @@ const CONNECTS_MAP: Record<string, number> = {
   connects_50: 50,
 }
 
+const BOOST_PLANS = new Set(["boost_basic", "boost_standard", "boost_premium"])
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -39,7 +41,48 @@ export async function POST(req: NextRequest) {
   }
 
   // Update database based on plan type
-  if (plan_type === "pro" || plan_type === "business") {
+  if (BOOST_PLANS.has(plan_type)) {
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        is_boosted: true,
+        boost_expires_at: expiresAt,
+        boost_plan: plan_type,
+      })
+      .eq("id", user.id)
+
+    if (error) {
+      return NextResponse.json({ error: "Failed to activate boost" }, { status: 500 })
+    }
+
+    await supabase.from("subscriptions").insert({
+      user_id: user.id,
+      plan: plan_type,
+      payment_id: razorpay_payment_id,
+      order_id: razorpay_order_id,
+      status: "active",
+    }).then(() => null, () => null)
+
+  } else if (plan_type === "verified_badge") {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ verification_status: "pending" })
+      .eq("id", user.id)
+
+    if (error) {
+      return NextResponse.json({ error: "Failed to submit verification" }, { status: 500 })
+    }
+
+    await supabase.from("subscriptions").insert({
+      user_id: user.id,
+      plan: plan_type,
+      payment_id: razorpay_payment_id,
+      order_id: razorpay_order_id,
+      status: "active",
+    }).then(() => null, () => null)
+
+  } else if (plan_type === "pro" || plan_type === "business") {
     const { error } = await supabase
       .from("profiles")
       .update({ subscription_tier: plan_type })

@@ -4,6 +4,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Plus, AlertCircle, Zap, Briefcase, Star, Package } from "lucide-react"
+import BoostProfileCard from "@/components/boost/BoostProfileCard"
+import VerifiedBadgeCard from "@/components/verify/VerifiedBadgeCard"
 
 const PROPOSAL_STATUS: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
@@ -26,12 +28,15 @@ export default async function DashboardPage() {
 
   const firstName = profile.full_name?.split(" ")[0] || "there"
 
+  const now = new Date().toISOString()
+
   const [
     { data: notifications },
     { data: myGigs },
     { data: myJobs },
     { data: myProposals },
     { data: openProjects },
+    { count: boostedCount },
   ] = await Promise.all([
     supabase.from("notifications").select("*").eq("user_id", user.id).eq("is_read", false)
       .order("created_at", { ascending: false }).limit(5),
@@ -43,7 +48,20 @@ export default async function DashboardPage() {
       .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(5),
     supabase.from("projects").select("id, title, description, budget, category, status")
       .eq("status", "open").order("created_at", { ascending: false }).limit(6),
+    supabase.from("profiles").select("*", { count: "exact", head: true })
+      .eq("is_boosted", true).gt("boost_expires_at", now),
   ])
+
+  // Profile completeness: full_name, bio, hourly_rate, skills, job_function = 5 fields
+  const completionScore = [
+    profile.full_name,
+    profile.bio,
+    profile.hourly_rate,
+    (profile.skills as string[] | null)?.length,
+    (profile.job_function as string[] | null)?.length,
+  ].filter(Boolean).length
+  const isProfileReady = completionScore >= 4 // 80%+
+  const isActiveBoosted = !!(profile.is_boosted && profile.boost_expires_at && new Date(profile.boost_expires_at) > new Date())
 
   const unreadCount = notifications?.length ?? 0
   const hasGigs = (myGigs?.length ?? 0) > 0
@@ -130,6 +148,22 @@ export default async function DashboardPage() {
             <p className="text-[#94A3B8] text-sm mt-1">Avg Rating</p>
           </div>
         </div>
+
+        {/* Revenue cards: Boost + Verified Badge */}
+        {isProfileReady && (
+          <div className="mb-6 space-y-4">
+            <BoostProfileCard
+              isAlreadyBoosted={isActiveBoosted}
+              boostPlan={profile.boost_plan as string | null}
+              boostExpiresAt={profile.boost_expires_at as string | null}
+              boostedCount={boostedCount ?? 0}
+            />
+            <VerifiedBadgeCard
+              verificationStatus={profile.verification_status as string | null}
+              isVerified={profile.is_verified as boolean | null}
+            />
+          </div>
+        )}
 
         {/* Notifications panel */}
         {notifications && notifications.length > 0 && (

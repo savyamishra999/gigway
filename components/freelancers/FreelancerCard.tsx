@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CheckCircle, Star } from "lucide-react"
+import { Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface FreelancerCardProps {
@@ -12,6 +12,8 @@ interface FreelancerCardProps {
     hourly_rate?: number | null
     skills?: string[] | null
     is_verified?: boolean | null
+    is_boosted?: boolean | null
+    boost_expires_at?: string | null
     avg_rating?: number | null
     availability?: string | null
   }
@@ -31,15 +33,39 @@ const availabilityLabel: Record<string, string> = {
   "not-available": "Not Available",
 }
 
+function isBoostedActive(freelancer: FreelancerCardProps["freelancer"]): boolean {
+  if (!freelancer.is_boosted) return false
+  if (!freelancer.boost_expires_at) return false
+  return new Date(freelancer.boost_expires_at) > new Date()
+}
+
 export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
   const initial = freelancer.full_name?.[0]?.toUpperCase() || "?"
   const rating = freelancer.avg_rating ?? 0
   const avColor = availabilityColor[freelancer.availability || ""] || "text-[#6B7280]"
   const avLabel = availabilityLabel[freelancer.availability || ""] || freelancer.availability || ""
+  const boosted = isBoostedActive(freelancer)
 
   return (
     <Link href={`/freelancers/${freelancer.id}`}>
-      <div className="bg-[#12121A] border border-[#1E1E2E] rounded-xl p-5 hover:border-[#4F46E5]/40 hover:bg-[#12121A] transition-all cursor-pointer group">
+      <div
+        className={`relative bg-[#12121A] rounded-xl p-5 hover:bg-[#12121A] transition-all cursor-pointer group ${
+          boosted
+            ? "border-2 border-[#F97316]/60 hover:border-[#F97316] shadow-[0_0_16px_rgba(249,115,22,0.15)]"
+            : "border border-[#1E1E2E] hover:border-[#4F46E5]/40"
+        }`}
+      >
+        {/* Featured banner */}
+        {boosted && (
+          <div className="absolute -top-px left-4 right-4 h-0.5 rounded-full bg-gradient-to-r from-[#F97316] via-[#FFD700] to-[#F97316]" />
+        )}
+        {boosted && (
+          <div className="flex items-center gap-1 mb-3 bg-[#F97316]/10 border border-[#F97316]/20 rounded-md px-2 py-1 w-fit">
+            <span className="text-[#FFD700] text-xs">⭐</span>
+            <span className="text-[#F97316] text-[10px] font-bold uppercase tracking-wider">Featured</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-start gap-3 mb-3">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
@@ -48,12 +74,12 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
               : initial}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-white truncate group-hover:text-[#818CF8] transition-colors">
                 {freelancer.full_name || "Unnamed"}
               </h3>
               {freelancer.is_verified && (
-                <span className="ml-0.5 inline-flex items-center bg-[#4F46E5]/20 text-[#818CF8] text-[10px] px-1.5 py-0.5 rounded-full font-semibold border border-[#4F46E5]/30 flex-shrink-0">
+                <span className="inline-flex items-center bg-[#4F46E5]/20 text-[#818CF8] text-[10px] px-1.5 py-0.5 rounded-full font-semibold border border-[#4F46E5]/30 flex-shrink-0">
                   ✓ Verified
                 </span>
               )}
@@ -104,7 +130,7 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
         {/* Footer */}
         <div className="flex items-center justify-between mt-2">
           <span className="text-[#F97316] font-bold text-sm">
-            {freelancer.hourly_rate ? `₹${freelancer.hourly_rate}/hr` : "Rate negotiable"}
+            {freelancer.hourly_rate ? `₹${freelancer.hourly_rate.toLocaleString("en-IN")}/hr` : "Rate negotiable"}
           </span>
           {avLabel && (
             <span className={`text-xs font-medium ${avColor}`}>{avLabel}</span>
