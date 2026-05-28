@@ -4,34 +4,39 @@ import Link from "next/link"
 import { ArrowRight, Star, CheckCircle } from "lucide-react"
 import { useState } from "react"
 
-const STATS = [
-  { value: "15,000+", label: "Freelancers" },
-  { value: "8,000+", label: "Projects" },
-  { value: "0%", label: "Commission" },
-  { value: "₹2Cr+", label: "Earned" },
-]
-
 const FREELANCER_TABS = [
-  { href: "/gigs", label: "Browse Gigs", icon: "💼" },
-  { href: "/projects", label: "Find Projects", icon: "🎯" },
-  { href: "/jobs", label: "Browse Jobs", icon: "🏢" },
+  { href: "/gigs",        label: "Browse Gigs",    icon: "💼" },
+  { href: "/projects",    label: "Find Projects",  icon: "🎯" },
+  { href: "/jobs",        label: "Browse Jobs",    icon: "🏢" },
 ]
 
 const CLIENT_TABS = [
-  { href: "/freelancers", label: "Find Freelancers", icon: "👥" },
-  { href: "/projects/new", label: "Post a Project", icon: "📋" },
-  { href: "/jobs/new", label: "Post a Job", icon: "📝" },
+  { href: "/freelancers",  label: "Find Freelancers", icon: "👥" },
+  { href: "/projects/new", label: "Post a Project",   icon: "📋" },
+  { href: "/jobs/new",     label: "Post a Job",       icon: "📝" },
 ]
 
 const SAMPLE_FREELANCERS = [
-  { name: "Rahul K.", skill: "Full Stack Developer", rating: 4.9, rate: "₹1200/hr", verified: true },
-  { name: "Priya M.", skill: "UI/UX Designer", rating: 5.0, rate: "₹800/hr", verified: true },
-  { name: "Arjun S.", skill: "Content Writer", rating: 4.8, rate: "₹400/hr", verified: false },
+  { name: "Rahul K.", skill: "Full Stack Developer", rating: 4.9, rate: "₹1,200/hr", verified: true },
+  { name: "Priya M.", skill: "UI/UX Designer",       rating: 5.0, rate: "₹800/hr",   verified: true },
+  { name: "Arjun S.", skill: "Content Writer",       rating: 4.8, rate: "₹400/hr",   verified: false },
 ]
 
-export default function Hero() {
+interface HeroProps {
+  freelancerCount: number
+  gigCount: number
+}
+
+export default function Hero({ freelancerCount, gigCount }: HeroProps) {
   const [intent, setIntent] = useState<"work" | "hire">("work")
   const tabs = intent === "work" ? FREELANCER_TABS : CLIENT_TABS
+
+  const stats = [
+    { value: freelancerCount > 0 ? `${freelancerCount}+` : "Growing", label: "Freelancers" },
+    { value: gigCount > 0 ? `${gigCount}+` : "New",                   label: "Gigs Posted" },
+    { value: "0%",                                                     label: "Commission" },
+    { value: "100%",                                                   label: "Earnings Kept" },
+  ]
 
   return (
     <section className="relative overflow-hidden mesh-bg min-h-[95vh] flex items-center">
@@ -93,7 +98,7 @@ export default function Hero() {
               </button>
             </div>
 
-            {/* CTAs based on intent */}
+            {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 mb-14">
               <Link
                 href={tabs[0].href}
@@ -121,9 +126,9 @@ export default function Hero() {
               ))}
             </div>
 
-            {/* Stats */}
+            {/* Real Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {STATS.map(stat => (
+              {stats.map(stat => (
                 <div key={stat.label} className="glass-card rounded-2xl p-4 text-center">
                   <p className="text-2xl font-black bg-gradient-to-r from-[#4F46E5] to-[#F97316] bg-clip-text text-transparent">{stat.value}</p>
                   <p className="text-[#6B7280] text-xs mt-0.5">{stat.label}</p>
@@ -135,7 +140,6 @@ export default function Hero() {
           {/* Right: Floating Freelancer Cards */}
           <div className="hidden lg:flex flex-col gap-5 relative">
             <div className="absolute inset-0 -m-8 rounded-3xl border border-[#4F46E5]/10" />
-
             {SAMPLE_FREELANCERS.map((f, i) => (
               <div
                 key={f.name}
@@ -168,7 +172,6 @@ export default function Hero() {
                 </div>
               </div>
             ))}
-
             <div className="glass-card rounded-2xl p-4 text-center ml-4">
               <p className="text-[#9CA3AF] text-xs">🔒 100% Secure Payments · ⚡ Instant Connect · 🌟 Verified Clients</p>
             </div>

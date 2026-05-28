@@ -14,11 +14,12 @@ import {
 interface Profile { full_name: string | null; avatar_url?: string | null }
 
 const NAV_LINKS = [
-  { href: "/gigs",        label: "Gigs"        },
-  { href: "/projects",    label: "Projects"    },
-  { href: "/jobs",        label: "Jobs"        },
-  { href: "/freelancers", label: "Freelancers" },
-  { href: "/explore",     label: "Explore"     },
+  { href: "/gigs",           label: "Gigs",         highlight: false },
+  { href: "/projects",       label: "Projects",     highlight: false },
+  { href: "/jobs",           label: "Jobs",         highlight: false },
+  { href: "/freelancers",    label: "Freelancers",  highlight: false },
+  { href: "/pricing",        label: "Pricing",      highlight: true  },
+  { href: "/affiliate/join", label: "Earn with Us", highlight: false, earn: true },
 ]
 
 export default function Navbar() {
@@ -98,7 +99,13 @@ export default function Navbar() {
           {NAV_LINKS.map(link => (
             <Link key={link.href} href={link.href}
               className={`text-sm font-medium transition-colors ${
-                pathname.startsWith(link.href) ? "text-[#818CF8]" : "text-[#6B7280] hover:text-white"
+                pathname.startsWith(link.href)
+                  ? "text-[#818CF8]"
+                  : (link as { earn?: boolean }).earn
+                  ? "text-[#4ADE80] hover:text-[#22C55E] font-semibold"
+                  : link.highlight
+                  ? "text-[#F59E0B] hover:text-[#F97316] font-semibold"
+                  : "text-[#6B7280] hover:text-white"
               }`}
             >
               {link.label}
@@ -219,6 +226,10 @@ export default function Navbar() {
                 className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   pathname.startsWith(link.href)
                     ? "bg-[#4F46E5]/10 text-[#818CF8]"
+                    : (link as { earn?: boolean }).earn
+                    ? "text-[#4ADE80] hover:bg-[#4ADE80]/10 font-semibold"
+                    : link.highlight
+                    ? "text-[#F59E0B] hover:bg-[#F59E0B]/10 font-semibold"
                     : "text-[#6B7280] hover:text-white hover:bg-white/5"
                 }`}>
                 {link.label}

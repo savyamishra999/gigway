@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import Hero from "@/components/home/Hero"
 import TrustBar from "@/components/home/TrustBar"
 import HowItWorks from "@/components/home/HowItWorks"
@@ -5,12 +6,24 @@ import FeaturedGigs from "@/components/home/FeaturedGigs"
 import FeaturedFreelancers from "@/components/home/FeaturedFreelancers"
 import LatestProjects from "@/components/home/LatestProjects"
 import WhyGigway from "@/components/home/WhyGigway"
+import HomePricing from "@/components/home/HomePricing"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient()
+
+  const [
+    { count: freelancerCount },
+    { count: gigCount },
+  ] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("profile_completed", true),
+    supabase.from("gigs").select("*", { count: "exact", head: true }).eq("status", "active"),
+  ])
+
   return (
     <main className="min-h-screen bg-[#0A0A0F]">
-      <Hero />
-      <TrustBar />
+      <Hero freelancerCount={freelancerCount ?? 0} gigCount={gigCount ?? 0} />
+      <TrustBar freelancerCount={freelancerCount ?? 0} />
+      <HomePricing />
       <HowItWorks />
       <FeaturedGigs />
       <FeaturedFreelancers />

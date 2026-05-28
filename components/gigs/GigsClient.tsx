@@ -150,10 +150,15 @@ export default function GigsClient({ initialGigs }: Props) {
           <p className="text-[#6B7280] text-sm">{error}</p>
         </div>
       ) : gigs.length === 0 ? (
-        <div className="text-center py-20 text-[#6B7280]">
-          <p className="text-lg mb-2">No gigs found!</p>
-          <Link href="/gigs/new" className="text-[#4F46E5] hover:underline text-sm">
-            Be the first — Create a gig →
+        <div className="flex flex-col items-center text-center py-20 bg-[#12121A] border border-[#1E1E2E] rounded-2xl px-8">
+          <span className="text-5xl mb-4">🎨</span>
+          <h3 className="text-white font-bold text-xl mb-2">No gigs yet</h3>
+          <p className="text-[#6B7280] text-sm mb-6 max-w-xs">Be the first to offer a service and start earning today!</p>
+          <Link
+            href="/gigs/new"
+            className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm"
+          >
+            Create Your First Gig →
           </Link>
         </div>
       ) : (

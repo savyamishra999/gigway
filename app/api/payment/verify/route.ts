@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
+import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
+
+const PLAN_AMOUNTS_RUPEES: Record<string, number> = {
+  boost_basic: 99, boost_standard: 199, boost_premium: 299,
+  verified_badge: 299, pro: 199, business: 999,
+  connects_10: 99, connects_25: 199, connects_50: 349,
+}
 
 const CONNECTS_MAP: Record<string, number> = {
   connects_10: 10,
@@ -128,6 +135,42 @@ export async function POST(req: NextRequest) {
       description: `Purchased ${connectsToAdd} connects`,
       payment_id: razorpay_payment_id,
     }).then(() => null, () => null)
+  }
+
+  // ── Affiliate commission (non-blocking) ─────────────────────────────────
+  try {
+    const cookieStore = await cookies()
+    const refCode = cookieStore.get("gigway_ref")?.value
+    if (refCode) {
+      const saleAmount = PLAN_AMOUNTS_RUPEES[plan_type] ?? 0
+      if (saleAmount > 0) {
+        const commission = Math.floor(saleAmount * 0.2)
+
+        await supabase.from("affiliate_conversions").insert({
+          ref_code: refCode,
+          payment_id: razorpay_payment_id,
+          sale_amount: saleAmount,
+          commission,
+        })
+
+        // Increment total_earnings on the affiliate row
+        const { data: aff } = await supabase
+          .from("affiliates")
+          .select("id, total_earnings")
+          .eq("ref_code", refCode)
+          .eq("status", "approved")
+          .maybeSingle()
+
+        if (aff) {
+          await supabase
+            .from("affiliates")
+            .update({ total_earnings: (aff.total_earnings ?? 0) + commission })
+            .eq("id", aff.id)
+        }
+      }
+    }
+  } catch {
+    // Commission errors must never block the payment response
   }
 
   return NextResponse.json({ success: true })

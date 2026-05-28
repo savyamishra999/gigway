@@ -141,11 +141,15 @@ export default function JobsClient({ initialJobs }: Props) {
           <p className="text-[#6B7280] text-sm">{error}</p>
         </div>
       ) : jobs.length === 0 ? (
-        <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-16 text-center">
-          <Briefcase className="h-12 w-12 text-[#374151] mx-auto mb-4" />
-          <p className="text-[#6B7280] mb-2 text-lg">No jobs yet — be the first to post!</p>
-          <Link href="/jobs/new" className="text-[#4F46E5] hover:underline text-sm">
-            Post a job →
+        <div className="flex flex-col items-center text-center py-20 bg-[#12121A] border border-[#1E1E2E] rounded-2xl px-8">
+          <span className="text-5xl mb-4">💼</span>
+          <h3 className="text-white font-bold text-xl mb-2">No jobs posted yet</h3>
+          <p className="text-[#6B7280] text-sm mb-6 max-w-xs">Post a job and hire India&apos;s best freelance talent today.</p>
+          <Link
+            href="/jobs/new"
+            className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity text-sm"
+          >
+            Post a Job →
           </Link>
         </div>
       ) : (
