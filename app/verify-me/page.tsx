@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { ShieldCheck } from "lucide-react"
-import VerifyMeForm from "@/components/verify/VerifyMeForm"
+import { ShieldCheck, CheckCircle2 } from "lucide-react"
+import AadhaarUploadForm from "@/components/verify/AadhaarUploadForm"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Get Verified | GigWay",
-  description: "Submit your identity document to get the GigWay verified badge.",
+  title: "Upload Documents — GigWay Verification",
+  description: "Upload your Aadhaar card to complete verification.",
 }
 
 export default async function VerifyMePage() {
@@ -16,40 +16,90 @@ export default async function VerifyMePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("verification_status, is_verified")
+    .select("verification_status, verification_paid_at, is_verified")
     .eq("id", user.id)
     .single()
 
-  // If they haven't paid yet, send them back
-  if (!profile?.verification_status || profile.verification_status === "rejected") {
-    redirect("/dashboard")
+  // Not paid yet → send to pricing
+  if (!profile?.verification_paid_at) {
+    redirect("/pricing")
   }
 
-  // If already verified, send them to their profile
-  if (profile.is_verified || profile.verification_status === "verified") {
-    redirect(`/freelancers/${user.id}`)
+  // Docs already submitted — under review
+  if (profile.verification_status === "pending") {
+    return (
+      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#FBBF24]/10 flex items-center justify-center mx-auto mb-4">
+            <ShieldCheck className="h-8 w-8 text-[#FBBF24]" />
+          </div>
+          <h2 className="text-white font-black text-xl mb-2">Documents Under Review</h2>
+          <p className="text-[#94A3B8] text-sm">
+            Your Aadhaar has been submitted. We&apos;ll verify within 24 hours and notify you.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Already verified
+  if (profile.is_verified) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#4ADE80]/10 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="h-8 w-8 text-[#4ADE80]" />
+          </div>
+          <h2 className="text-white font-black text-xl mb-2">Already Verified ✅</h2>
+          <p className="text-[#94A3B8] text-sm">Your GigWay profile is verified.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-[#0A0A0F] py-16 px-4">
+      <div className="max-w-lg mx-auto">
+
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-[#4F46E5]/20 flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="h-8 w-8 text-[#818CF8]" />
+          <div className="w-14 h-14 rounded-2xl bg-[#4F46E5]/10 flex items-center justify-center mx-auto mb-4">
+            <ShieldCheck className="h-7 w-7 text-[#818CF8]" />
           </div>
-          <h1 className="text-2xl font-black text-white mb-2">One Last Step</h1>
+          <h1 className="text-2xl font-black text-white mb-2">Upload Your Aadhaar</h1>
           <p className="text-[#94A3B8] text-sm">
-            Payment received! Submit one document to complete your verification.
+            Payment received ✅ — now upload front &amp; back of your Aadhaar card to complete verification.
           </p>
         </div>
 
-        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6">
-          <VerifyMeForm />
+        {/* Steps */}
+        <div className="flex items-center gap-2 mb-8 justify-center flex-wrap">
+          {[
+            { label: "Pay ₹299", done: true },
+            { label: "Upload Aadhaar", done: false, active: true },
+            { label: "Admin Review", done: false },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                s.done    ? "bg-[#4ADE80]/10 text-[#4ADE80]"
+                : s.active ? "bg-[#4F46E5]/20 text-[#818CF8] border border-[#4F46E5]/30"
+                : "text-[#475569]"
+              }`}>
+                {s.done && "✓ "}{s.label}
+              </span>
+              {i < 2 && <span className="text-[#334155] text-xs">→</span>}
+            </div>
+          ))}
         </div>
 
-        <p className="text-center text-[#475569] text-xs mt-6">
-          Reviewed by GigWay team within 24 hours · 100% private
+        {/* Upload form */}
+        <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
+          <AadhaarUploadForm />
+        </div>
+
+        <p className="text-[#475569] text-xs text-center mt-5">
+          Documents are stored securely and reviewed only by GigWay admins.
+          We never share your Aadhaar with employers or freelancers.
         </p>
       </div>
     </div>

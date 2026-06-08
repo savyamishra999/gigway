@@ -8,10 +8,13 @@ const PRICES: Record<string, number> = {
   connects_10: 9900,
   connects_25: 19900,
   connects_50: 34900,
-  boost_basic: 9900,      // ₹99/month
-  boost_standard: 19900,  // ₹199/month
-  boost_premium: 29900,   // ₹299/month
-  verified_badge: 29900,  // ₹299 one-time
+  connects_20: 9900,     // ₹99
+  connects_60: 24900,    // ₹249
+  connects_150: 49900,   // ₹499
+  boost_basic: 9900,
+  boost_standard: 19900,
+  boost_premium: 29900,
+  verified_badge: 29900,
 }
 
 export async function POST(req: NextRequest) {

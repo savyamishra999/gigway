@@ -17,14 +17,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  let body: { userId?: string; action?: string }
+  let body: { userId?: string; action?: string; reason?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 })
   }
 
-  const { userId, action } = body
+  const { userId, action, reason } = body
   if (!userId || !action) {
     return NextResponse.json({ error: "userId and action required" }, { status: 400 })
   }
@@ -64,8 +64,10 @@ export async function POST(req: NextRequest) {
     user_id: userId,
     type: "verification",
     message: "Verification not approved",
-    body: "Your verification document could not be verified. Please contact support@gigway.in",
-    link: "/dashboard",
+    body: reason
+      ? `Reason: ${reason}`
+      : "Your verification document could not be verified. Please contact support@gigway.in",
+    link: "/pricing",
   }).then(() => null, () => null)
 
   return NextResponse.json({ success: true, action: "rejected" })

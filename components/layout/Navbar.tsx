@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Zap, Bookmark, Sparkles, Gift } from "lucide-react"
+import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Zap, Bookmark, Sparkles, Gift, Crown } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -25,6 +25,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [unread, setUnread] = useState(0)
   const [unreadMsgs, setUnreadMsgs] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -39,6 +40,9 @@ export default function Navbar() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       if (user) {
+        const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+          .split(",").map(e => e.trim().toLowerCase())
+        setIsAdmin(adminEmails.includes((user.email ?? "").toLowerCase()))
         supabase.from("profiles").select("full_name,avatar_url").eq("id", user.id).single()
           .then(({ data }) => setProfile(data))
         supabase.from("notifications").select("id", { count: "exact", head: true })
@@ -117,6 +121,13 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-2">
           {user ? (
             <>
+              {isAdmin && (
+                <Link href="/admin">
+                  <Button size="sm" className="bg-[#F97316] hover:bg-[#EA580C] text-white font-bold gap-1.5 text-sm px-3 h-8 rounded-lg shadow-lg shadow-[#F97316]/20">
+                    <Crown className="h-3.5 w-3.5" /> Admin
+                  </Button>
+                </Link>
+              )}
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="text-[#6B7280] hover:text-white hover:bg-white/5 gap-1.5 text-sm">
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
@@ -237,6 +248,11 @@ export default function Navbar() {
             ))}
             {user ? (
               <div className="border-t border-[#1E1E2E] pt-3 mt-3 space-y-1">
+                {isAdmin && (
+                  <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#F97316]/10 text-[#F97316] font-bold text-sm">
+                    <Crown className="h-4 w-4" /> Admin Panel
+                  </Link>
+                )}
                 <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm">
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>

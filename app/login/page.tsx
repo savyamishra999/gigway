@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Mail, Loader2, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -17,7 +16,6 @@ export default function LoginPage() {
   const [step, setStep] = useState<"email" | "otp">("email")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const router = useRouter()
   const supabase = createClient()
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -56,7 +54,7 @@ export default function LoginPage() {
     if (error) {
       setMessage({ type: "error", text: error.message })
     } else {
-      window.location.href = "/dashboard"
+      window.location.href = "/auth/post-login"
     }
     setLoading(false)
   }

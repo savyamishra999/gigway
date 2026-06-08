@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { CheckCircle2, Zap } from "lucide-react"
+import { CheckCircle2, Zap, Link2 } from "lucide-react"
 import type { Metadata } from "next"
 import PricingFAQ from "@/components/pricing/PricingFAQ"
+import ConnectsBuyButton from "@/components/pricing/ConnectsBuyButton"
 
 export const metadata: Metadata = {
   title: "Pricing — GigWay Boost & Verified Badge",
@@ -155,6 +156,69 @@ export default async function PricingPage() {
             >
               Get Verified →
             </Link>
+          </div>
+        </div>
+
+        {/* Connects */}
+        <div id="connects" className="mb-20">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-[#4ADE80]/10 border border-[#4ADE80]/20 rounded-full px-4 py-1.5 mb-4">
+              <Link2 className="h-3.5 w-3.5 text-[#4ADE80]" />
+              <span className="text-[#4ADE80] text-xs font-semibold uppercase tracking-wider">Connects</span>
+            </div>
+            <h2 className="text-white font-black text-3xl mb-2">Buy Connects</h2>
+            <p className="text-[#94A3B8] text-sm max-w-md mx-auto">
+              Use connects to apply to projects. Each application costs 2 connects. New users get 10 free.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {/* Starter */}
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 flex flex-col">
+              <div className="mb-5">
+                <p className="text-[#94A3B8] font-bold text-xs uppercase tracking-wider mb-2">Starter</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-white text-3xl font-black">₹99</span>
+                </div>
+                <p className="text-[#4ADE80] font-black text-lg mt-1">20 Connects</p>
+                <p className="text-[#6B7280] text-xs">₹4.95 per connect</p>
+              </div>
+              <p className="text-[#94A3B8] text-sm mb-6 flex-1">Perfect for occasional project applications.</p>
+              <ConnectsBuyButton plan="connects_20" label="Buy 20 Connects" isLoggedIn={!!user} />
+            </div>
+
+            {/* Popular */}
+            <div className="relative bg-[#12121A] border-2 border-[#4ADE80]/40 rounded-2xl p-6 flex flex-col shadow-[0_0_30px_rgba(74,222,128,0.08)]">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <span className="bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
+                  Best Value ⭐
+                </span>
+              </div>
+              <div className="mb-5 mt-1">
+                <p className="text-[#4ADE80] font-bold text-xs uppercase tracking-wider mb-2">Popular</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-white text-3xl font-black">₹249</span>
+                </div>
+                <p className="text-[#4ADE80] font-black text-lg mt-1">60 Connects</p>
+                <p className="text-[#6B7280] text-xs">₹4.15 per connect — save 16%</p>
+              </div>
+              <p className="text-[#94A3B8] text-sm mb-6 flex-1">Ideal for active freelancers applying regularly.</p>
+              <ConnectsBuyButton plan="connects_60" label="Buy 60 Connects" isLoggedIn={!!user} highlight />
+            </div>
+
+            {/* Pro */}
+            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 flex flex-col">
+              <div className="mb-5">
+                <p className="text-[#94A3B8] font-bold text-xs uppercase tracking-wider mb-2">Pro</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-white text-3xl font-black">₹499</span>
+                </div>
+                <p className="text-[#4ADE80] font-black text-lg mt-1">150 Connects</p>
+                <p className="text-[#6B7280] text-xs">₹3.33 per connect — save 33%</p>
+              </div>
+              <p className="text-[#94A3B8] text-sm mb-6 flex-1">For power freelancers who apply to many projects.</p>
+              <ConnectsBuyButton plan="connects_150" label="Buy 150 Connects" isLoggedIn={!!user} />
+            </div>
           </div>
         </div>
 

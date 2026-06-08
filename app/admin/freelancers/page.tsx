@@ -2,127 +2,117 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { Users } from "lucide-react"
-import AdminUsersClient from "@/components/admin/AdminUsersClient"
+import { UserCheck } from "lucide-react"
+import AdminFreelancersClient from "@/components/admin/AdminFreelancersClient"
 
 export const metadata: Metadata = {
-  title: "Admin — Users — GigWay",
-  description: "Manage GigWay users",
+  title: "Admin — Freelancers — GigWay",
 }
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 const PAGE_SIZE = 20
 
-type Filter = "all" | "boosted" | "verified" | "new"
-interface SearchParams { filter?: string; page?: string; q?: string }
+type TabFilter = "all" | "verified" | "boosted" | "banned"
+interface SearchParams { tab?: string; page?: string; q?: string }
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+export default async function AdminFreelancersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
   const params = await searchParams
-  const filter = (params.filter ?? "all") as Filter
-  const page = Math.max(1, parseInt(params.page ?? "1"))
-  const q = params.q?.trim() ?? ""
+  const tab    = (params.tab ?? "all") as TabFilter
+  const page   = Math.max(1, parseInt(params.page ?? "1"))
+  const q      = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
   let query = supabase
     .from("profiles")
-    .select("id,full_name,email,created_at,is_boosted,is_verified,verification_status,boost_expires_at,subscription_tier", { count: "exact" })
+    .select(
+      "id,full_name,email,avatar_url,skills,hourly_rate,is_verified,is_boosted,is_banned,boost_expires_at,created_at",
+      { count: "exact" }
+    )
 
   if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
-  if (filter === "boosted") query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())
-  else if (filter === "verified") query = query.eq("is_verified", true)
-  else if (filter === "new") {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    query = query.gt("created_at", sevenDaysAgo)
-  }
+  if (tab === "verified") query = query.eq("is_verified", true)
+  else if (tab === "boosted") query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())
+  else if (tab === "banned") query = query.eq("is_banned", true)
 
-  const { data: users, count } = await query
+  const { data: freelancers, count } = await query
     .order("created_at", { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1)
 
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
-  const TABS: { key: Filter; label: string }[] = [
+  const TABS: { key: TabFilter; label: string }[] = [
     { key: "all",      label: "All" },
-    { key: "boosted",  label: "Boosted" },
     { key: "verified", label: "Verified" },
-    { key: "new",      label: "New (7d)" },
+    { key: "boosted",  label: "Boosted" },
+    { key: "banned",   label: "Banned" },
   ]
+
+  function tabUrl(t: TabFilter) {
+    const sp = new URLSearchParams()
+    if (t !== "all") sp.set("tab", t)
+    if (q) sp.set("q", q)
+    const s = sp.toString()
+    return `/admin/freelancers${s ? `?${s}` : ""}`
+  }
 
   function pageUrl(p: number) {
     const sp = new URLSearchParams()
-    if (filter !== "all") sp.set("filter", filter)
+    if (tab !== "all") sp.set("tab", tab)
     if (q) sp.set("q", q)
     if (p > 1) sp.set("page", String(p))
     const s = sp.toString()
-    return `/admin/users${s ? `?${s}` : ""}`
-  }
-
-  function filterUrl(f: Filter) {
-    const sp = new URLSearchParams()
-    if (f !== "all") sp.set("filter", f)
-    if (q) sp.set("q", q)
-    const s = sp.toString()
-    return `/admin/users${s ? `?${s}` : ""}`
+    return `/admin/freelancers${s ? `?${s}` : ""}`
   }
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-10 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
-            <Users className="h-5 w-5 text-[#818CF8]" />
+            <UserCheck className="h-5 w-5 text-[#818CF8]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">Users</h1>
-            <p className="text-[#6B7280] text-xs mt-0.5">{(count ?? 0).toLocaleString()} total</p>
+            <h1 className="text-2xl font-black text-white">Freelancers</h1>
+            <p className="text-[#6B7280] text-xs mt-0.5">{(count ?? 0).toLocaleString()} profiles</p>
           </div>
         </div>
 
-        {/* Search */}
-        <form method="GET" action="/admin/users" className="flex gap-3">
-          {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Search by name or email..."
-            className="flex-1 bg-[#12121A] border border-[#1E1E2E] text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#4F46E5] placeholder:text-[#475569]"
-          />
+        <form method="GET" action="/admin/freelancers" className="flex gap-3">
+          {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
+          <input name="q" defaultValue={q} placeholder="Search by name, email, or skills..."
+            className="flex-1 bg-[#12121A] border border-[#1E1E2E] text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#4F46E5] placeholder:text-[#475569]" />
           <button type="submit"
             className="px-5 py-2.5 bg-[#4F46E5] text-white text-sm font-semibold rounded-xl hover:bg-[#4338CA] transition-colors">
             Search
           </button>
           {q && (
-            <Link href={filterUrl(filter)}
+            <Link href={tabUrl(tab)}
               className="px-4 py-2.5 border border-[#1E1E2E] text-[#6B7280] text-sm rounded-xl hover:text-white hover:border-[#334155] transition-colors">
               Clear
             </Link>
           )}
         </form>
 
-        {/* Filter tabs */}
         <div className="flex gap-2 flex-wrap">
-          {TABS.map(tab => (
-            <Link key={tab.key} href={filterUrl(tab.key)}
+          {TABS.map(t => (
+            <Link key={t.key} href={tabUrl(t.key)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                filter === tab.key
+                tab === t.key
                   ? "bg-[#4F46E5] text-white"
                   : "bg-[#12121A] border border-[#1E1E2E] text-[#6B7280] hover:text-white hover:border-[#334155]"
               }`}>
-              {tab.label}
+              {t.label}
             </Link>
           ))}
         </div>
 
-        {/* Table with actions (client) */}
-        <AdminUsersClient initial={users ?? []} />
+        <AdminFreelancersClient initial={freelancers ?? []} />
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <p className="text-[#6B7280] text-xs">Page {page} of {totalPages}</p>
@@ -142,7 +132,6 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             </div>
           </div>
         )}
-
       </div>
     </div>
   )

@@ -165,6 +165,28 @@ export default async function DashboardPage() {
           </div>
         )}
 
+        {/* Connects card */}
+        <div className="mb-6 bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-[#4ADE80]/10 flex items-center justify-center flex-shrink-0">
+              <svg className="h-5 w-5 text-[#4ADE80]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-bold">Your Connects</p>
+              <p className="text-[#4ADE80] font-black text-2xl">{profile.connects_balance ?? 0}</p>
+              <p className="text-[#6B7280] text-xs">Each project application = 2 connects</p>
+            </div>
+          </div>
+          <Link
+            href="/pricing#connects"
+            className="flex-shrink-0 px-5 py-2.5 bg-[#4ADE80]/10 border border-[#4ADE80]/20 text-[#4ADE80] text-sm font-bold rounded-xl hover:bg-[#4ADE80]/20 transition-colors"
+          >
+            Buy More Connects →
+          </Link>
+        </div>
+
         {/* Notifications panel */}
         {notifications && notifications.length > 0 && (
           <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 mb-6">

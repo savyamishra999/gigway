@@ -7,12 +7,16 @@ const PLAN_AMOUNTS_RUPEES: Record<string, number> = {
   boost_basic: 99, boost_standard: 199, boost_premium: 299,
   verified_badge: 299, pro: 199, business: 999,
   connects_10: 99, connects_25: 199, connects_50: 349,
+  connects_20: 99, connects_60: 249, connects_150: 499,
 }
 
 const CONNECTS_MAP: Record<string, number> = {
   connects_10: 10,
   connects_25: 25,
   connects_50: 50,
+  connects_20: 20,
+  connects_60: 60,
+  connects_150: 150,
 }
 
 const BOOST_PLANS = new Set(["boost_basic", "boost_standard", "boost_premium"])
@@ -72,13 +76,14 @@ export async function POST(req: NextRequest) {
     }).then(() => null, () => null)
 
   } else if (plan_type === "verified_badge") {
+    // Payment done — mark paid_at so user can now upload Aadhaar docs
     const { error } = await supabase
       .from("profiles")
-      .update({ verification_status: "pending" })
+      .update({ verification_paid_at: new Date().toISOString() })
       .eq("id", user.id)
 
     if (error) {
-      return NextResponse.json({ error: "Failed to submit verification" }, { status: 500 })
+      return NextResponse.json({ error: "Failed to record verification payment" }, { status: 500 })
     }
 
     await supabase.from("subscriptions").insert({

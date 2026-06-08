@@ -29,6 +29,13 @@ export async function GET(request: Request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
+        // Admin shortcut — check before profile lookup
+        const adminEmails = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
+          .split(",").map(e => e.trim().toLowerCase())
+        if (adminEmails.includes((user.email ?? "").toLowerCase())) {
+          return NextResponse.redirect(`${origin}/admin`)
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('profile_completed')
@@ -41,6 +48,32 @@ export async function GET(request: Request) {
             email: user.email,
             profile_completed: false,
           }).then(() => null, () => null)
+
+          // Referral bonus: check cookie for ref code
+          const refCookie = cookieStore.get("gigway_ref")?.value
+          if (refCookie) {
+            const { data: referrer } = await supabase
+              .from("profiles")
+              .select("id")
+              .eq("user_ref_code", refCookie)
+              .neq("id", user.id)
+              .single()
+
+            if (referrer) {
+              // Give both users 5 connects
+              await Promise.all([
+                supabase.rpc("increment_connects", { uid: user.id, amount: 5 }),
+                supabase.rpc("increment_connects", { uid: referrer.id, amount: 5 }),
+                supabase.from("connects_transactions").insert([
+                  { user_id: user.id,      amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Joined via referral" },
+                  { user_id: referrer.id,  amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Friend joined via your link" },
+                ]),
+              ])
+              // Clear the ref cookie
+              cookieStore.set({ name: "gigway_ref", value: "", maxAge: 0 })
+            }
+          }
+
           return NextResponse.redirect(`${origin}/onboarding`)
         }
 
