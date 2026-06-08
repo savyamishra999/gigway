@@ -6,7 +6,7 @@ import { ExternalLink, Trash2, X, Briefcase } from "lucide-react"
 interface JobRow {
   id: string
   title: string
-  company: string | null
+  company_name: string | null
   job_type: string | null
   location: string | null
   created_at: string
@@ -73,7 +73,7 @@ export default function AdminJobsClient({ initial }: { initial: JobRow[] }) {
             </div>
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-5 text-sm">
               <p className="font-bold text-red-400 truncate">{target.title}</p>
-              <p className="text-red-300/70 text-xs mt-1">{target.company || "No company"}</p>
+              <p className="text-red-300/70 text-xs mt-1">{target.company_name || "No company"}</p>
               <p className="text-red-300 text-xs mt-2">This will permanently delete the job listing. Cannot be undone.</p>
             </div>
             <div className="flex gap-3">
@@ -116,7 +116,7 @@ export default function AdminJobsClient({ initial }: { initial: JobRow[] }) {
                       <p className="text-white font-medium truncate max-w-[160px]">{j.title}</p>
                     </td>
                     <td className="px-3 py-3 hidden sm:table-cell">
-                      <p className="text-[#94A3B8] text-xs truncate max-w-[140px]">{j.company || "—"}</p>
+                      <p className="text-[#94A3B8] text-xs truncate max-w-[140px]">{j.company_name || "—"}</p>
                     </td>
                     <td className="px-3 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${typeBadge(j.job_type)}`}>
