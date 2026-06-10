@@ -13,7 +13,10 @@ interface Props {
 declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Razorpay: new (opts: Record<string, unknown>) => { open(): void }
+    Razorpay: new (options: Record<string, unknown>) => {
+      open: () => void
+      on: (event: string, handler: (response: Record<string, string>) => void) => void
+    }
   }
 }
 

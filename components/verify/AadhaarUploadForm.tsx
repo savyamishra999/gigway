@@ -175,7 +175,7 @@ function FileUploadZone({
         </button>
       )}
       <input
-        ref={inputRef}
+        ref={inputRef as React.RefObject<HTMLInputElement>}
         type="file"
         accept="image/jpeg,image/png,image/webp,application/pdf"
         className="hidden"

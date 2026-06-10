@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
 
   // Upload both files to Supabase Storage
   async function upload(file: File, side: "front" | "back"): Promise<string> {
+    if (!user) throw new Error("User not authenticated")
     const path = `${user.id}/${side}.${ext(file.type)}`
     const bytes = await file.arrayBuffer()
     const { error } = await supabase.storage
