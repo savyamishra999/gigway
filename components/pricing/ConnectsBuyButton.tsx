@@ -54,7 +54,8 @@ export default function ConnectsBuyButton({ plan, label, isLoggedIn, highlight }
         amount: order.amount,
         currency: order.currency,
         name: "GigWay",
-        description: label,
+        image: "https://gigway.in/logo.png",
+        description: "GigWay — Zero Commission Freelance Platform",
         order_id: order.order_id,
         handler: async (resp: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           const vRes = await fetch("/api/payment/verify", {

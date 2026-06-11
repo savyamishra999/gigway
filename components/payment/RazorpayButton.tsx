@@ -77,8 +77,9 @@ export default function RazorpayButton({ planType, label, className }: RazorpayB
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: orderData.amount,
       currency: orderData.currency,
-      name: "GigWAY",
-      description: `GigWAY ${planType} Plan`,
+      name: "GigWay",
+      image: "https://gigway.in/logo.png",
+      description: `GigWay — Zero Commission Freelance Platform`,
       order_id: orderData.order_id,
       theme: { color: "#FFD700" },
       handler: async (response: {

@@ -95,8 +95,9 @@ export default function VerifiedBadgeCard({ verificationStatus, isVerified }: Ve
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: orderData.amount,
       currency: orderData.currency,
-      name: "GigWAY",
-      description: "Verified Badge — One-time payment",
+      name: "GigWay",
+      image: "https://gigway.in/logo.png",
+      description: "GigWay — Verified Badge · One-time · Permanent",
       order_id: orderData.order_id,
       theme: { color: "#4F46E5" },
       handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {

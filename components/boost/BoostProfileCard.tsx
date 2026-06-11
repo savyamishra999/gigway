@@ -122,8 +122,9 @@ export default function BoostProfileCard({
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: orderData.amount,
       currency: orderData.currency,
-      name: "GigWAY",
-      description: `Profile Boost — ${planId.replace("boost_", "").replace(/^\w/, c => c.toUpperCase())}`,
+      name: "GigWay",
+      image: "https://gigway.in/logo.png",
+      description: `GigWay — Profile Boost ${planId.replace("boost_", "").replace(/^\w/, (c: string) => c.toUpperCase())} · 30 days`,
       order_id: orderData.order_id,
       theme: { color: "#F97316" },
       handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
