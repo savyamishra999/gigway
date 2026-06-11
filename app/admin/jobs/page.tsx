@@ -2,8 +2,14 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { Briefcase } from "lucide-react"
 import AdminJobsClient from "@/components/admin/AdminJobsClient"
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export const metadata: Metadata = { title: "Admin — Jobs — GigWay" }
 
@@ -25,7 +31,7 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Pr
   const offset = (page - 1) * PAGE_SIZE
 
   // FK is client_id, company column is company_name
-  let query = supabase
+  let query = adminDb
     .from("jobs")
     .select(
       `id, title, company_name, location, job_type, created_at,

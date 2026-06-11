@@ -2,8 +2,14 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { FileText } from "lucide-react"
 import AdminGigsClient from "@/components/admin/AdminGigsClient"
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export const metadata: Metadata = { title: "Admin — Gigs — GigWay" }
 
@@ -24,7 +30,7 @@ export default async function AdminGigsPage({ searchParams }: { searchParams: Pr
   const q      = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
-  let query = supabase
+  let query = adminDb
     .from("gigs")
     .select(
       `id, title, price, category, delivery_days, status, created_at,

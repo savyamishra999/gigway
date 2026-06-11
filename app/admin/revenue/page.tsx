@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { ArrowLeft, TrendingUp, Zap, Shield, DollarSign, Download } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -11,57 +12,49 @@ export const metadata: Metadata = {
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 
-// Amount in rupees derived from plan name (subscriptions table has no amount column)
-const PLAN_AMOUNTS: Record<string, number> = {
-  boost_basic:     99,
-  boost_standard:  199,
-  boost_premium:   299,
-  verified_badge:  299,
-  pro:             199,
-  business:        999,
-  connects_10:     99,
-  connects_20:     99,
-  connects_25:     199,
-  connects_50:     349,
-  connects_60:     249,
-  connects_150:    499,
-  flash_5:         49,
-}
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 const PLAN_LABELS: Record<string, string> = {
-  boost_basic:     "Boost Basic",
-  boost_standard:  "Boost Standard ⭐",
-  boost_premium:   "Boost Premium",
-  verified_badge:  "Verified Badge ✅",
-  pro:             "Pro",
-  business:        "Business",
-  connects_10:     "Connects × 10",
-  connects_20:     "Connects × 20",
-  connects_25:     "Connects × 25",
-  connects_50:     "Connects × 50",
-  connects_60:     "Connects × 60",
-  connects_150:    "Connects × 150",
-  flash_5:         "Flash Deal × 5",
+  boost_basic:          "Boost Basic",
+  boost_standard:       "Boost Standard ⭐",
+  boost_premium:        "Boost Premium",
+  verified_badge:       "Verified Badge ✅",
+  employer_verified:    "Employer Verified",
+  connects_20:          "Connects × 20",
+  connects_60:          "Connects × 60",
+  connects_150:         "Connects × 150",
+  connects_10:          "Connects × 10",
+  connects_25:          "Connects × 25",
+  connects_50:          "Connects × 50",
+  resume_builder:       "Resume Builder 📄",
+  priority_application: "Priority Application ⚡",
+  profile_review:       "Profile Review 🔍",
+  job_alerts:           "Job Alerts 🔔",
+  featured_gig:         "Featured Gig 🌟",
+  quick_apply_pack:     "Quick Apply Pack 🚀",
+  pro:                  "Pro",
+  business:             "Business",
+  flash_5:              "Flash Deal × 5",
 }
 
 function relativeTime(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60)   return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
+  if (diff < 60)    return `${diff}s ago`
+  if (diff < 3600)  return `${Math.floor(diff / 60)} min ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`
   return `${Math.floor(diff / 86400)} days ago`
 }
 
 type FilterPeriod = "week" | "month" | "all"
-
 interface SearchParams { period?: string }
 
 function getPeriodStart(period: FilterPeriod): string | null {
   const now = new Date()
   if (period === "week") {
-    const d = new Date(now)
-    d.setDate(d.getDate() - 7)
-    return d.toISOString()
+    const d = new Date(now); d.setDate(d.getDate() - 7); return d.toISOString()
   }
   if (period === "month") {
     return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
@@ -73,54 +66,41 @@ function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
 }
 
+function planColor(plan: string) {
+  if (plan.startsWith("boost"))      return "bg-[#F97316]/10 text-[#F97316]"
+  if (plan === "verified_badge")     return "bg-[#4ADE80]/10 text-[#4ADE80]"
+  if (plan.startsWith("connects"))   return "bg-[#06B6D4]/10 text-[#06B6D4]"
+  return "bg-[#818CF8]/10 text-[#818CF8]"
+}
+
 export default async function AdminRevenuePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
-  const params = await searchParams
-  const period = (params.period ?? "all") as FilterPeriod
+  const params     = await searchParams
+  const period     = (params.period ?? "all") as FilterPeriod
   const periodStart = getPeriodStart(period)
 
-  // Recent 20 purchases for live feed
-  const { data: liveFeed } = await supabase
-    .from("subscriptions")
-    .select("id, plan, created_at, profiles:user_id(full_name, email)")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(20)
+  // All payments (service role bypasses RLS)
+  const { data: allPayments } = await adminDb
+    .from("payments")
+    .select("id, plan, amount, created_at, user_id")
+    .eq("status", "success")
 
-  const liveFeedList = (liveFeed ?? []) as unknown as Array<{
-    id: string
-    plan: string
-    created_at: string
-    profiles: { full_name: string | null; email: string } | null
-  }>
+  const all = allPayments ?? []
 
-  // All-time aggregates (always full data for stat cards)
-  const { data: allSubs } = await supabase
-    .from("subscriptions")
-    .select("plan, created_at")
-    .eq("status", "active")
+  const monthStart     = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+  const allRevenue     = all.reduce((s, p) => s + p.amount, 0)
+  const thisMonthRev   = all.filter(p => p.created_at >= monthStart).reduce((s, p) => s + p.amount, 0)
+  const boostRevenue   = all.filter(p => p.plan.startsWith("boost")).reduce((s, p) => s + p.amount, 0)
+  const verifiedRev    = all.filter(p => p.plan === "verified_badge").reduce((s, p) => s + p.amount, 0)
 
-  const allRevenue = (allSubs ?? []).reduce((sum, s) => sum + (PLAN_AMOUNTS[s.plan] ?? 0), 0)
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-  const thisMonthRevenue = (allSubs ?? [])
-    .filter(s => s.created_at >= monthStart)
-    .reduce((sum, s) => sum + (PLAN_AMOUNTS[s.plan] ?? 0), 0)
-  const boostRevenue = (allSubs ?? [])
-    .filter(s => s.plan.startsWith("boost"))
-    .reduce((sum, s) => sum + (PLAN_AMOUNTS[s.plan] ?? 0), 0)
-  const verifiedRevenue = (allSubs ?? [])
-    .filter(s => s.plan === "verified_badge")
-    .reduce((sum, s) => sum + (PLAN_AMOUNTS[s.plan] ?? 0), 0)
-
-  // Filtered transactions for table
-  let txQuery = supabase
-    .from("subscriptions")
-    .select("id, plan, payment_id, order_id, created_at, profiles:user_id(full_name, email)")
-    .eq("status", "active")
+  // Filtered transactions with profile join
+  let txQuery = adminDb
+    .from("payments")
+    .select("id, plan, amount, razorpay_payment_id, razorpay_order_id, created_at, user_id, profiles:user_id(full_name, email)")
+    .eq("status", "success")
 
   if (periodStart) txQuery = txQuery.gte("created_at", periodStart)
 
@@ -131,26 +111,30 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
   const txList = (transactions ?? []) as unknown as Array<{
     id: string
     plan: string
-    payment_id: string
-    order_id: string
+    amount: number
+    razorpay_payment_id: string
+    razorpay_order_id: string
     created_at: string
     profiles: { full_name: string | null; email: string } | null
   }>
 
+  const filteredTotal = txList.reduce((s, t) => s + t.amount, 0)
+
   const statCards = [
-    { label: "Total Revenue",   value: `₹${allRevenue.toLocaleString("en-IN")}`,      icon: TrendingUp, color: "text-[#4ADE80]",  bg: "bg-[#4ADE80]/10" },
-    { label: "This Month",      value: `₹${thisMonthRevenue.toLocaleString("en-IN")}`, icon: DollarSign, color: "text-[#818CF8]",  bg: "bg-[#4F46E5]/10" },
-    { label: "Boost Revenue",   value: `₹${boostRevenue.toLocaleString("en-IN")}`,     icon: Zap,        color: "text-[#F97316]",  bg: "bg-[#F97316]/10" },
-    { label: "Verified Revenue",value: `₹${verifiedRevenue.toLocaleString("en-IN")}`,  icon: Shield,     color: "text-[#FBBF24]",  bg: "bg-[#FBBF24]/10" },
+    { label: "Total Revenue",    value: `₹${allRevenue.toLocaleString("en-IN")}`,     icon: TrendingUp, color: "text-[#4ADE80]", bg: "bg-[#4ADE80]/10" },
+    { label: "This Month",       value: `₹${thisMonthRev.toLocaleString("en-IN")}`,   icon: DollarSign, color: "text-[#818CF8]", bg: "bg-[#4F46E5]/10" },
+    { label: "Boost Revenue",    value: `₹${boostRevenue.toLocaleString("en-IN")}`,   icon: Zap,        color: "text-[#F97316]", bg: "bg-[#F97316]/10" },
+    { label: "Verified Revenue", value: `₹${verifiedRev.toLocaleString("en-IN")}`,    icon: Shield,     color: "text-[#FBBF24]", bg: "bg-[#FBBF24]/10" },
   ]
 
   const TABS: { key: FilterPeriod; label: string }[] = [
-    { key: "week",  label: "This Week" },
+    { key: "week",  label: "This Week"  },
     { key: "month", label: "This Month" },
-    { key: "all",   label: "All Time" },
+    { key: "all",   label: "All Time"   },
   ]
 
-  const filteredTotal = txList.reduce((sum, t) => sum + (PLAN_AMOUNTS[t.plan] ?? 0), 0)
+  // Live feed: last 20 transactions
+  const liveFeed = txList.slice(0, 20)
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-10 px-4">
@@ -164,7 +148,9 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
             </Link>
             <div>
               <h1 className="text-2xl font-black text-white">Revenue</h1>
-              <p className="text-[#6B7280] text-xs mt-0.5">{txList.length} transactions · ₹{filteredTotal.toLocaleString("en-IN")} in selected period</p>
+              <p className="text-[#6B7280] text-xs mt-0.5">
+                {txList.length} transactions · ₹{filteredTotal.toLocaleString("en-IN")} in selected period
+              </p>
             </div>
           </div>
           <a
@@ -189,32 +175,29 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
         </div>
 
         {/* 🔴 Live purchase feed */}
-        {liveFeedList.length > 0 && (
+        {liveFeed.length > 0 && (
           <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-[#1E1E2E]">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
               <span className="text-white font-bold text-sm">LIVE</span>
-              <span className="text-[#6B7280] text-xs ml-1">— recent purchases</span>
+              <span className="text-[#6B7280] text-xs ml-1">— recent payments</span>
             </div>
             <div className="divide-y divide-[#1E1E2E]">
-              {liveFeedList.map(item => {
-                const amount = PLAN_AMOUNTS[item.plan] ?? 0
-                const label  = PLAN_LABELS[item.plan] ?? item.plan
-                const name   = item.profiles?.full_name || item.profiles?.email || "Unknown"
-                const isBoost    = item.plan.startsWith("boost")
-                const isVerified = item.plan === "verified_badge"
-                const dotColor   = isBoost ? "bg-[#F97316]" : isVerified ? "bg-[#4ADE80]" : "bg-[#818CF8]"
+              {liveFeed.map(item => {
+                const name = (item.profiles as { full_name: string | null; email: string } | null)?.full_name
+                          || (item.profiles as { full_name: string | null; email: string } | null)?.email
+                          || "Unknown"
                 return (
                   <div key={item.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center gap-3">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.plan.startsWith("boost") ? "bg-[#F97316]" : item.plan === "verified_badge" ? "bg-[#4ADE80]" : "bg-[#818CF8]"}`} />
                       <div>
                         <p className="text-white text-sm font-medium">{name}</p>
-                        <p className="text-[#6B7280] text-xs">{label}</p>
+                        <p className="text-[#6B7280] text-xs">{PLAN_LABELS[item.plan] ?? item.plan}</p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
-                      <p className="text-white font-bold text-sm">₹{amount.toLocaleString("en-IN")}</p>
+                      <p className="text-white font-bold text-sm">₹{item.amount.toLocaleString("en-IN")}</p>
                       <p className="text-[#475569] text-xs">{relativeTime(item.created_at)}</p>
                     </div>
                   </div>
@@ -254,46 +237,33 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
                     <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden sm:table-cell">Plan</th>
                     <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide">Amount</th>
                     <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden md:table-cell">Date</th>
-                    <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden lg:table-cell">Order ID</th>
+                    <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden lg:table-cell">Payment ID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1E1E2E]">
-                  {txList.map(tx => (
-                    <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-3">
-                        <p className="text-white font-medium text-sm truncate max-w-[140px]">
-                          {tx.profiles?.full_name || "—"}
-                        </p>
-                        <p className="text-[#475569] text-xs truncate max-w-[140px]">
-                          {tx.profiles?.email || ""}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3 hidden sm:table-cell">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                          tx.plan.startsWith("boost")
-                            ? "bg-[#F97316]/10 text-[#F97316]"
-                            : tx.plan === "verified_badge"
-                            ? "bg-[#4ADE80]/10 text-[#4ADE80]"
-                            : "bg-[#818CF8]/10 text-[#818CF8]"
-                        }`}>
-                          {PLAN_LABELS[tx.plan] ?? tx.plan}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="text-white font-bold">
-                          ₹{(PLAN_AMOUNTS[tx.plan] ?? 0).toLocaleString("en-IN")}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-[#6B7280] text-xs hidden md:table-cell">
-                        {fmt(tx.created_at)}
-                      </td>
-                      <td className="px-3 py-3 hidden lg:table-cell">
-                        <span className="text-[#475569] text-xs font-mono truncate max-w-[160px] block">
-                          {tx.order_id}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {txList.map(tx => {
+                    const profile = tx.profiles as { full_name: string | null; email: string } | null
+                    return (
+                      <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-5 py-3">
+                          <p className="text-white font-medium text-sm truncate max-w-[140px]">{profile?.full_name || "—"}</p>
+                          <p className="text-[#475569] text-xs truncate max-w-[140px]">{profile?.email || ""}</p>
+                        </td>
+                        <td className="px-3 py-3 hidden sm:table-cell">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${planColor(tx.plan)}`}>
+                            {PLAN_LABELS[tx.plan] ?? tx.plan}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-white font-bold">₹{tx.amount.toLocaleString("en-IN")}</span>
+                        </td>
+                        <td className="px-3 py-3 text-[#6B7280] text-xs hidden md:table-cell">{fmt(tx.created_at)}</td>
+                        <td className="px-3 py-3 hidden lg:table-cell">
+                          <span className="text-[#475569] text-xs font-mono truncate max-w-[160px] block">{tx.razorpay_payment_id}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
