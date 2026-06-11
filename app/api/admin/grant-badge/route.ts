@@ -10,7 +10,7 @@ const adminDb = createServiceClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function DELETE(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -19,11 +19,26 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const { gigId } = await req.json()
-  if (!gigId) return NextResponse.json({ error: "gigId required" }, { status: 400 })
+  const { userId, revoke } = await req.json()
+  if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 })
 
-  const { error } = await adminDb.from("gigs").delete().eq("id", gigId)
+  const update = revoke
+    ? { is_verified: false, verification_status: "revoked" }
+    : { is_verified: true, verification_status: "approved", verified_at: new Date().toISOString() }
+
+  const { error } = await adminDb.from("profiles").update(update).eq("id", userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notify the user
+  if (!revoke) {
+    await adminDb.from("notifications").insert({
+      user_id: userId,
+      type: "verification_approved",
+      title: "You're now Verified! ✅",
+      body: "Your profile has been verified by GigWay. You now have the blue badge.",
+      is_read: false,
+    }).then(() => null, () => null)
+  }
 
   return NextResponse.json({ success: true })
 }

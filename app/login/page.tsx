@@ -87,8 +87,8 @@ export default function LoginPage() {
         <CardContent>
           <Tabs defaultValue="email" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4 bg-white/20">
-              <TabsTrigger value="email" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-black">Email OTP</TabsTrigger>
-              <TabsTrigger value="google" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-black">Google</TabsTrigger>
+              <TabsTrigger value="email" className="data-[state=active]:bg-[#7C3AED] data-[state=active]:text-white">Email OTP</TabsTrigger>
+              <TabsTrigger value="google" className="data-[state=active]:bg-[#7C3AED] data-[state=active]:text-white">Google</TabsTrigger>
             </TabsList>
 
             <TabsContent value="email">
@@ -111,7 +111,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFD700]/90 hover:to-[#FFA500]/90 text-black"
+                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#7C3AED]/90 hover:to-[#6366F1]/90 text-white"
                   >
                     {loading ? (
                       <>
@@ -143,7 +143,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFD700]/90 hover:to-[#FFA500]/90 text-black"
+                    className="w-full py-6 text-base font-semibold bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#7C3AED]/90 hover:to-[#6366F1]/90 text-white"
                   >
                     {loading ? (
                       <>

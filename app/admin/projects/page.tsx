@@ -2,8 +2,14 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { FolderOpen } from "lucide-react"
 import AdminProjectsClient from "@/components/admin/AdminProjectsClient"
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export const metadata: Metadata = { title: "Admin — Projects — GigWay" }
 
@@ -24,8 +30,8 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
   const q      = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
-  // FK is client_id (not user_id)
-  let query = supabase
+  // FK is client_id — use service role to bypass RLS so all projects are visible
+  let query = adminDb
     .from("projects")
     .select(
       `id, title, budget_min, budget_max, status, created_at,

@@ -259,6 +259,47 @@ export default async function PricingPage() {
           </div>
         </div>
 
+        {/* Power-up Add-ons */}
+        <div className="mb-20">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-full px-4 py-1.5 mb-4">
+              <Zap className="h-3.5 w-3.5 text-[#A78BFA]" />
+              <span className="text-[#A78BFA] text-xs font-semibold uppercase tracking-wider">Power-up Add-ons</span>
+            </div>
+            <h2 className="text-white font-black text-3xl mb-2">Supercharge Your Profile</h2>
+            <p className="text-[#94A3B8] text-sm max-w-md mx-auto">
+              One-click upgrades to stand out from the competition and land more clients.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              { icon: "📄", name: "Resume Builder", price: "₹49", period: "one-time", desc: "Auto-generate a beautiful PDF resume from your GigWay profile in seconds.", color: "from-[#4F46E5]/20 to-[#6366F1]/10", border: "border-[#4F46E5]/30", tag: "text-[#818CF8]" },
+              { icon: "⚡", name: "Priority Application", price: "₹19", period: "per use", desc: "Jump to the top of the applicant list when applying to any project.", color: "from-[#F97316]/20 to-[#F59E0B]/10", border: "border-[#F97316]/30", tag: "text-[#F97316]" },
+              { icon: "🔍", name: "Profile Review", price: "₹99", period: "one-time", desc: "GigWay team reviews your profile and gives actionable feedback to increase hire rate.", color: "from-[#4ADE80]/20 to-[#22C55E]/10", border: "border-[#4ADE80]/30", tag: "text-[#4ADE80]" },
+              { icon: "🔔", name: "Job Alerts", price: "₹49", period: "/month", desc: "Get instant notifications for new projects matching your skills — never miss an opportunity.", color: "from-[#FBBF24]/20 to-[#F59E0B]/10", border: "border-[#FBBF24]/30", tag: "text-[#FBBF24]" },
+              { icon: "🌟", name: "Featured Gig", price: "₹99", period: "/week", desc: "Pin your best gig at the top of the gig marketplace for 7 days.", color: "from-[#F97316]/20 to-[#F59E0B]/10", border: "border-[#F97316]/30", tag: "text-[#F97316]" },
+              { icon: "🚀", name: "Quick Apply Pack", price: "₹149", period: "30 uses", desc: "Pre-fill your application data for 30 projects — apply in one click, save hours.", color: "from-[#7C3AED]/20 to-[#6366F1]/10", border: "border-[#7C3AED]/30", tag: "text-[#A78BFA]" },
+            ].map(addon => (
+              <div key={addon.name} className={`bg-gradient-to-br ${addon.color} border ${addon.border} rounded-2xl p-5 flex flex-col`}>
+                <div className="text-3xl mb-3">{addon.icon}</div>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-white font-black text-xl">{addon.price}</span>
+                  <span className="text-[#6B7280] text-sm">{addon.period}</span>
+                </div>
+                <p className={`font-bold text-sm mb-2 ${addon.tag}`}>{addon.name}</p>
+                <p className="text-[#94A3B8] text-xs flex-1 mb-4">{addon.desc}</p>
+                <Link
+                  href={cta}
+                  className={`w-full py-2.5 rounded-xl border ${addon.border} text-white text-sm font-bold text-center hover:bg-white/5 transition-colors block`}
+                >
+                  Get {addon.name} →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* FAQ */}
         <div className="max-w-2xl mx-auto">
           <h2 className="text-white font-black text-2xl text-center mb-8">

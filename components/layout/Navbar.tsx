@@ -30,7 +30,8 @@ export default function Navbar() {
   const [unread, setUnread] = useState(0)
   const [unreadMsgs, setUnreadMsgs] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const mobileRef = useRef<HTMLDivElement>(null)
+  const mobileRef  = useRef<HTMLDivElement>(null)
+  const toggleRef  = useRef<HTMLButtonElement>(null)
   const supabase = createClient()
   const router = useRouter()
   const pathname = usePathname()
@@ -76,7 +77,12 @@ export default function Navbar() {
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) setMobileOpen(false)
+      if (
+        mobileRef.current && !mobileRef.current.contains(e.target as Node) &&
+        toggleRef.current && !toggleRef.current.contains(e.target as Node)
+      ) {
+        setMobileOpen(false)
+      }
     }
     document.addEventListener("mousedown", h)
     return () => document.removeEventListener("mousedown", h)
@@ -224,7 +230,7 @@ export default function Navbar() {
               </Button>
             </Link>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}
+          <Button ref={toggleRef} variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}
             className="text-[#6B7280] hover:text-white hover:bg-white/5">
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>

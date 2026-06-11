@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
 
   if (code) {
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         const adminEmails = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
           .split(",").map(e => e.trim().toLowerCase())
         if (adminEmails.includes((user.email ?? "").toLowerCase())) {
-          return NextResponse.redirect(`${origin}/admin`)
+          return NextResponse.redirect(new URL('/admin', request.url))
         }
 
         const { data: profile } = await supabase
@@ -74,16 +74,16 @@ export async function GET(request: Request) {
             }
           }
 
-          return NextResponse.redirect(`${origin}/onboarding`)
+          return NextResponse.redirect(new URL('/onboarding', request.url))
         }
 
         if (profile.profile_completed === false) {
-          return NextResponse.redirect(`${origin}/onboarding`)
+          return NextResponse.redirect(new URL('/onboarding', request.url))
         }
 
-        return NextResponse.redirect(`${origin}/dashboard`)
+        return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     }
   }
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  return NextResponse.redirect(new URL('/auth/auth-code-error', request.url))
 }

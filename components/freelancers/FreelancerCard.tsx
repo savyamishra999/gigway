@@ -68,10 +68,22 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
 
         {/* Header */}
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-            {freelancer.avatar_url
-              ? <img src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
-              : initial}
+          <div className="relative w-12 h-12 flex-shrink-0">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg">
+              {freelancer.avatar_url
+                ? <img src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
+                : initial}
+            </div>
+            {boosted && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#F59E0B] rounded-full flex items-center justify-center text-[9px] shadow-md border-2 border-[#12121A]">
+                ⭐
+              </span>
+            )}
+            {freelancer.is_verified && (
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-md border-2 border-[#12121A]">
+                ✓
+              </span>
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
