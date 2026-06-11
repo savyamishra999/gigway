@@ -20,20 +20,36 @@ const PLAN_AMOUNTS: Record<string, number> = {
   pro:             199,
   business:        999,
   connects_10:     99,
+  connects_20:     99,
   connects_25:     199,
   connects_50:     349,
+  connects_60:     249,
+  connects_150:    499,
+  flash_5:         49,
 }
 
 const PLAN_LABELS: Record<string, string> = {
   boost_basic:     "Boost Basic",
-  boost_standard:  "Boost Standard",
+  boost_standard:  "Boost Standard ⭐",
   boost_premium:   "Boost Premium",
-  verified_badge:  "Verified Badge",
+  verified_badge:  "Verified Badge ✅",
   pro:             "Pro",
   business:        "Business",
-  connects_10:     "Connects 10",
-  connects_25:     "Connects 25",
-  connects_50:     "Connects 50",
+  connects_10:     "Connects × 10",
+  connects_20:     "Connects × 20",
+  connects_25:     "Connects × 25",
+  connects_50:     "Connects × 50",
+  connects_60:     "Connects × 60",
+  connects_150:    "Connects × 150",
+  flash_5:         "Flash Deal × 5",
+}
+
+function relativeTime(dateStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+  if (diff < 60)   return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`
+  return `${Math.floor(diff / 86400)} days ago`
 }
 
 type FilterPeriod = "week" | "month" | "all"
@@ -66,6 +82,21 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
   const params = await searchParams
   const period = (params.period ?? "all") as FilterPeriod
   const periodStart = getPeriodStart(period)
+
+  // Recent 20 purchases for live feed
+  const { data: liveFeed } = await supabase
+    .from("subscriptions")
+    .select("id, plan, created_at, profiles:user_id(full_name, email)")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(20)
+
+  const liveFeedList = (liveFeed ?? []) as unknown as Array<{
+    id: string
+    plan: string
+    created_at: string
+    profiles: { full_name: string | null; email: string } | null
+  }>
 
   // All-time aggregates (always full data for stat cards)
   const { data: allSubs } = await supabase
@@ -156,6 +187,42 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
             </div>
           ))}
         </div>
+
+        {/* 🔴 Live purchase feed */}
+        {liveFeedList.length > 0 && (
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-[#1E1E2E]">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-white font-bold text-sm">LIVE</span>
+              <span className="text-[#6B7280] text-xs ml-1">— recent purchases</span>
+            </div>
+            <div className="divide-y divide-[#1E1E2E]">
+              {liveFeedList.map(item => {
+                const amount = PLAN_AMOUNTS[item.plan] ?? 0
+                const label  = PLAN_LABELS[item.plan] ?? item.plan
+                const name   = item.profiles?.full_name || item.profiles?.email || "Unknown"
+                const isBoost    = item.plan.startsWith("boost")
+                const isVerified = item.plan === "verified_badge"
+                const dotColor   = isBoost ? "bg-[#F97316]" : isVerified ? "bg-[#4ADE80]" : "bg-[#818CF8]"
+                return (
+                  <div key={item.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                      <div>
+                        <p className="text-white text-sm font-medium">{name}</p>
+                        <p className="text-[#6B7280] text-xs">{label}</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <p className="text-white font-bold text-sm">₹{amount.toLocaleString("en-IN")}</p>
+                      <p className="text-[#475569] text-xs">{relativeTime(item.created_at)}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Period filter tabs */}
         <div className="flex gap-2 flex-wrap">

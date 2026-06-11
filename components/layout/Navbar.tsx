@@ -18,6 +18,7 @@ const NAV_LINKS = [
   { href: "/projects",       label: "Projects",     highlight: false },
   { href: "/jobs",           label: "Jobs",         highlight: false },
   { href: "/freelancers",    label: "Freelancers",  highlight: false },
+  { href: "/ai-tools",       label: "✨ AI",         highlight: false, ai: true },
   { href: "/pricing",        label: "Pricing",      highlight: true  },
   { href: "/affiliate/join", label: "Earn with Us", highlight: false, earn: true },
 ]
@@ -103,8 +104,10 @@ export default function Navbar() {
           {NAV_LINKS.map(link => (
             <Link key={link.href} href={link.href}
               className={`text-sm font-medium transition-colors ${
-                pathname.startsWith(link.href)
+                pathname.startsWith(link.href) && !((link as { ai?: boolean }).ai)
                   ? "text-[#818CF8]"
+                  : (link as { ai?: boolean }).ai
+                  ? "text-[#A78BFA] hover:text-[#C4B5FD] font-bold bg-[#7C3AED]/10 px-3 py-1 rounded-lg border border-[#7C3AED]/30 hover:bg-[#7C3AED]/20 transition-all"
                   : (link as { earn?: boolean }).earn
                   ? "text-[#4ADE80] hover:text-[#22C55E] font-semibold"
                   : link.highlight
@@ -235,8 +238,10 @@ export default function Navbar() {
             {NAV_LINKS.map(link => (
               <Link key={link.href} href={link.href}
                 className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  pathname.startsWith(link.href)
+                  pathname.startsWith(link.href) && !((link as { ai?: boolean }).ai)
                     ? "bg-[#4F46E5]/10 text-[#818CF8]"
+                    : (link as { ai?: boolean }).ai
+                    ? "text-[#A78BFA] bg-[#7C3AED]/10 border border-[#7C3AED]/30 font-bold"
                     : (link as { earn?: boolean }).earn
                     ? "text-[#4ADE80] hover:bg-[#4ADE80]/10 font-semibold"
                     : link.highlight

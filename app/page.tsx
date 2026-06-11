@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import Hero from "@/components/home/Hero"
 import TrustBar from "@/components/home/TrustBar"
+import AIToolsSection from "@/components/home/AIToolsSection"
 import HowItWorks from "@/components/home/HowItWorks"
 import FeaturedGigs from "@/components/home/FeaturedGigs"
 import FeaturedFreelancers from "@/components/home/FeaturedFreelancers"
@@ -23,6 +24,7 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[#0A0A0F]">
       <Hero freelancerCount={freelancerCount ?? 0} gigCount={gigCount ?? 0} />
       <TrustBar freelancerCount={freelancerCount ?? 0} />
+      <AIToolsSection />
       <HomePricing />
       <HowItWorks />
       <FeaturedGigs />

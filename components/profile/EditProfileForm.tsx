@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, Plus, ExternalLink, Camera, Search } from "lucide-react"
+import { X, Plus, ExternalLink, Camera, Search, Globe, Lock, CheckCircle2 } from "lucide-react"
 
 interface Profile {
   id: string
@@ -16,10 +16,11 @@ interface Profile {
   job_function?: string | string[] | null
   bio: string | null
   skills: string[] | null
-  hourly_rate: number | null
   avatar_url: string | null
   location?: string | null
   phone?: string | null
+  phone_is_public?: boolean | null
+  is_private?: boolean | null
   portfolio_links?: string[] | null
   verification_status?: string | null
   is_verified?: boolean | null
@@ -36,6 +37,7 @@ const JOB_FUNCTIONS = [
   "Video Editor", "Photographer", "3D Artist", "Animator",
   "Accountant", "Financial Analyst", "Legal Consultant", "HR Consultant",
   "Tutor", "Translator", "Voice Over Artist", "Musician",
+  "Other",
 ]
 
 const SKILLS_BY_CATEGORY: Record<string, string[]> = {
@@ -86,17 +88,26 @@ function normalizeJobFunction(value: string | string[] | null | undefined): stri
 }
 
 export default function EditProfileForm({ profile, userId }: { profile: Profile | null; userId: string }) {
+  const rawJobFns = normalizeJobFunction(profile?.job_function)
+  const hasOther = rawJobFns.some(fn => !JOB_FUNCTIONS.slice(0, -1).includes(fn))
+  const otherValue = hasOther ? rawJobFns.find(fn => !JOB_FUNCTIONS.slice(0, -1).includes(fn)) || "" : ""
+  const normalizedJobFns = hasOther
+    ? [...rawJobFns.filter(fn => JOB_FUNCTIONS.includes(fn) || fn === otherValue), "Other"]
+    : rawJobFns
+
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
-    job_function: normalizeJobFunction(profile?.job_function),
+    job_function: normalizedJobFns,
     bio: profile?.bio || "",
     location: profile?.location || "",
     phone: profile?.phone || "",
-    hourly_rate: profile?.hourly_rate?.toString() || "",
+    phone_is_public: profile?.phone_is_public !== false,
+    is_private: profile?.is_private === true,
     skills: profile?.skills || [] as string[],
     portfolio_links: profile?.portfolio_links || [] as string[],
     avatar_url: profile?.avatar_url || "",
   })
+  const [otherJobFn, setOtherJobFn] = useState(otherValue)
   const [jobFnSearch, setJobFnSearch] = useState("")
   const [skillsTab, setSkillsTab] = useState("Development")
   const [skillSearch, setSkillSearch] = useState("")
@@ -174,20 +185,42 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
     setRequestingVerification(false)
   }
 
+  const validatePhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "")
+    return digits.length === 10 || digits.length === 12
+  }
+
   const handleSave = async () => {
     setLoading(true)
     setError(null)
     setSuccess(null)
 
+    if (!formData.phone.trim()) {
+      setError("Phone number is required")
+      setLoading(false)
+      return
+    }
+    if (!validatePhone(formData.phone)) {
+      setError("Enter a valid 10-digit Indian phone number")
+      setLoading(false)
+      return
+    }
+
+    // Resolve job functions — replace "Other" with the custom text
+    const resolvedJobFns = formData.job_function.map(fn =>
+      fn === "Other" ? otherJobFn.trim() || "Other" : fn
+    ).filter(Boolean)
+
     const { error: saveError } = await supabase
       .from("profiles")
       .update({
         full_name: formData.full_name,
-        job_function: formData.job_function.length > 0 ? formData.job_function : null,
+        job_function: resolvedJobFns.length > 0 ? resolvedJobFns : null,
         bio: formData.bio || null,
         location: formData.location || null,
         phone: formData.phone || null,
-        hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+        phone_is_public: formData.phone_is_public,
+        is_private: formData.is_private,
         skills: formData.skills,
         portfolio_links: formData.portfolio_links,
         avatar_url: formData.avatar_url || null,
@@ -213,6 +246,8 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
     ? ALL_SKILLS.filter(s => s.toLowerCase().includes(skillSearch.toLowerCase()))
     : (SKILLS_BY_CATEGORY[skillsTab] || [])
 
+  const isVerified = profile?.is_verified || verificationStatus === "verified"
+
   return (
     <div className="space-y-6">
       {error && (
@@ -221,6 +256,30 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
       {success && (
         <div className="p-4 rounded-lg border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 text-sm font-medium">{success}</div>
       )}
+
+      {/* Profile Visibility Toggle */}
+      <div className="flex items-center justify-between bg-[#1E293B] border border-[#334155] rounded-xl px-5 py-3">
+        <div>
+          <p className="text-[#F8FAFC] font-semibold text-sm">Profile Visibility</p>
+          <p className="text-[#64748B] text-xs mt-0.5">
+            {formData.is_private ? "Only companies and admin can view your profile" : "Your profile is visible to everyone"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFormData(prev => ({ ...prev, is_private: !prev.is_private }))}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all ${
+            formData.is_private
+              ? "bg-[#334155] border-[#475569] text-[#94A3B8]"
+              : "bg-[#6366F1]/15 border-[#6366F1]/40 text-[#A5B4FC]"
+          }`}
+        >
+          {formData.is_private
+            ? <><Lock className="h-3.5 w-3.5" /> Private</>
+            : <><Globe className="h-3.5 w-3.5" /> Public</>
+          }
+        </button>
+      </div>
 
       {/* Avatar Upload */}
       <Card className="bg-[#1E293B] border-[#334155]">
@@ -246,6 +305,12 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
                   onChange={e => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
                 />
               </label>
+              {/* Verified badge overlay */}
+              {isVerified && (
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#1E293B] flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-[#3B82F6] fill-[#3B82F6] stroke-white" />
+                </div>
+              )}
             </div>
             <p className="text-[#94A3B8] text-sm">
               {uploading ? "Uploading..." : "Click the camera icon to change your photo"}
@@ -270,25 +335,53 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
               className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1]"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-[#CBD5E1]">Location</Label>
-              <Input
-                value={formData.location}
-                onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="e.g. Mumbai, India"
-                className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1]"
-              />
+          <div className="space-y-2">
+            <Label className="text-[#CBD5E1]">Location</Label>
+            <Input
+              value={formData.location}
+              onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              placeholder="e.g. Mumbai, India"
+              className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1]"
+            />
+          </div>
+          {/* Phone — mandatory with public/private toggle */}
+          <div className="space-y-2">
+            <Label className="text-[#CBD5E1]">
+              Phone Number <span className="text-red-400">*</span>
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B] text-sm select-none">+91</span>
+                <Input
+                  value={formData.phone}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^\d+\s-]/g, "")
+                    setFormData(prev => ({ ...prev, phone: val }))
+                  }}
+                  placeholder="9876543210"
+                  maxLength={14}
+                  className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1] pl-11"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, phone_is_public: !prev.phone_is_public }))}
+                title={formData.phone_is_public ? "Click to make private" : "Click to make public"}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap ${
+                  formData.phone_is_public
+                    ? "bg-[#6366F1]/15 border-[#6366F1]/40 text-[#A5B4FC]"
+                    : "bg-[#334155] border-[#475569] text-[#94A3B8]"
+                }`}
+              >
+                {formData.phone_is_public
+                  ? <><Globe className="h-3 w-3" /> Public</>
+                  : <><Lock className="h-3 w-3" /> Private</>
+                }
+              </button>
             </div>
-            <div className="space-y-2">
-              <Label className="text-[#CBD5E1]">Phone</Label>
-              <Input
-                value={formData.phone}
-                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+91 9876543210"
-                className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1]"
-              />
-            </div>
+            <p className="text-[#475569] text-xs">
+              {formData.phone_is_public ? "Visible to everyone" : "Only visible to admin"}
+            </p>
           </div>
           <div className="space-y-2">
             <Label className="text-[#CBD5E1]">Bio</Label>
@@ -298,17 +391,6 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
               placeholder="Tell others about yourself..."
               rows={4}
               className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1]"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[#CBD5E1]">Hourly Rate (₹)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={formData.hourly_rate}
-              onChange={e => setFormData(prev => ({ ...prev, hourly_rate: e.target.value }))}
-              placeholder="e.g. 500"
-              className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1] max-w-[200px]"
             />
           </div>
         </CardContent>
@@ -327,13 +409,22 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
             <div className="flex flex-wrap gap-2">
               {formData.job_function.map(fn => (
                 <span key={fn} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#6366F1]/20 text-[#A5B4FC] border border-[#6366F1]/40 text-sm font-medium">
-                  {fn}
+                  {fn === "Other" && otherJobFn ? otherJobFn : fn}
                   <button type="button" onClick={() => toggleJobFunction(fn)} className="hover:text-white">
                     <X className="h-3 w-3" />
                   </button>
                 </span>
               ))}
             </div>
+          )}
+          {/* "Other" custom text input */}
+          {formData.job_function.includes("Other") && (
+            <Input
+              value={otherJobFn}
+              onChange={e => setOtherJobFn(e.target.value)}
+              placeholder="Describe what you do..."
+              className="bg-[#0F172A] border-[#6366F1]/50 text-[#F8FAFC] placeholder:text-[#475569] focus:border-[#6366F1]"
+            />
           )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569]" />
@@ -355,6 +446,8 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
                   disabled={disabled}
                   onClick={() => toggleJobFunction(fn)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                    fn === "Other" ? "border-dashed" : ""
+                  } ${
                     selected
                       ? "bg-[#6366F1] text-white border-[#6366F1]"
                       : disabled
@@ -391,8 +484,6 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
               ))}
             </div>
           )}
-
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569]" />
             <input
@@ -402,8 +493,6 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
               className="w-full bg-[#0F172A] border border-[#334155] rounded-lg pl-9 pr-4 py-2 text-sm text-[#F8FAFC] placeholder:text-[#475569] focus:outline-none focus:border-[#6366F1]"
             />
           </div>
-
-          {/* Category tabs (hidden when searching) */}
           {!skillSearch && (
             <div className="flex flex-wrap gap-1">
               {Object.keys(SKILLS_BY_CATEGORY).map(cat => (
@@ -422,8 +511,6 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
               ))}
             </div>
           )}
-
-          {/* Skills grid */}
           <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
             {skillsToShow.map(skill => {
               const selected = formData.skills.includes(skill)
@@ -447,8 +534,6 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
               )
             })}
           </div>
-
-          {/* Custom skill */}
           <div className="flex gap-2">
             <Input
               value={customSkill}
@@ -507,14 +592,14 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
           <CardTitle className="text-[#F8FAFC] text-lg">GigWay Verification</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          {(profile?.is_verified || verificationStatus === "verified") ? (
+          {isVerified ? (
             <div className="flex items-center gap-3 text-emerald-400">
               <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <span className="text-lg">✓</span>
+                <CheckCircle2 className="h-5 w-5 text-[#3B82F6]" />
               </div>
               <div>
                 <p className="font-semibold">GigWay Verified</p>
-                <p className="text-[#94A3B8] text-sm">Your profile is verified</p>
+                <p className="text-[#94A3B8] text-sm">Your profile has a verified blue badge</p>
               </div>
             </div>
           ) : verificationStatus === "pending" ? (

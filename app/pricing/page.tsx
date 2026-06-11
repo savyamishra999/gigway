@@ -159,6 +159,43 @@ export default async function PricingPage() {
           </div>
         </div>
 
+        {/* ⚡ Flash Offer — ₹49 */}
+        <div className="mb-14">
+          <div className="relative bg-gradient-to-r from-[#F97316]/10 via-[#F59E0B]/10 to-[#F97316]/10 border-2 border-[#F97316]/40 rounded-2xl p-7 overflow-hidden">
+            {/* Animated glow pulse */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#F97316]/5 to-[#F59E0B]/5 animate-pulse" />
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-[#F97316] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">
+                    ⚡ Flash Offer — Today Only
+                  </span>
+                </div>
+                <h3 className="text-white font-black text-2xl md:text-3xl mb-1">
+                  5 Connects for{" "}
+                  <span className="bg-gradient-to-r from-[#F97316] to-[#F59E0B] bg-clip-text text-transparent">
+                    ₹49
+                  </span>
+                </h3>
+                <p className="text-[#94A3B8] text-sm max-w-sm">
+                  Perfect first purchase. Try applying to projects risk-free — if it works, you&apos;ll buy more.
+                </p>
+                <p className="text-[#6B7280] text-xs mt-1 line-through">Regular price ₹99 for 20 connects</p>
+              </div>
+              <div className="flex-shrink-0 text-center">
+                <div className="text-4xl font-black text-[#F97316] mb-1">₹49</div>
+                <div className="text-[#94A3B8] text-xs mb-4">5 connects · one-time</div>
+                <Link
+                  href={user ? "/buy-connects?plan=flash_5" : "/login?redirect=/pricing"}
+                  className="inline-flex items-center justify-center px-8 py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#F59E0B] text-white font-black text-sm shadow-xl shadow-[#F97316]/25 hover:opacity-90 transition-opacity whitespace-nowrap"
+                >
+                  Grab Flash Deal →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Connects */}
         <div id="connects" className="mb-20">
           <div className="text-center mb-10">

@@ -3,15 +3,162 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Bell, Plus, AlertCircle, Zap, Briefcase, Star, Package } from "lucide-react"
+import { Bell, Plus, Briefcase, Star, Package } from "lucide-react"
 import BoostProfileCard from "@/components/boost/BoostProfileCard"
 import VerifiedBadgeCard from "@/components/verify/VerifiedBadgeCard"
 
 const PROPOSAL_STATUS: Record<string, string> = {
-  pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  pending:  "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   accepted: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   rejected: "bg-red-500/20 text-red-400 border-red-500/30",
 }
+
+// ── Connects progress bar ──────────────────────────────────────────────────
+function ConnectsCard({ balance }: { balance: number }) {
+  const DISPLAY_MAX = 20           // full bar = 20 connects
+  const pct = Math.min(100, Math.round((balance / DISPLAY_MAX) * 100))
+  const isEmpty = balance === 0
+  const isLow   = balance > 0 && balance <= 5
+
+  const barColor = isEmpty ? "bg-red-500"
+    : isLow ? "bg-orange-400"
+    : "bg-[#4ADE80]"
+
+  const borderColor = isEmpty ? "border-red-500/40"
+    : isLow ? "border-orange-400/40"
+    : "border-[#1E1E2E]"
+
+  const label = isEmpty ? "text-red-400"
+    : isLow ? "text-orange-400"
+    : "text-[#4ADE80]"
+
+  return (
+    <div className={`bg-[#12121A] border ${borderColor} rounded-2xl p-5 mb-6`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🔗</span>
+          <p className="text-white font-bold text-sm">Connects</p>
+        </div>
+        <span className={`${label} font-black text-lg`}>{balance}</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2.5 bg-[#1E1E2E] rounded-full overflow-hidden mb-2">
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className={`text-xs mb-4 ${label}`}>
+        {isEmpty ? "0 connects left — you can't apply to projects!"
+          : isLow ? `Only ${balance} connects left — running low`
+          : `${balance} connects remaining`}
+      </p>
+
+      {/* Zero-connects popup CTA */}
+      {isEmpty && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-3 text-center">
+          <p className="text-red-300 font-semibold text-sm mb-3">
+            You&apos;re out of connects!<br />
+            <span className="text-[#94A3B8] font-normal text-xs">Buy connects to apply to more projects.</span>
+          </p>
+          <Link href="/pricing#connects">
+            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#F59E0B] text-white font-black text-sm shadow-lg shadow-[#F97316]/20 hover:opacity-90 transition-opacity">
+              Buy 20 for ₹99 →
+            </button>
+          </Link>
+        </div>
+      )}
+
+      {/* Low-connects warning CTA */}
+      {isLow && !isEmpty && (
+        <Link href="/pricing#connects">
+          <button className="w-full py-2.5 rounded-xl bg-orange-400/10 border border-orange-400/30 text-orange-300 font-bold text-sm hover:bg-orange-400/20 transition-colors">
+            Buy More Connects →
+          </button>
+        </Link>
+      )}
+
+      {/* Normal state */}
+      {!isEmpty && !isLow && (
+        <div className="flex items-center justify-between">
+          <p className="text-[#6B7280] text-xs">Each project application = 2 connects</p>
+          <Link href="/pricing#connects" className="text-[#4ADE80] text-xs font-semibold hover:underline">
+            Buy more →
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Profile completion score ──────────────────────────────────────────────
+interface CompletionItem {
+  done: boolean
+  label: string
+  cta: string
+  href: string
+  pct: number
+  icon: string
+}
+
+function ProfileCompletionCard({
+  items,
+  totalPct,
+}: {
+  items: CompletionItem[]
+  totalPct: number
+}) {
+  if (totalPct === 100) return null   // fully complete — hide the card
+
+  const incomplete = items.filter(i => !i.done)
+
+  return (
+    <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white font-bold text-sm">Profile Strength</p>
+        <span className={`font-black text-base ${
+          totalPct >= 80 ? "text-[#4ADE80]"
+          : totalPct >= 50 ? "text-orange-400"
+          : "text-red-400"
+        }`}>{totalPct}%</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2.5 bg-[#1E1E2E] rounded-full overflow-hidden mb-4">
+        <div
+          className={`h-full rounded-full transition-all ${
+            totalPct >= 80 ? "bg-[#4ADE80]"
+            : totalPct >= 50 ? "bg-orange-400"
+            : "bg-red-400"
+          }`}
+          style={{ width: `${totalPct}%` }}
+        />
+      </div>
+
+      {/* Incomplete items — up to 3 shown */}
+      <div className="space-y-2">
+        {incomplete.slice(0, 3).map(item => (
+          <Link key={item.label} href={item.href}>
+            <div className="flex items-center justify-between bg-[#1E1E2E] hover:bg-[#252535] rounded-xl px-4 py-2.5 transition-colors group">
+              <div className="flex items-center gap-2.5">
+                <span className="text-base">{item.icon}</span>
+                <div>
+                  <p className="text-[#CBD5E1] text-xs font-medium">{item.cta}</p>
+                </div>
+              </div>
+              <span className="text-[#4ADE80] text-xs font-bold bg-[#4ADE80]/10 px-2 py-0.5 rounded-full">
+                +{item.pct}%
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -27,7 +174,6 @@ export default async function DashboardPage() {
   if (!profile?.profile_completed) redirect("/onboarding")
 
   const firstName = profile.full_name?.split(" ")[0] || "there"
-
   const now = new Date().toISOString()
 
   const [
@@ -52,21 +198,83 @@ export default async function DashboardPage() {
       .eq("is_boosted", true).gt("boost_expires_at", now),
   ])
 
-  // Profile completeness: full_name, bio, hourly_rate, skills, job_function = 5 fields
-  const completionScore = [
-    profile.full_name,
-    profile.bio,
-    profile.hourly_rate,
-    (profile.skills as string[] | null)?.length,
-    (profile.job_function as string[] | null)?.length,
-  ].filter(Boolean).length
-  const isProfileReady = completionScore >= 4 // 80%+
-  const isActiveBoosted = !!(profile.is_boosted && profile.boost_expires_at && new Date(profile.boost_expires_at) > new Date())
-
-  const unreadCount = notifications?.length ?? 0
-  const hasGigs = (myGigs?.length ?? 0) > 0
-  const hasJobs = (myJobs?.length ?? 0) > 0
+  const hasGigs      = (myGigs?.length ?? 0) > 0
+  const hasJobs      = (myJobs?.length ?? 0) > 0
   const hasProposals = (myProposals?.length ?? 0) > 0
+  const unreadCount  = notifications?.length ?? 0
+  const connectsBal  = profile.connects_balance ?? 0
+
+  // ── Profile completion score ─────────────────────────────────────────────
+  const completionItems: CompletionItem[] = [
+    {
+      done:  !!profile.full_name,
+      label: "Full Name",
+      cta:   "Add your full name",
+      href:  "/profile/edit",
+      pct:   15,
+      icon:  "✏️",
+    },
+    {
+      done:  !!profile.avatar_url,
+      label: "Photo",
+      cta:   "Add a profile photo",
+      href:  "/profile/edit",
+      pct:   15,
+      icon:  "📸",
+    },
+    {
+      done:  !!profile.bio,
+      label: "Bio",
+      cta:   "Write a short bio",
+      href:  "/profile/edit",
+      pct:   15,
+      icon:  "📝",
+    },
+    {
+      done:  ((profile.skills as string[] | null)?.length ?? 0) > 0,
+      label: "Skills",
+      cta:   "Add your skills",
+      href:  "/profile/edit",
+      pct:   15,
+      icon:  "🛠️",
+    },
+    {
+      done:  !!profile.phone,
+      label: "Phone",
+      cta:   "Add phone number → +10%",
+      href:  "/profile/edit",
+      pct:   10,
+      icon:  "📱",
+    },
+    {
+      done:  !!profile.is_verified,
+      label: "Verified",
+      cta:   "Get verified → Unlock premium clients",
+      href:  "/pricing",
+      pct:   15,
+      icon:  "✅",
+    },
+    {
+      done:  hasGigs,
+      label: "First Gig",
+      cta:   "Create your first gig",
+      href:  "/gigs/new",
+      pct:   15,
+      icon:  "🚀",
+    },
+  ]
+
+  const totalPct = completionItems
+    .filter(i => i.done)
+    .reduce((sum, i) => sum + i.pct, 0)
+
+  // isProfileReady threshold: 60%+ (was 80%)
+  const isProfileReady = totalPct >= 60
+  const isActiveBoosted = !!(
+    profile.is_boosted &&
+    profile.boost_expires_at &&
+    new Date(profile.boost_expires_at) > new Date()
+  )
 
   return (
     <div className="min-h-screen bg-[#0F172A]">
@@ -81,7 +289,9 @@ export default async function DashboardPage() {
                 {firstName}!
               </span>
             </h1>
-            <p className="text-[#94A3B8] mt-1">Here&apos;s what&apos;s happening on GigWAY</p>
+            <p className="text-[#94A3B8] mt-1">
+              {totalPct < 60 ? "Complete your profile to start landing projects" : "Here's what's happening on GigWAY"}
+            </p>
           </div>
           <Link href="/notifications" className="relative">
             <Button variant="outline" size="icon" className="border-[#334155] bg-[#1E293B] hover:bg-[#334155]">
@@ -95,37 +305,11 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {/* Profile completion banner */}
-        {!profile.bio && (
-          <div className="bg-[#6366F1]/10 border border-[#6366F1]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-[#A5B4FC]" />
-              <p className="text-[#A5B4FC] text-sm font-medium">Add a bio to complete your profile and attract more connections</p>
-            </div>
-            <Link href="/profile/edit">
-              <Button size="sm" className="bg-[#6366F1] hover:bg-[#4F46E5] text-white font-semibold text-xs">
-                Complete Profile
-              </Button>
-            </Link>
-          </div>
-        )}
+        {/* ── Connects gamification card ─────────────────────────── */}
+        <ConnectsCard balance={connectsBal} />
 
-        {/* Low connects warning */}
-        {(profile.connects_balance ?? 10) < 3 && (
-          <div className="bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Zap className="h-5 w-5 text-[#C4B5FD]" />
-              <p className="text-[#C4B5FD] text-sm font-medium">
-                Low on connects — <strong>{profile.connects_balance ?? 0}</strong> left. Each proposal costs 1 connect.
-              </p>
-            </div>
-            <Link href="/buy-connects">
-              <Button size="sm" variant="outline" className="border-[#8B5CF6]/40 text-[#C4B5FD] hover:bg-[#8B5CF6]/10 text-xs">
-                Buy Connects
-              </Button>
-            </Link>
-          </div>
-        )}
+        {/* ── Profile completion score ───────────────────────────── */}
+        <ProfileCompletionCard items={completionItems} totalPct={totalPct} />
 
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -138,7 +322,7 @@ export default async function DashboardPage() {
             <p className="text-[#94A3B8] text-sm mt-1">Gigs Created</p>
           </div>
           <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-[#06B6D4]">{profile.connects_balance ?? 10}</p>
+            <p className="text-3xl font-bold text-[#06B6D4]">{connectsBal}</p>
             <p className="text-[#94A3B8] text-sm mt-1">Connects</p>
           </div>
           <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 text-center">
@@ -164,28 +348,6 @@ export default async function DashboardPage() {
             />
           </div>
         )}
-
-        {/* Connects card */}
-        <div className="mb-6 bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-[#4ADE80]/10 flex items-center justify-center flex-shrink-0">
-              <svg className="h-5 w-5 text-[#4ADE80]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white font-bold">Your Connects</p>
-              <p className="text-[#4ADE80] font-black text-2xl">{profile.connects_balance ?? 0}</p>
-              <p className="text-[#6B7280] text-xs">Each project application = 2 connects</p>
-            </div>
-          </div>
-          <Link
-            href="/pricing#connects"
-            className="flex-shrink-0 px-5 py-2.5 bg-[#4ADE80]/10 border border-[#4ADE80]/20 text-[#4ADE80] text-sm font-bold rounded-xl hover:bg-[#4ADE80]/20 transition-colors"
-          >
-            Buy More Connects →
-          </Link>
-        </div>
 
         {/* Notifications panel */}
         {notifications && notifications.length > 0 && (

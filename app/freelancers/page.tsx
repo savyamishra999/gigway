@@ -17,6 +17,22 @@ export default async function FreelancersPage() {
 
   const now = new Date().toISOString()
 
+  // Check if the logged-in user has a paid plan (boost, verified, or pro)
+  const { data: { user } } = await supabase.auth.getUser()
+  let isProUser = false
+  if (user) {
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("is_boosted, boost_expires_at, is_verified, subscription_tier")
+      .eq("id", user.id)
+      .single()
+    isProUser = !!(
+      (myProfile?.is_boosted && myProfile?.boost_expires_at && new Date(myProfile.boost_expires_at) > new Date()) ||
+      myProfile?.is_verified ||
+      (myProfile?.subscription_tier && ["pro", "business"].includes(myProfile.subscription_tier))
+    )
+  }
+
   // SSR: fetch initial data — boosted first, then by rating
   const { data: boosted } = await supabase
     .from("profiles")
@@ -33,7 +49,7 @@ export default async function FreelancersPage() {
     .eq("profile_completed", true)
     .not("id", "in", boosted && boosted.length > 0 ? `(${boosted.map(b => `"${b.id}"`).join(",")})` : `("")`)
     .order("avg_rating", { ascending: false })
-    .limit(30)
+    .limit(48)
 
   const initialFreelancers = [...(boosted ?? []), ...(rest ?? [])]
 
@@ -43,7 +59,7 @@ export default async function FreelancersPage() {
         <h1 className="text-3xl font-bold text-white mb-2">Find Freelancers</h1>
         <p className="text-[#6B7280] text-sm mb-8">India&apos;s top verified freelancers — zero commission</p>
 
-        <FreelancersClient initialFreelancers={initialFreelancers} />
+        <FreelancersClient initialFreelancers={initialFreelancers} isProUser={isProUser} />
       </div>
     </div>
   )

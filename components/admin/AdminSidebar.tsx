@@ -1,7 +1,4 @@
-"use client"
-
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Users, CheckCircle2, FileText,
   Briefcase, Rocket, TrendingUp, Megaphone, Gift, Headphones, UserCheck, Radio,
@@ -27,8 +24,10 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname.startsWith(href)
 }
 
-export default function AdminSidebar() {
-  const pathname = usePathname()
+export default function AdminSidebar({ pathname }: { pathname: string }) {
+  const topNav = NAV.slice(0, 5)
+  const moreNav = NAV.slice(5)
+  const anyMoreActive = moreNav.some(item => isActive(pathname, item.href, item.exact))
 
   return (
     <>
@@ -49,6 +48,7 @@ export default function AdminSidebar() {
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {NAV.map(item => {
             const active = isActive(pathname, item.href, item.exact)
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -59,7 +59,7 @@ export default function AdminSidebar() {
                     : "text-[#6B7280] hover:text-white hover:bg-white/5"
                 }`}
               >
-                <item.icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-[#818CF8]" : ""}`} />
+                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-[#818CF8]" : ""}`} />
                 <span className="truncate">{item.label}</span>
                 {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#818CF8] flex-shrink-0" />}
               </Link>
@@ -77,10 +77,10 @@ export default function AdminSidebar() {
 
       {/* ── Mobile bottom bar ────────────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0D0D14] border-t border-[#1E1E2E]">
-        {/* Show first 5 items in bottom bar */}
         <div className="flex items-center justify-around px-2 py-2">
-          {NAV.slice(0, 5).map(item => {
+          {topNav.map(item => {
             const active = isActive(pathname, item.href, item.exact)
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -89,60 +89,49 @@ export default function AdminSidebar() {
                   active ? "text-[#818CF8]" : "text-[#6B7280]"
                 }`}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <Icon className="h-5 w-5 flex-shrink-0" />
                 <span className="text-[9px] font-medium truncate max-w-[48px] text-center leading-tight">
                   {item.label}
                 </span>
               </Link>
             )
           })}
-          {/* "More" button opens overflow */}
-          <MobileMore pathname={pathname} />
-        </div>
-      </nav>
 
-      {/* ── Mobile "More" drawer (remaining nav items) ───────────────── */}
-    </>
-  )
-}
-
-function MobileMore({ pathname }: { pathname: string }) {
-  const remaining = NAV.slice(5)
-  const anyActive = remaining.some(item => isActive(pathname, item.href, item.exact))
-
-  return (
-    <div className="relative group">
-      <button
-        className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl min-w-0 transition-colors ${
-          anyActive ? "text-[#818CF8]" : "text-[#6B7280]"
-        }`}
-      >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-          <circle cx="19" cy="12" r="1.5" fill="currentColor" />
-        </svg>
-        <span className="text-[9px] font-medium">More</span>
-      </button>
-
-      {/* Popup tray */}
-      <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#12121A] border border-[#1E1E2E] rounded-2xl overflow-hidden shadow-2xl opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-opacity">
-        {remaining.map(item => {
-          const active = isActive(pathname, item.href, item.exact)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-b border-[#1E1E2E] last:border-0 ${
-                active ? "text-white bg-[#4F46E5]/10" : "text-[#6B7280] hover:text-white hover:bg-white/5"
+          {/* "More" — CSS-only dropdown, no JS needed */}
+          <div className="relative group">
+            <button
+              className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl min-w-0 transition-colors ${
+                anyMoreActive ? "text-[#818CF8]" : "text-[#6B7280]"
               }`}
             >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {item.label}
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+              </svg>
+              <span className="text-[9px] font-medium">More</span>
+            </button>
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#12121A] border border-[#1E1E2E] rounded-2xl overflow-hidden shadow-2xl opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-opacity">
+              {moreNav.map(item => {
+                const active = isActive(pathname, item.href, item.exact)
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-b border-[#1E1E2E] last:border-0 ${
+                      active ? "text-white bg-[#4F46E5]/10" : "text-[#6B7280] hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </nav>
+    </>
   )
 }

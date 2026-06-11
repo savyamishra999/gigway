@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import FreelancerCard from "@/components/freelancers/FreelancerCard"
 import { Input } from "@/components/ui/input"
-import { Search, Star } from "lucide-react"
+import { Search, Star, Lock } from "lucide-react"
+import Link from "next/link"
 
 interface Freelancer {
   id: string
@@ -23,12 +24,14 @@ interface Freelancer {
 
 const SKILL_FILTERS = ["React", "Next.js", "TypeScript", "Node.js", "Python", "Figma", "UI/UX", "WordPress"]
 const MAX_FEATURED = 3
+const PAGE_1_SIZE  = 12   // first 12 are always visible
 
 interface Props {
   initialFreelancers: Freelancer[]
+  isProUser: boolean
 }
 
-export default function FreelancersClient({ initialFreelancers }: Props) {
+export default function FreelancersClient({ initialFreelancers, isProUser }: Props) {
   const [freelancers, setFreelancers] = useState<Freelancer[]>(initialFreelancers)
   const [search, setSearch] = useState("")
   const [skillFilter, setSkillFilter] = useState("")
@@ -173,6 +176,7 @@ export default function FreelancersClient({ initialFreelancers }: Props) {
         </div>
       ) : (
         <>
+          {/* Featured (boosted) freelancers */}
           {featuredFreelancers.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
@@ -192,16 +196,64 @@ export default function FreelancersClient({ initialFreelancers }: Props) {
               )}
             </div>
           )}
+
+          {/* Regular freelancers — page 1 always visible */}
           {regularFreelancers.length > 0 && (
             <>
               {featuredFreelancers.length === 0 && (
-                <p className="text-gray-500 text-sm mb-4">{freelancers.length} freelancer{freelancers.length !== 1 ? "s" : ""} found</p>
+                <p className="text-gray-500 text-sm mb-4">
+                  {freelancers.length} freelancer{freelancers.length !== 1 ? "s" : ""} found
+                </p>
               )}
+
+              {/* Page 1 — always visible */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {regularFreelancers.map(f => (
+                {regularFreelancers.slice(0, PAGE_1_SIZE).map(f => (
                   <FreelancerCard key={f.id} freelancer={f} />
                 ))}
               </div>
+
+              {/* Page 2+ — blurred lock wall for non-pro users */}
+              {regularFreelancers.length > PAGE_1_SIZE && (
+                isProUser ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
+                    {regularFreelancers.slice(PAGE_1_SIZE).map(f => (
+                      <FreelancerCard key={f.id} freelancer={f} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="relative mt-5">
+                    {/* Blurred preview of page 2 cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 select-none pointer-events-none blur-sm opacity-60">
+                      {regularFreelancers.slice(PAGE_1_SIZE, PAGE_1_SIZE + 6).map(f => (
+                        <FreelancerCard key={f.id} freelancer={f} />
+                      ))}
+                    </div>
+
+                    {/* Lock overlay */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/80 to-transparent rounded-2xl px-4 py-8">
+                      <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-8 text-center max-w-sm shadow-2xl">
+                        <div className="w-12 h-12 rounded-full bg-[#4F46E5]/15 flex items-center justify-center mx-auto mb-4">
+                          <Lock className="h-6 w-6 text-[#818CF8]" />
+                        </div>
+                        <h3 className="text-white font-black text-lg mb-2">
+                          See {regularFreelancers.length - PAGE_1_SIZE} more freelancers
+                        </h3>
+                        <p className="text-[#6B7280] text-sm mb-5">
+                          Boost or Verify your profile to unlock full search and find the perfect match.
+                        </p>
+                        <Link
+                          href="/pricing"
+                          className="block w-full py-3 rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-black text-sm shadow-lg shadow-[#4F46E5]/25 hover:opacity-90 transition-opacity"
+                        >
+                          Upgrade to Pro →
+                        </Link>
+                        <p className="text-[#475569] text-xs mt-3">Boost from ₹199/mo · Verified ₹299 once</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
             </>
           )}
         </>

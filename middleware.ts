@@ -46,6 +46,9 @@ export async function middleware(req: NextRequest) {
     },
   })
 
+  // Expose pathname for server components (e.g. admin sidebar active states)
+  res.headers.set("x-pathname", req.nextUrl.pathname)
+
   return res
 }
 
