@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, Search } from "lucide-react"
+import { X, Plus, Search, Camera } from "lucide-react"
 
 const JOB_FUNCTIONS = [
   "Full Stack Developer", "Frontend Developer", "Backend Developer",
@@ -40,6 +40,7 @@ const ALL_SKILLS = Object.values(SKILLS_BY_CATEGORY).flat()
 
 export default function OnboardingForm({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
   const [skillInput, setSkillInput] = useState("")
   const [skillSearch, setSkillSearch] = useState("")
@@ -48,15 +49,28 @@ export default function OnboardingForm({ userId }: { userId: string }) {
   const [jfSearch, setJfSearch] = useState("")
   const [formData, setFormData] = useState({
     full_name: "",
+    phone: "",
+    avatar_url: "",
     job_function: [] as string[],
     bio: "",
     location: "",
-    hourly_rate: "",
     skills: [] as string[],
     portfolio_links: [] as string[],
   })
   const router = useRouter()
   const supabase = createClient()
+
+  const uploadAvatar = async (file: File) => {
+    setUploading(true)
+    const ext = file.name.split(".").pop()
+    const path = `${userId}/${Date.now()}.${ext}`
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true })
+    if (!upErr) {
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path)
+      setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }))
+    }
+    setUploading(false)
+  }
 
   const toggleJobFunction = (fn: string) => {
     setFormData(prev => {
@@ -103,6 +117,13 @@ export default function OnboardingForm({ userId }: { userId: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.full_name.trim()) { setError("Full name is required"); return }
+    if (!formData.phone.trim()) { setError("Phone number is required"); return }
+    const digits = formData.phone.replace(/\D/g, "")
+    if (digits.length !== 10 && digits.length !== 12) {
+      setError("Enter a valid 10-digit phone number"); return
+    }
+    if (formData.skills.length === 0) { setError("Select at least 1 skill"); return }
+
     setLoading(true)
     setError("")
 
@@ -110,10 +131,11 @@ export default function OnboardingForm({ userId }: { userId: string }) {
       .from("profiles")
       .update({
         full_name: formData.full_name.trim(),
+        phone: formData.phone.trim(),
+        avatar_url: formData.avatar_url || null,
         job_function: formData.job_function.length > 0 ? formData.job_function : null,
         bio: formData.bio || null,
         location: formData.location || null,
-        hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
         skills: formData.skills,
         portfolio_links: formData.portfolio_links,
         profile_completed: true,
@@ -133,6 +155,38 @@ export default function OnboardingForm({ userId }: { userId: string }) {
       {error && (
         <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
       )}
+
+      {/* Profile Photo */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-[#6366F1]/20 flex items-center justify-center">
+            {formData.avatar_url ? (
+              <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-4xl font-bold text-[#A5B4FC]">
+                {formData.full_name?.[0]?.toUpperCase() || "?"}
+              </span>
+            )}
+          </div>
+          <label className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#6366F1] flex items-center justify-center cursor-pointer hover:bg-[#4F46E5] transition-colors">
+            <Camera className="h-3.5 w-3.5 text-white" />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={e => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+            />
+          </label>
+        </div>
+        {!formData.avatar_url && (
+          <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-1.5">
+            <span className="text-amber-400 text-xs font-semibold">⚠️ Add a photo</span>
+            <span className="text-amber-300/70 text-xs">— profiles with photos get 5× more responses</span>
+          </div>
+        )}
+        {uploading && <p className="text-[#94A3B8] text-xs">Uploading…</p>}
+      </div>
 
       {/* Full Name */}
       <div className="space-y-2">
@@ -208,7 +262,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
         />
       </div>
 
-      {/* Location + Rate */}
+      {/* Location + Phone */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-[#F8FAFC] font-medium">Location</Label>
@@ -220,15 +274,17 @@ export default function OnboardingForm({ userId }: { userId: string }) {
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[#F8FAFC] font-medium">Hourly Rate (₹)</Label>
-          <Input
-            type="number"
-            min="0"
-            value={formData.hourly_rate}
-            onChange={e => setFormData(prev => ({ ...prev, hourly_rate: e.target.value }))}
-            placeholder="e.g. 500"
-            className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1] h-11"
-          />
+          <Label className="text-[#F8FAFC] font-medium">Phone *</Label>
+          <div className="flex">
+            <span className="flex items-center px-3 bg-[#334155] border border-r-0 border-[#334155] rounded-l-md text-[#94A3B8] text-sm">+91</span>
+            <Input
+              type="tel"
+              value={formData.phone}
+              onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+              placeholder="10-digit number"
+              className="bg-[#0F172A] border-[#334155] text-[#F8FAFC] placeholder:text-[#94A3B8] focus:border-[#6366F1] h-11 rounded-l-none"
+            />
+          </div>
         </div>
       </div>
 

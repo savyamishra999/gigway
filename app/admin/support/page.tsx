@@ -26,15 +26,15 @@ export default async function AdminSupportPage() {
     { data: closed },
   ] = await Promise.all([
     adminClient.from("support_tickets")
-      .select("id,name,email,subject,message,status,created_at")
+      .select("id,name,email,subject,message,status,created_at,user_id,admin_reply")
       .eq("status", "open")
       .order("created_at", { ascending: false }),
     adminClient.from("support_tickets")
-      .select("id,name,email,subject,message,status,created_at")
+      .select("id,name,email,subject,message,status,created_at,user_id,admin_reply")
       .eq("status", "in_progress")
       .order("created_at", { ascending: false }),
     adminClient.from("support_tickets")
-      .select("id,name,email,subject,message,status,created_at")
+      .select("id,name,email,subject,message,status,created_at,user_id,admin_reply")
       .eq("status", "resolved")
       .order("created_at", { ascending: false })
       .limit(50),

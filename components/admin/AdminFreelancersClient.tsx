@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ExternalLink, Trash2, X, Shield, ShieldOff, Ban, CheckCircle, UserCheck } from "lucide-react"
+import { ExternalLink, Trash2, X, Shield, ShieldOff, Ban, CheckCircle, UserCheck, Send } from "lucide-react"
 
 interface FreelancerRow {
   id: string
@@ -23,8 +23,32 @@ export default function AdminFreelancersClient({ initial }: { initial: Freelance
   const [deleting, setDeleting] = useState(false)
   const [loading, setLoading]   = useState<string | null>(null)
   const [toast, setToast]       = useState("")
+  const [msgTarget, setMsgTarget]   = useState<FreelancerRow | null>(null)
+  const [msgTitle, setMsgTitle]     = useState("")
+  const [msgBody, setMsgBody]       = useState("")
+  const [sendingMsg, setSendingMsg] = useState(false)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000) }
+
+  const sendMessage = async () => {
+    if (!msgTarget || !msgTitle.trim() || !msgBody.trim()) return
+    setSendingMsg(true)
+    try {
+      const res = await fetch("/api/admin/send-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: msgTarget.id, title: msgTitle, message: msgBody }),
+      })
+      if (res.ok) {
+        showToast(`Message sent to ${msgTarget.full_name || "user"} ✅`)
+        setMsgTarget(null); setMsgTitle(""); setMsgBody("")
+      } else {
+        const d = await res.json()
+        showToast(d.error || "Failed to send")
+      }
+    } catch { showToast("Network error") }
+    setSendingMsg(false)
+  }
 
   const patch = async (userId: string, updates: Record<string, unknown>, successMsg: string) => {
     setLoading(userId)
@@ -71,6 +95,49 @@ export default function AdminFreelancersClient({ initial }: { initial: Freelance
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1E1E2E] border border-[#334155] text-white text-sm px-5 py-3 rounded-xl shadow-xl z-50">
           {toast}
+        </div>
+      )}
+
+      {/* Personal message modal */}
+      {msgTarget && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 w-full max-w-sm">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-white font-black text-sm">Message as GigWay <span className="text-blue-400">✅</span></h3>
+                <p className="text-[#475569] text-xs mt-0.5">To: {msgTarget.full_name || msgTarget.email}</p>
+              </div>
+              <button onClick={() => setMsgTarget(null)} className="text-[#6B7280] hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <input
+                value={msgTitle}
+                onChange={e => setMsgTitle(e.target.value)}
+                placeholder="Subject / Title"
+                className="w-full bg-[#0F172A] border border-[#1E1E2E] text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#4F46E5] placeholder:text-[#475569]"
+              />
+              <textarea
+                value={msgBody}
+                onChange={e => setMsgBody(e.target.value)}
+                placeholder="Message body..."
+                rows={4}
+                className="w-full bg-[#0F172A] border border-[#1E1E2E] text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#4F46E5] placeholder:text-[#475569] resize-none"
+              />
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setMsgTarget(null)}
+                className="flex-1 py-2.5 border border-[#334155] text-[#6B7280] rounded-xl text-sm hover:text-white transition-colors">
+                Cancel
+              </button>
+              <button onClick={sendMessage} disabled={sendingMsg || !msgTitle.trim() || !msgBody.trim()}
+                className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-black transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+                <Send className="h-3.5 w-3.5" />
+                {sendingMsg ? "Sending…" : "Send"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -210,6 +277,13 @@ export default function AdminFreelancersClient({ initial }: { initial: Freelance
                             title={isBanned ? "Unban" : "Ban"}
                           >
                             <Ban className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => { setMsgTarget(f); setMsgTitle(""); setMsgBody("") }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#4F46E5]/10 border border-[#4F46E5]/20 text-[#818CF8] text-xs rounded-lg hover:bg-[#4F46E5]/20 transition-colors"
+                            title="Send personal message"
+                          >
+                            <Send className="h-3 w-3" />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(f)}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageCircle, Mail, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react"
+import { MessageCircle, Mail, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Send } from "lucide-react"
 
 interface Ticket {
   id: string
@@ -11,6 +11,8 @@ interface Ticket {
   message: string
   status: string
   created_at: string
+  user_id?: string | null
+  admin_reply?: string | null
 }
 
 function fmt(d: string) {
@@ -37,9 +39,12 @@ export default function AdminSupportClient({
   const [open, setOpen]     = useState(initialOpen)
   const [urgent, setUrgent] = useState(initialUrgent)
   const [closed, setClosed] = useState(initialClosed)
-  const [loading, setLoading] = useState<string | null>(null)
+  const [loading, setLoading]   = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [toast, setToast]   = useState("")
+  const [replying, setReplying] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState("")
+  const [sendingReply, setSendingReply] = useState(false)
+  const [toast, setToast]       = useState("")
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000) }
 
@@ -83,6 +88,37 @@ export default function AdminSupportClient({
       `mailto:${ticket.email}?subject=Re: ${encodeURIComponent(ticket.subject)}&body=${encodeURIComponent(`Hi ${ticket.name},\n\nThank you for reaching out.\n\n`)}`,
       "_blank"
     )
+  }
+
+  const sendReply = async (ticket: Ticket) => {
+    if (!replyText.trim()) return
+    setSendingReply(true)
+    try {
+      const res = await fetch("/api/admin/support-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId: ticket.id, reply: replyText }),
+      })
+      if (res.ok) {
+        const allLists = [open, urgent, closed]
+        allLists.forEach((lst, idx) => {
+          const found = lst.find(t => t.id === ticket.id)
+          if (found) {
+            const updated = { ...found, admin_reply: replyText, status: "resolved" }
+            if (idx === 0) { setOpen(l => l.map(t => t.id === ticket.id ? updated : t)) }
+            else if (idx === 1) { setUrgent(l => l.map(t => t.id === ticket.id ? updated : t)) }
+            else { setClosed(l => l.map(t => t.id === ticket.id ? updated : t)) }
+          }
+        })
+        showToast("Reply sent via GigWay ✅")
+        setReplying(null)
+        setReplyText("")
+      } else {
+        const d = await res.json()
+        showToast(d.error || "Reply failed")
+      }
+    } catch { showToast("Network error") }
+    setSendingReply(false)
   }
 
   const TABS: { key: Tab; label: string; count: number }[] = [
@@ -152,13 +188,55 @@ export default function AdminSupportClient({
 
               {/* Expanded message */}
               {expanded === t.id && (
-                <div className="px-5 pb-4 border-t border-[#1E1E2E] pt-4">
+                <div className="px-5 pb-4 border-t border-[#1E1E2E] pt-4 space-y-3">
                   <p className="text-[#94A3B8] text-sm whitespace-pre-wrap">{t.message}</p>
+                  {t.admin_reply && (
+                    <div className="bg-[#4F46E5]/10 border border-[#4F46E5]/20 rounded-xl p-3">
+                      <p className="text-[#818CF8] text-xs font-bold mb-1">
+                        GigWay <span className="text-blue-400">✅</span> replied:
+                      </p>
+                      <p className="text-[#CBD5E1] text-sm whitespace-pre-wrap">{t.admin_reply}</p>
+                    </div>
+                  )}
+                  {replying === t.id && (
+                    <div className="space-y-2">
+                      <textarea
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder="Type your reply... (sent as GigWay ✅)"
+                        rows={3}
+                        className="w-full bg-[#0F172A] border border-[#334155] text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#4F46E5] placeholder:text-[#475569] resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => sendReply(t)}
+                          disabled={sendingReply || !replyText.trim()}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] text-white text-xs font-bold rounded-lg hover:bg-[#4338CA] transition-colors disabled:opacity-40"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          {sendingReply ? "Sending…" : "Send Reply"}
+                        </button>
+                        <button
+                          onClick={() => { setReplying(null); setReplyText("") }}
+                          className="px-4 py-2 bg-[#1E1E2E] border border-[#334155] text-[#6B7280] text-xs rounded-lg hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Actions */}
               <div className="flex items-center gap-2 px-5 pb-4 flex-wrap">
+                <button
+                  onClick={() => { setExpanded(t.id); setReplying(t.id); setReplyText("") }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4F46E5]/10 border border-[#4F46E5]/20 text-[#818CF8] text-xs rounded-lg hover:bg-[#4F46E5]/20 transition-colors"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Reply as GigWay ✅
+                </button>
                 <button onClick={() => whatsapp(t)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] text-xs rounded-lg hover:bg-[#25D366]/20 transition-colors">
                   <MessageCircle className="h-3.5 w-3.5" />

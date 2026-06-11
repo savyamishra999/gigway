@@ -1,7 +1,7 @@
 import Link from "next/link"
 import {
   LayoutDashboard, Users, CheckCircle2, FileText,
-  Briefcase, Rocket, TrendingUp, Megaphone, Gift, Headphones, UserCheck, Radio,
+  Briefcase, Rocket, TrendingUp, Megaphone, Gift, Headphones, UserCheck, Radio, Bell,
 } from "lucide-react"
 
 const NAV = [
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/revenue",          label: "Revenue",        icon: TrendingUp       },
   { href: "/admin/affiliates",       label: "Affiliates",     icon: Megaphone        },
   { href: "/admin/broadcast",        label: "Broadcast",      icon: Radio            },
+  { href: "/admin/notices",          label: "Notices",        icon: Bell             },
   { href: "/admin/special-grants",   label: "Special Grants", icon: Gift             },
   { href: "/admin/support",          label: "Support",        icon: Headphones       },
 ]

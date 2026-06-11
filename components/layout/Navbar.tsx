@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Zap, Bookmark, Sparkles, Gift, Crown } from "lucide-react"
+import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Zap, Bookmark, Sparkles, Gift, Crown, Headphones } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -10,6 +10,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import SupportModal from "@/components/support/SupportModal"
 
 interface Profile { full_name: string | null; avatar_url?: string | null }
 
@@ -30,6 +31,7 @@ export default function Navbar() {
   const [unread, setUnread] = useState(0)
   const [unreadMsgs, setUnreadMsgs] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [supportOpen, setSupportOpen] = useState(false)
   const mobileRef  = useRef<HTMLDivElement>(null)
   const toggleRef  = useRef<HTMLButtonElement>(null)
   const supabase = createClient()
@@ -98,6 +100,13 @@ export default function Navbar() {
   const firstName = profile?.full_name?.split(" ")[0] || "Account"
 
   return (
+    <>
+    <SupportModal
+      open={supportOpen}
+      onClose={() => setSupportOpen(false)}
+      userName={profile?.full_name ?? undefined}
+      userEmail={user?.email ?? undefined}
+    />
     <nav className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-xl border-b border-[#1E1E2E]">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
         {/* Logo */}
@@ -195,6 +204,12 @@ export default function Navbar() {
                   <DropdownMenuItem asChild className="hover:bg-white/5 cursor-pointer">
                     <Link href="/buy-connects" className="flex items-center gap-2"><Zap className="h-4 w-4" /> Buy Connects</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSupportOpen(true)}
+                    className="hover:bg-white/5 cursor-pointer flex items-center gap-2"
+                  >
+                    <Headphones className="h-4 w-4" /> Support
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-[#1E1E2E]" />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-400 hover:bg-red-500/10 cursor-pointer flex items-center gap-2">
                     <LogOut className="h-4 w-4" /> Logout
@@ -237,7 +252,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — sits inside <nav>, outside <SupportModal> */}
       {mobileOpen && (
         <div ref={mobileRef} className="md:hidden border-t border-[#1E1E2E] bg-[#0A0A0F]">
           <div className="container mx-auto px-4 py-4 space-y-1">
@@ -285,6 +300,12 @@ export default function Navbar() {
                 <Link href="/refer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm">
                   <Gift className="h-4 w-4" /> Refer & Earn
                 </Link>
+                <button
+                  onClick={() => { setMobileOpen(false); setSupportOpen(true) }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm w-full"
+                >
+                  <Headphones className="h-4 w-4" /> Support
+                </button>
                 <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 text-sm w-full">
                   <LogOut className="h-4 w-4" /> Logout
                 </button>
@@ -299,5 +320,6 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+    </>
   )
 }

@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
+  .split(",").map(e => e.trim().toLowerCase())
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
+
+  // ── Admin dashboard shortcut ───────────────────────────────────────────────
+  // If an admin lands on /dashboard, redirect them to /admin instead
+  if (req.nextUrl.pathname === "/dashboard") {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const tmpClient = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: () => {},
+      },
+    })
+    const { data: { user } } = await tmpClient.auth.getUser()
+    if (user && ADMIN_EMAILS.includes((user.email ?? "").toLowerCase())) {
+      return NextResponse.redirect(new URL("/admin", req.url))
+    }
+  }
 
   // ── Referral tracking ──────────────────────────────────────────────────────
   const refCode = req.nextUrl.searchParams.get("ref")

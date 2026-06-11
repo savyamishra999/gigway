@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -6,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Bell, Plus, Briefcase, Star, Package } from "lucide-react"
 import BoostProfileCard from "@/components/boost/BoostProfileCard"
 import VerifiedBadgeCard from "@/components/verify/VerifiedBadgeCard"
+import NoticeBanner from "@/components/notices/NoticeBanner"
+import DashboardSupportButton from "@/components/support/DashboardSupportButton"
 
 const PROPOSAL_STATUS: Record<string, string> = {
   pending:  "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
@@ -176,6 +179,11 @@ export default async function DashboardPage() {
   const firstName = profile.full_name?.split(" ")[0] || "there"
   const now = new Date().toISOString()
 
+  const adminDb = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   const [
     { data: notifications },
     { data: myGigs },
@@ -183,6 +191,7 @@ export default async function DashboardPage() {
     { data: myProposals },
     { data: openProjects },
     { count: boostedCount },
+    { data: activeNotices },
   ] = await Promise.all([
     supabase.from("notifications").select("*").eq("user_id", user.id).eq("is_read", false)
       .order("created_at", { ascending: false }).limit(5),
@@ -196,6 +205,12 @@ export default async function DashboardPage() {
       .eq("status", "open").order("created_at", { ascending: false }).limit(6),
     supabase.from("profiles").select("*", { count: "exact", head: true })
       .eq("is_boosted", true).gt("boost_expires_at", now),
+    adminDb.from("notices")
+      .select("id, title, content, type")
+      .eq("is_active", true)
+      .or(`show_until.is.null,show_until.gt.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(3),
   ])
 
   const hasGigs      = (myGigs?.length ?? 0) > 0
@@ -304,6 +319,11 @@ export default async function DashboardPage() {
             </Button>
           </Link>
         </div>
+
+        {/* ── GigWay Notices ────────────────────────────────────── */}
+        {activeNotices && activeNotices.length > 0 && (
+          <NoticeBanner notices={activeNotices} />
+        )}
 
         {/* ── Connects gamification card ─────────────────────────── */}
         <ConnectsCard balance={connectsBal} />
@@ -507,6 +527,11 @@ export default async function DashboardPage() {
                 <Star className="h-4 w-4 text-[#06B6D4]" /> Browse Projects
               </Button>
             </Link>
+          </div>
+
+          {/* Support button */}
+          <div className="pt-2">
+            <DashboardSupportButton />
           </div>
         </div>
       </div>
