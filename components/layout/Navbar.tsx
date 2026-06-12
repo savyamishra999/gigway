@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Bell, User, LogOut, ChevronDown, Menu, X, LayoutDashboard, MessageSquare, Edit, Zap, Bookmark, Sparkles, Gift, Crown, Headphones } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -110,8 +111,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-xl border-b border-[#1E1E2E]">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
         {/* Logo */}
-        <Link href="/" className="text-2xl font-black bg-gradient-to-r from-[#4F46E5] to-[#F97316] bg-clip-text text-transparent flex-shrink-0">
-          GigWAY
+        <Link href="/" className="flex-shrink-0 flex items-center">
+          <Image src="/logo.png" width={140} height={35} alt="GigWay" priority />
         </Link>
 
         {/* Desktop Nav */}

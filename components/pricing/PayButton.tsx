@@ -74,7 +74,7 @@ export default function PayButton({
         amount: order.amount,
         currency: order.currency,
         name: "GigWay",
-        image: "https://gigway.in/logo.png",
+        image: "https://gigway.in/icon.png",
         description: description || "GigWay — Zero Commission Freelance Platform",
         order_id: order.order_id,
         theme: { color: "#7C3AED" },

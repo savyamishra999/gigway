@@ -123,7 +123,7 @@ export default function BoostProfileCard({
       amount: orderData.amount,
       currency: orderData.currency,
       name: "GigWay",
-      image: "https://gigway.in/logo.png",
+      image: "https://gigway.in/icon.png",
       description: `GigWay — Profile Boost ${planId.replace("boost_", "").replace(/^\w/, (c: string) => c.toUpperCase())} · 30 days`,
       order_id: orderData.order_id,
       theme: { color: "#F97316" },

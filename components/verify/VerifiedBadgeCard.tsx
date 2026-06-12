@@ -96,7 +96,7 @@ export default function VerifiedBadgeCard({ verificationStatus, isVerified }: Ve
       amount: orderData.amount,
       currency: orderData.currency,
       name: "GigWay",
-      image: "https://gigway.in/logo.png",
+      image: "https://gigway.in/icon.png",
       description: "GigWay — Verified Badge · One-time · Permanent",
       order_id: orderData.order_id,
       theme: { color: "#4F46E5" },

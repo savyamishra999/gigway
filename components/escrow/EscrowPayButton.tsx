@@ -64,7 +64,7 @@ export default function EscrowPayButton({ proposalId, projectId, bidAmount, free
       amount: orderData.amount,
       currency: orderData.currency,
       name: "GigWay",
-      image: "https://gigway.in/logo.png",
+      image: "https://gigway.in/icon.png",
       description: `Pay ₹${bidAmount.toLocaleString()} to ${freelancerName} (held in escrow)`,
       order_id: orderData.order_id,
       theme: { color: "#4F46E5" },
