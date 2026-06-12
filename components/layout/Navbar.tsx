@@ -112,7 +112,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 flex items-center">
-          <Image src="/logo.png" width={140} height={35} alt="GigWay" priority />
+          <Image src="/logo.png" width={160} height={42} alt="GigWay" priority />
         </Link>
 
         {/* Desktop Nav */}
