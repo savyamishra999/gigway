@@ -114,7 +114,7 @@ export default function Navbar() {
       setUser(user)
       if (!user) return
 
-      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "tellitorg1@gmail.com")
         .split(",").map(e => e.trim().toLowerCase())
       setIsAdmin(adminEmails.includes((user.email ?? "").toLowerCase()))
 
