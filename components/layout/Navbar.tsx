@@ -304,15 +304,23 @@ export default function Navbar() {
                     <div className="px-3 py-2 text-xs text-[#6B7280] truncate">{user.email}</div>
                     {/* Role chips */}
                     <div className="px-3 pb-2 flex gap-1 flex-wrap">
-                      {(isFindWork || rawRoles.length === 0) && (
-                        <span className="text-[10px] bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/25 rounded-full px-2 py-0.5">
-                          🔍 {findWorkType === "job_seeker" ? "Job Seeker" : "Freelancer"}
+                      {isAdmin ? (
+                        <span className="text-[10px] bg-[#F97316]/15 text-[#FB923C] border border-[#F97316]/25 rounded-full px-2 py-0.5">
+                          👑 Admin
                         </span>
-                      )}
-                      {isHireTalent && (
-                        <span className="text-[10px] bg-[#F59E0B]/15 text-[#FCD34D] border border-[#F59E0B]/25 rounded-full px-2 py-0.5">
-                          👔 {hireTalentType === "company" ? "Company" : "Client"}
-                        </span>
+                      ) : (
+                        <>
+                          {(isFindWork || rawRoles.length === 0) && (
+                            <span className="text-[10px] bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/25 rounded-full px-2 py-0.5">
+                              🔍 {findWorkType === "job_seeker" ? "Job Seeker" : "Freelancer"}
+                            </span>
+                          )}
+                          {isHireTalent && (
+                            <span className="text-[10px] bg-[#F59E0B]/15 text-[#FCD34D] border border-[#F59E0B]/25 rounded-full px-2 py-0.5">
+                              👔 {hireTalentType === "company" ? "Company" : "Client"}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                     <DropdownMenuSeparator className="bg-[#1E1E2E]" />
