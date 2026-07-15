@@ -1,89 +1,95 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const code = searchParams.get('code')
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get("code")
 
-  if (code) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) { return cookieStore.get(name)?.value },
-          set(name: string, value: string, options: Record<string, unknown>) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: Record<string, unknown>) {
-            cookieStore.set({ name, value: '', ...options })
-          },
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=no_code`)
+  }
+
+  const cookieStore = await cookies()
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+        set(name: string, value: string, options: Record<string, unknown>) {
+          cookieStore.set({ name, value, ...options })
         },
-      }
-    )
+        remove(name: string, options: Record<string, unknown>) {
+          cookieStore.set({ name, value: "", ...options })
+        },
+      },
+    }
+  )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+  // Get user directly from the exchange — don't call getUser() separately
+  const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        // Admin shortcut — check before profile lookup
-        const adminEmails = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
-          .split(",").map(e => e.trim().toLowerCase())
-        if (adminEmails.includes((user.email ?? "").toLowerCase())) {
-          return NextResponse.redirect(new URL('/admin', request.url))
-        }
+  if (error || !user) {
+    console.error("[auth/callback] exchangeCodeForSession error:", error?.message)
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('profile_completed')
-          .eq('id', user.id)
-          .single()
+  // Admin shortcut
+  const adminEmails = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
+    .split(",").map(e => e.trim().toLowerCase())
+  if (adminEmails.includes((user.email ?? "").toLowerCase())) {
+    return NextResponse.redirect(`${origin}/admin`)
+  }
 
-        if (!profile) {
-          await supabase.from('profiles').insert({
-            id: user.id,
-            email: user.email,
-            profile_completed: false,
-          }).then(() => null, () => null)
+  // Check profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("profile_completed")
+    .eq("id", user.id)
+    .single()
 
-          // Referral bonus: check cookie for ref code
-          const refCookie = cookieStore.get("gigway_ref")?.value
-          if (refCookie) {
-            const { data: referrer } = await supabase
-              .from("profiles")
-              .select("id")
-              .eq("user_ref_code", refCookie)
-              .neq("id", user.id)
-              .single()
+  if (!profile) {
+    // New user — create profile with Google metadata
+    await supabase.from("profiles").insert({
+      id:               user.id,
+      email:            user.email,
+      full_name:        user.user_metadata?.full_name   ?? null,
+      avatar_url:       user.user_metadata?.avatar_url  ?? null,
+      profile_completed: false,
+      user_roles:       [],
+    }).then(() => null, (e) => console.error("[auth/callback] profile insert:", e))
 
-            if (referrer) {
-              // Give both users 5 connects
-              await Promise.all([
-                supabase.rpc("increment_connects", { uid: user.id, amount: 5 }),
-                supabase.rpc("increment_connects", { uid: referrer.id, amount: 5 }),
-                supabase.from("connects_transactions").insert([
-                  { user_id: user.id,      amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Joined via referral" },
-                  { user_id: referrer.id,  amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Friend joined via your link" },
-                ]),
-              ])
-              // Clear the ref cookie
-              cookieStore.set({ name: "gigway_ref", value: "", maxAge: 0 })
-            }
-          }
+    // Referral bonus
+    const refCookie = cookieStore.get("gigway_ref")?.value
+    if (refCookie) {
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_ref_code", refCookie)
+        .neq("id", user.id)
+        .single()
 
-          return NextResponse.redirect(new URL('/profile/complete', request.url))
-        }
-
-        if (profile.profile_completed === false) {
-          return NextResponse.redirect(new URL('/profile/complete', request.url))
-        }
-
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+      if (referrer) {
+        await Promise.allSettled([
+          supabase.rpc("increment_connects", { uid: user.id,      amount: 5 }),
+          supabase.rpc("increment_connects", { uid: referrer.id,  amount: 5 }),
+          supabase.from("connects_transactions").insert([
+            { user_id: user.id,      amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Joined via referral" },
+            { user_id: referrer.id,  amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Friend joined via your link" },
+          ]),
+        ])
+        cookieStore.set({ name: "gigway_ref", value: "", maxAge: 0 })
       }
     }
+
+    return NextResponse.redirect(`${origin}/profile/complete`)
   }
-  return NextResponse.redirect(new URL('/auth/auth-code-error', request.url))
+
+  if (!profile.profile_completed) {
+    return NextResponse.redirect(`${origin}/profile/complete`)
+  }
+
+  return NextResponse.redirect(`${origin}/dashboard`)
 }
