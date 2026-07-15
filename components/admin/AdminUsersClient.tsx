@@ -14,17 +14,59 @@ interface UserRow {
   verification_status: string | null
   boost_expires_at: string | null
   subscription_tier: string | null
+  user_roles: string[] | null
+  find_work_type: string | null
+  hire_talent_type: string | null
 }
 
 function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
 }
 
+function RoleChip({ user }: { user: UserRow }) {
+  const roles  = user.user_roles ?? []
+  const isFW   = roles.includes("find_work")
+  const isHT   = roles.includes("hire_talent")
+  const fwType = user.find_work_type
+  const htType = user.hire_talent_type
+
+  const chips: { label: string; color: string }[] = []
+
+  if (isFW) {
+    if (fwType === "freelancer" || fwType === "both")
+      chips.push({ label: "Freelancer", color: "bg-[#6366F1]/20 text-[#A5B4FC] border border-[#6366F1]/30" })
+    if (fwType === "job_seeker" || fwType === "both")
+      chips.push({ label: "Job Seeker", color: "bg-[#378ADD]/20 text-[#93C5FD] border border-[#378ADD]/30" })
+    if (!fwType)
+      chips.push({ label: "Find Work", color: "bg-[#6366F1]/10 text-[#818CF8] border border-[#6366F1]/20" })
+  }
+  if (isHT) {
+    if (htType === "company")
+      chips.push({ label: "Company", color: "bg-[#F97316]/20 text-[#FCA5A5] border border-[#F97316]/30" })
+    else if (htType === "individual")
+      chips.push({ label: "Individual", color: "bg-[#F59E0B]/20 text-[#FCD34D] border border-[#F59E0B]/30" })
+    else
+      chips.push({ label: "Hire Talent", color: "bg-[#F59E0B]/10 text-[#FCD34D] border border-[#F59E0B]/20" })
+  }
+
+  if (chips.length === 0) return <span className="text-[#475569] text-[10px]">—</span>
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {chips.map(c => (
+        <span key={c.label} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${c.color}`}>
+          {c.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
   const [users, setUsers] = useState(initial)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [target, setTarget] = useState<UserRow | null>(null)
-  const [toast, setToast] = useState("")
+  const [target, setTarget]     = useState<UserRow | null>(null)
+  const [toast, setToast]       = useState("")
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -56,14 +98,12 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
 
   return (
     <>
-      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1E1E2E] border border-[#334155] text-white text-sm px-5 py-3 rounded-xl shadow-xl z-50">
           {toast}
         </div>
       )}
 
-      {/* Delete confirm modal */}
       {target && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 w-full max-w-sm">
@@ -81,17 +121,12 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
               </p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setTarget(null)}
-                className="flex-1 py-2.5 border border-[#334155] text-[#6B7280] rounded-xl text-sm hover:text-white hover:border-[#475569] transition-colors"
-              >
+              <button onClick={() => setTarget(null)}
+                className="flex-1 py-2.5 border border-[#334155] text-[#6B7280] rounded-xl text-sm hover:text-white hover:border-[#475569] transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={confirmDelete}
-                disabled={!!deleting}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black transition-colors disabled:opacity-50"
-              >
+              <button onClick={confirmDelete} disabled={!!deleting}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black transition-colors disabled:opacity-50">
                 {deleting ? "Deleting…" : "Delete Forever"}
               </button>
             </div>
@@ -99,7 +134,6 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl overflow-hidden">
         {users.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-3">
@@ -111,7 +145,8 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
               <thead>
                 <tr className="border-b border-[#1E1E2E]">
                   <th className="text-left text-[#6B7280] font-semibold px-5 py-3 text-xs uppercase tracking-wide">User</th>
-                  <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden sm:table-cell">Email</th>
+                  <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden sm:table-cell">Email / Phone</th>
+                  <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide">Role</th>
                   <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide">Status</th>
                   <th className="text-left text-[#6B7280] font-semibold px-3 py-3 text-xs uppercase tracking-wide hidden md:table-cell">Joined</th>
                   <th className="text-right text-[#6B7280] font-semibold px-5 py-3 text-xs uppercase tracking-wide">Actions</th>
@@ -132,11 +167,14 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
                       </div>
                     </td>
                     <td className="px-3 py-3 text-[#94A3B8] hidden sm:table-cell">
-                      <span className="truncate max-w-[180px] block">{u.email}</span>
+                      <span className="truncate max-w-[180px] block text-xs">{u.email}</span>
                       {u.phone && <span className="text-[#475569] text-xs block">{u.phone}</span>}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <RoleChip user={u} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1 flex-wrap">
                         {u.is_boosted && new Date(u.boost_expires_at ?? "") > new Date() && (
                           <span className="flex items-center gap-1 text-[10px] bg-[#F97316]/10 text-[#F97316] px-2 py-0.5 rounded-full font-semibold">
                             <Zap className="h-3 w-3" /> Boosted
@@ -160,19 +198,13 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <a
-                          href={`/freelancers/${u.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-3 py-1.5 bg-[#1E1E2E] hover:bg-[#334155] text-[#94A3B8] hover:text-white text-xs rounded-lg transition-colors"
-                        >
+                        <a href={`/freelancers/${u.id}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-[#1E1E2E] hover:bg-[#334155] text-[#94A3B8] hover:text-white text-xs rounded-lg transition-colors">
                           <ExternalLink className="h-3 w-3" />
                           <span className="hidden sm:inline">View</span>
                         </a>
-                        <button
-                          onClick={() => setTarget(u)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded-lg transition-colors border border-red-500/20"
-                        >
+                        <button onClick={() => setTarget(u)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded-lg transition-colors border border-red-500/20">
                           <Trash2 className="h-3 w-3" />
                           <span className="hidden sm:inline">Delete</span>
                         </button>

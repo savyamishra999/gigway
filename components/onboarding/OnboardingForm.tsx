@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
   X, Plus, Search, Camera, CheckCircle2, Briefcase, BookOpen,
-  Building2, Users, ChevronRight, Package,
+  Building2, Users, ChevronRight, Package, Upload, FileText,
+  IndianRupee,
 } from "lucide-react"
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -46,18 +47,27 @@ const INDUSTRIES = [
 
 const COMPANY_SIZES = ["1–10","11–50","51–200","201–500","500+"]
 
+const JOB_TYPES = [
+  { id: "full_time", label: "Full-time" },
+  { id: "part_time", label: "Part-time" },
+  { id: "remote",    label: "Remote" },
+  { id: "hybrid",    label: "Hybrid" },
+  { id: "on_site",   label: "On-site" },
+]
+
 // ── types ──────────────────────────────────────────────────────────────────────
 
-type MainRole     = "find_work" | "hire_talent" | "both"
-type FindWorkType = "freelancer" | "job_seeker" | "both_fw"
+type MainRole     = "find_work" | "hire_talent"
+type FindWorkType = "freelancer" | "job_seeker"
 type HireType     = "individual" | "company"
 
 interface FormData {
   full_name: string; phone: string; avatar_url: string; bio: string; location: string
   // freelancer
-  job_function: string[]; skills: string[]; portfolio_links: string[]
+  job_function: string[]; skills: string[]; portfolio_links: string[]; hourly_rate: string
   // job seeker
   experience_years: string; experience_description: string; linkedin_url: string
+  cv_url: string; expected_salary: string; preferred_job_type: string[]
   // employer
   company_name: string; company_size: string; company_website: string
   industry: string; gst_number: string
@@ -66,8 +76,9 @@ interface FormData {
 function initForm(): FormData {
   return {
     full_name:"", phone:"", avatar_url:"", bio:"", location:"",
-    job_function:[], skills:[], portfolio_links:[],
+    job_function:[], skills:[], portfolio_links:[], hourly_rate:"",
     experience_years:"", experience_description:"", linkedin_url:"",
+    cv_url:"", expected_salary:"", preferred_job_type:[],
     company_name:"", company_size:"", company_website:"", industry:"", gst_number:"",
   }
 }
@@ -82,6 +93,8 @@ export default function OnboardingForm({ userId }: { userId: string }) {
   const [formData, setFormData]           = useState<FormData>(initForm())
   const [loading, setLoading]             = useState(false)
   const [uploading, setUploading]         = useState(false)
+  const [uploadingCv, setUploadingCv]     = useState(false)
+  const [cvFileName, setCvFileName]       = useState("")
   const [error, setError]                 = useState("")
   const [skillInput, setSkillInput]       = useState("")
   const [skillSearch, setSkillSearch]     = useState("")
@@ -92,16 +105,16 @@ export default function OnboardingForm({ userId }: { userId: string }) {
   const supabase = createClient()
 
   // ── derived ────────────────────────────────────────────────────────────────
-  const isFindWork  = mainRole === "find_work"  || mainRole === "both"
-  const isHireTalent = mainRole === "hire_talent" || mainRole === "both"
-  const isFreelancer = isFindWork && (findWorkType === "freelancer" || findWorkType === "both_fw")
-  const isJobSeeker  = isFindWork && (findWorkType === "job_seeker"  || findWorkType === "both_fw")
+  const isFindWork   = mainRole === "find_work"
+  const isHireTalent = mainRole === "hire_talent"
+  const isFreelancer = isFindWork && findWorkType === "freelancer"
+  const isJobSeeker  = isFindWork && findWorkType === "job_seeker"
   const isCompany    = isHireTalent && hireType === "company"
 
   const canProceed1 =
     mainRole !== null &&
-    (!isFindWork  || findWorkType  !== null) &&
-    (!isHireTalent || hireType !== null)
+    (!isFindWork   || findWorkType !== null) &&
+    (!isHireTalent || hireType    !== null)
 
   // ── avatar ─────────────────────────────────────────────────────────────────
   const uploadAvatar = async (file: File) => {
@@ -116,6 +129,22 @@ export default function OnboardingForm({ userId }: { userId: string }) {
     setUploading(false)
   }
 
+  // ── CV upload ──────────────────────────────────────────────────────────────
+  const uploadCv = async (file: File) => {
+    setUploadingCv(true)
+    const ext  = file.name.split(".").pop()
+    const path = `${userId}/${Date.now()}.${ext}`
+    const { error: upErr } = await supabase.storage.from("cvs").upload(path, file, { upsert: true })
+    if (!upErr) {
+      const { data } = supabase.storage.from("cvs").getPublicUrl(path)
+      setFormData(p => ({ ...p, cv_url: data.publicUrl }))
+      setCvFileName(file.name)
+    } else {
+      setError("CV upload failed: " + upErr.message)
+    }
+    setUploadingCv(false)
+  }
+
   // ── skill / job fn helpers ─────────────────────────────────────────────────
   const toggleJF = (fn: string) =>
     setFormData(p => p.job_function.includes(fn)
@@ -126,6 +155,11 @@ export default function OnboardingForm({ userId }: { userId: string }) {
     setFormData(p => p.skills.includes(s)
       ? { ...p, skills: p.skills.filter(x => x !== s) }
       : p.skills.length >= 20 ? p : { ...p, skills: [...p.skills, s] })
+
+  const toggleJobType = (id: string) =>
+    setFormData(p => p.preferred_job_type.includes(id)
+      ? { ...p, preferred_job_type: p.preferred_job_type.filter(t => t !== id) }
+      : { ...p, preferred_job_type: [...p.preferred_job_type, id] })
 
   const addCustomSkill = () => {
     const t = skillInput.trim()
@@ -143,7 +177,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
     }
   }
 
-  const filteredJF    = jfSearch ? JOB_FUNCTIONS.filter(f => f.toLowerCase().includes(jfSearch.toLowerCase())) : JOB_FUNCTIONS
+  const filteredJF     = jfSearch ? JOB_FUNCTIONS.filter(f => f.toLowerCase().includes(jfSearch.toLowerCase())) : JOB_FUNCTIONS
   const filteredSkills = skillSearch
     ? ALL_SKILLS.filter(s => s.toLowerCase().includes(skillSearch.toLowerCase()) && !formData.skills.includes(s))
     : (SKILLS_BY_CATEGORY[skillCategory] || []).filter(s => !formData.skills.includes(s))
@@ -162,16 +196,10 @@ export default function OnboardingForm({ userId }: { userId: string }) {
 
     setLoading(true)
 
-    const dbRoles =
-      mainRole === "both" ? ["find_work","hire_talent"] :
-      mainRole === "find_work" ? ["find_work"] : ["hire_talent"]
-
-    const dbFindWorkType = !isFindWork ? null : findWorkType === "both_fw" ? "both" : findWorkType
-
     const { error: upErr } = await supabase.from("profiles").update({
-      user_roles:              dbRoles,
-      find_work_type:          dbFindWorkType,
-      hire_talent_type:        isHireTalent ? hireType : null,
+      user_roles:              [mainRole],
+      find_work_type:          isFindWork   ? findWorkType  : null,
+      hire_talent_type:        isHireTalent ? hireType      : null,
       account_type:            isCompany ? "company" : "individual",
       full_name:               formData.full_name.trim(),
       phone:                   formData.phone.trim(),
@@ -182,10 +210,14 @@ export default function OnboardingForm({ userId }: { userId: string }) {
       job_function:            isFreelancer && formData.job_function.length > 0 ? formData.job_function : null,
       skills:                  isFreelancer ? formData.skills : [],
       portfolio_links:         isFreelancer ? formData.portfolio_links : [],
+      hourly_rate:             isFreelancer && formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
       // job seeker
       experience_years:        isJobSeeker && formData.experience_years ? parseInt(formData.experience_years) : null,
       experience_description:  isJobSeeker ? (formData.experience_description || null) : null,
       linkedin_url:            isJobSeeker ? (formData.linkedin_url || null) : null,
+      cv_url:                  isJobSeeker ? (formData.cv_url || null) : null,
+      expected_salary:         isJobSeeker ? (formData.expected_salary || null) : null,
+      preferred_job_type:      isJobSeeker && formData.preferred_job_type.length > 0 ? formData.preferred_job_type : null,
       // company/employer
       company_name:            isHireTalent ? (formData.company_name.trim() || null) : null,
       company_size:            isCompany ? (formData.company_size || null) : null,
@@ -233,44 +265,42 @@ export default function OnboardingForm({ userId }: { userId: string }) {
       <div className="space-y-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-1">What brings you to GigWay?</h2>
-          <p className="text-[#94A3B8] text-sm">You can do both — switch anytime from your dashboard</p>
+          <p className="text-[#94A3B8] text-sm">Choose your primary goal — you can update this anytime</p>
         </div>
 
-        {/* Main role */}
+        {/* Main role — 2 options */}
         <div className="space-y-3">
           <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-widest">I want to…</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { id:"find_work",   label:"Find Work",   sub:"Freelance gigs or jobs",  icon:Package,   color:"#6366F1" },
-              { id:"hire_talent", label:"Hire Talent", sub:"Post jobs or projects",    icon:Users,     color:"#F59E0B" },
-              { id:"both",        label:"Both",        sub:"Find work & hire talent",  icon:Briefcase, color:"#1D9E75" },
+              { id:"find_work",   label:"Find Work",   sub:"Freelance gigs or full-time jobs",  icon:Package,   color:"#6366F1" },
+              { id:"hire_talent", label:"Hire Talent", sub:"Post gigs, jobs & projects",         icon:Users,     color:"#F59E0B" },
             ].map(opt => {
-              const Icon    = opt.icon
-              const active  = mainRole === opt.id
+              const Icon   = opt.icon
+              const active = mainRole === opt.id
               return (
                 <button key={opt.id} type="button" onClick={() => {
                   setMainRole(opt.id as MainRole)
                   if (opt.id === "hire_talent") setFindWorkType(null)
                   if (opt.id === "find_work")   setHireType(null)
                 }}
-                  className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                    active
-                      ? `border-[${opt.color}] bg-[${opt.color}]/10 shadow-lg`
-                      : "border-[#1E1E2E] bg-[#12121A] hover:border-[#334155]"
-                  }`}
-                  style={{ borderColor: active ? opt.color : undefined, backgroundColor: active ? `${opt.color}18` : undefined }}
+                  className="relative flex flex-col items-center gap-4 p-6 rounded-2xl border-2 transition-all cursor-pointer text-left"
+                  style={{
+                    borderColor:     active ? opt.color : "#1E1E2E",
+                    backgroundColor: active ? `${opt.color}15` : "#12121A",
+                  }}
                 >
                   {active && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: opt.color }}>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: opt.color }}>
+                      <CheckCircle2 className="h-4 w-4 text-white" />
                     </div>
                   )}
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor:`${opt.color}22` }}>
-                    <Icon className="h-6 w-6" style={{ color: opt.color }} />
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor:`${opt.color}20` }}>
+                    <Icon className="h-7 w-7" style={{ color: opt.color }} />
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-white text-sm">{opt.label}</p>
-                    <p className="text-[#94A3B8] text-xs mt-0.5">{opt.sub}</p>
+                    <p className="font-bold text-white text-base">{opt.label}</p>
+                    <p className="text-[#94A3B8] text-xs mt-1">{opt.sub}</p>
                   </div>
                 </button>
               )
@@ -278,33 +308,32 @@ export default function OnboardingForm({ userId }: { userId: string }) {
           </div>
         </div>
 
-        {/* Find Work subtype */}
+        {/* Find Work subtype — 2 options */}
         {isFindWork && (
           <div className="space-y-3">
             <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-widest">I want to find work as a…</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { id:"freelancer", label:"Freelancer", sub:"Offer services & gigs",    icon:Package,   color:"#6366F1" },
-                { id:"job_seeker", label:"Job Seeker", sub:"Apply for full-time jobs",  icon:BookOpen,  color:"#378ADD" },
-                { id:"both_fw",    label:"Both",       sub:"Gigs + full-time jobs",     icon:Briefcase, color:"#1D9E75" },
+                { id:"freelancer", label:"Freelancer", sub:"Offer services & get paid per project", icon:Package,  color:"#6366F1" },
+                { id:"job_seeker", label:"Job Seeker", sub:"Apply for full-time / part-time roles",  icon:BookOpen, color:"#378ADD" },
               ].map(opt => {
                 const Icon   = opt.icon
                 const active = findWorkType === opt.id
                 return (
                   <button key={opt.id} type="button" onClick={() => setFindWorkType(opt.id as FindWorkType)}
-                    className="relative flex flex-col items-center gap-2.5 p-4 rounded-xl border-2 transition-all cursor-pointer"
+                    className="relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all cursor-pointer"
                     style={{
-                      borderColor: active ? opt.color : "#1E1E2E",
-                      backgroundColor: active ? `${opt.color}18` : "#12121A",
+                      borderColor:     active ? opt.color : "#1E1E2E",
+                      backgroundColor: active ? `${opt.color}15` : "#12121A",
                     }}
                   >
                     {active && (
-                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: opt.color }}>
-                        <CheckCircle2 className="h-3 w-3 text-white" />
+                      <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: opt.color }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                       </div>
                     )}
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor:`${opt.color}22` }}>
-                      <Icon className="h-5 w-5" style={{ color: opt.color }} />
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor:`${opt.color}20` }}>
+                      <Icon className="h-5.5 w-5.5" style={{ color: opt.color }} />
                     </div>
                     <div className="text-center">
                       <p className="font-semibold text-white text-sm">{opt.label}</p>
@@ -323,26 +352,26 @@ export default function OnboardingForm({ userId }: { userId: string }) {
             <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-widest">I am hiring as a…</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { id:"individual", label:"Individual", sub:"Hire for personal projects", icon:Users,     color:"#F59E0B" },
-                { id:"company",    label:"Company",    sub:"Scale your team & business", icon:Building2, color:"#F97316" },
+                { id:"individual", label:"Individual",  sub:"Hire for personal projects",  icon:Users,     color:"#F59E0B" },
+                { id:"company",    label:"Company",     sub:"Scale your team & business",  icon:Building2, color:"#F97316" },
               ].map(opt => {
                 const Icon   = opt.icon
                 const active = hireType === opt.id
                 return (
                   <button key={opt.id} type="button" onClick={() => setHireType(opt.id as HireType)}
-                    className="relative flex flex-col items-center gap-2.5 p-4 rounded-xl border-2 transition-all cursor-pointer"
+                    className="relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all cursor-pointer"
                     style={{
-                      borderColor: active ? opt.color : "#1E1E2E",
-                      backgroundColor: active ? `${opt.color}18` : "#12121A",
+                      borderColor:     active ? opt.color : "#1E1E2E",
+                      backgroundColor: active ? `${opt.color}15` : "#12121A",
                     }}
                   >
                     {active && (
-                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: opt.color }}>
-                        <CheckCircle2 className="h-3 w-3 text-white" />
+                      <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: opt.color }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-white" />
                       </div>
                     )}
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor:`${opt.color}22` }}>
-                      <Icon className="h-5 w-5" style={{ color: opt.color }} />
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor:`${opt.color}20` }}>
+                      <Icon className="h-5.5 w-5.5" style={{ color: opt.color }} />
                     </div>
                     <div className="text-center">
                       <p className="font-semibold text-white text-sm">{opt.label}</p>
@@ -377,22 +406,28 @@ export default function OnboardingForm({ userId }: { userId: string }) {
         <button type="button" onClick={() => setStep(1)} className="text-[#6366F1] hover:underline text-xs">
           ← Back
         </button>
-        <div className="flex-1 h-1 rounded-full bg-[#1E1E2E]">
-          <div className="h-1 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#6366F1] w-2/3" />
+        <div className="flex-1 h-1.5 rounded-full bg-[#1E1E2E]">
+          <div className="h-1.5 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#6366F1] w-2/3" />
         </div>
         <span className="text-[#6B7280] text-xs">Step 2 of 2</span>
       </div>
 
-      {/* Role chips */}
+      {/* Role chip */}
       <div className="flex flex-wrap gap-2">
-        {isFindWork && (
-          <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/30">
-            🔍 {findWorkType === "both_fw" ? "Freelancer + Job Seeker" : findWorkType === "job_seeker" ? "Job Seeker" : "Freelancer"}
+        {isFreelancer && (
+          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/30">
+            <Package className="h-3 w-3" /> Freelancer
+          </span>
+        )}
+        {isJobSeeker && (
+          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#378ADD]/15 text-[#93C5FD] border border-[#378ADD]/30">
+            <BookOpen className="h-3 w-3" /> Job Seeker
           </span>
         )}
         {isHireTalent && (
-          <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-[#F59E0B]/15 text-[#FCD34D] border border-[#F59E0B]/30">
-            👔 {hireType === "company" ? "Company" : "Individual Client"}
+          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#F59E0B]/15 text-[#FCD34D] border border-[#F59E0B]/30">
+            {isCompany ? <Building2 className="h-3 w-3" /> : <Users className="h-3 w-3" />}
+            {isCompany ? "Company" : "Individual Client"}
           </span>
         )}
       </div>
@@ -421,11 +456,11 @@ export default function OnboardingForm({ userId }: { userId: string }) {
             </label>
           </div>
           {!formData.avatar_url && (
-            <p className="text-amber-400 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
+            <p className="text-amber-400 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5 text-center">
               Profiles with photos get 5× more responses
             </p>
           )}
-          {uploading && <p className="text-[#6B7280] text-xs">Uploading…</p>}
+          {uploading && <p className="text-[#6B7280] text-xs">Uploading photo…</p>}
         </div>
 
         <div className="space-y-2">
@@ -457,27 +492,41 @@ export default function OnboardingForm({ userId }: { userId: string }) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white font-medium">Bio</Label>
+          <Label className="text-white font-medium">Bio <span className="text-[#6B7280] font-normal text-xs">(optional)</span></Label>
           <Textarea value={formData.bio}
             onChange={e => setFormData(p => ({ ...p, bio: e.target.value }))}
-            placeholder="Tell others about yourself…"
+            placeholder="Tell others about yourself — your strengths, goals, what makes you stand out…"
             rows={3}
-            className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#4F46E5]" />
+            className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#4F46E5] resize-none" />
+          <p className="text-[#475569] text-xs">{formData.bio.length}/500 characters</p>
         </div>
       </div>
 
       {/* ── FREELANCER FIELDS ─────────────────────────────────────────── */}
       {isFreelancer && (
-        <div className="bg-[#12121A] border border-[#6366F1]/30 rounded-2xl p-5 space-y-5">
+        <div className="bg-[#12121A] border border-[#6366F1]/30 rounded-2xl p-5 space-y-6">
           <h3 className="text-xs font-bold text-[#818CF8] uppercase tracking-widest flex items-center gap-2">
             <Package className="h-4 w-4" /> Freelancer Profile
           </h3>
+
+          {/* Hourly rate */}
+          <div className="space-y-2">
+            <Label className="text-white font-medium">Hourly Rate <span className="text-[#6B7280] font-normal text-xs">(optional)</span></Label>
+            <div className="relative">
+              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569]" />
+              <Input type="number" min="0" value={formData.hourly_rate}
+                onChange={e => setFormData(p => ({ ...p, hourly_rate: e.target.value }))}
+                placeholder="e.g. 500"
+                className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#6366F1] h-11 pl-9" />
+            </div>
+            <p className="text-[#475569] text-xs">Your rate per hour in INR (₹)</p>
+          </div>
 
           {/* Job Function */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-white font-medium">What do you do? <span className="text-[#6B7280] text-xs font-normal">(up to 5)</span></Label>
-              {formData.job_function.length > 0 && <span className="text-[#818CF8] text-xs">{formData.job_function.length}/5</span>}
+              {formData.job_function.length > 0 && <span className="text-[#818CF8] text-xs">{formData.job_function.length}/5 selected</span>}
             </div>
             {formData.job_function.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -493,7 +542,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
               <Input value={jfSearch} onChange={e => setJfSearch(e.target.value)} placeholder="Search job functions…"
                 className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#4F46E5] h-9 pl-9 text-sm" />
             </div>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1">
               {filteredJF.map(fn => (
                 <button key={fn} type="button" onClick={() => toggleJF(fn)}
                   className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
@@ -535,7 +584,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
                 ))}
               </div>
             )}
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1">
               {filteredSkills.map(s => (
                 <button key={s} type="button" onClick={() => toggleSkill(s)}
                   className="px-3 py-1.5 rounded-full text-sm border bg-transparent text-[#6B7280] border-[#1E1E2E] hover:border-[#06B6D4]/50 hover:text-[#06B6D4] transition-all">
@@ -546,10 +595,10 @@ export default function OnboardingForm({ userId }: { userId: string }) {
             <div className="flex gap-2">
               <Input value={skillInput} onChange={e => setSkillInput(e.target.value)}
                 onKeyDown={e => { if (e.key==="Enter"||e.key===","){e.preventDefault();addCustomSkill()} }}
-                placeholder="Custom skill (press Enter)"
+                placeholder="Add custom skill (press Enter)"
                 className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] text-sm" />
               <Button type="button" onClick={addCustomSkill} disabled={!skillInput.trim()}
-                className="bg-[#1E1E2E] hover:bg-[#2D2D3F] text-white border border-[#334155]">
+                className="bg-[#1E1E2E] hover:bg-[#2D2D3F] text-white border border-[#334155] shrink-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -557,12 +606,12 @@ export default function OnboardingForm({ userId }: { userId: string }) {
 
           {/* Portfolio Links */}
           <div className="space-y-2">
-            <Label className="text-white font-medium">Portfolio Links</Label>
+            <Label className="text-white font-medium">Portfolio Links <span className="text-[#6B7280] font-normal text-xs">(optional)</span></Label>
             {formData.portfolio_links.map(link => (
               <div key={link} className="flex items-center justify-between bg-[#0A0A0F] px-3 py-2 rounded-lg border border-[#1E1E2E]">
                 <span className="text-[#A5B4FC] text-sm truncate">{link}</span>
                 <button type="button" onClick={() => setFormData(p => ({ ...p, portfolio_links: p.portfolio_links.filter(l => l !== link) }))}
-                  className="text-[#6B7280] hover:text-red-400 ml-2"><X className="h-4 w-4" /></button>
+                  className="text-[#6B7280] hover:text-red-400 ml-2 shrink-0"><X className="h-4 w-4" /></button>
               </div>
             ))}
             <div className="flex gap-2">
@@ -571,7 +620,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
                 placeholder="https://yourportfolio.com"
                 className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569]" />
               <Button type="button" onClick={addLink} disabled={!linkInput.trim()}
-                className="bg-[#1E1E2E] hover:bg-[#2D2D3F] text-white border border-[#334155]">
+                className="bg-[#1E1E2E] hover:bg-[#2D2D3F] text-white border border-[#334155] shrink-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -586,6 +635,64 @@ export default function OnboardingForm({ userId }: { userId: string }) {
             <BookOpen className="h-4 w-4" /> Job Seeker Profile
           </h3>
 
+          {/* CV Upload */}
+          <div className="space-y-2">
+            <Label className="text-white font-medium">Upload Your CV / Resume</Label>
+            {formData.cv_url ? (
+              <div className="flex items-center gap-3 bg-[#0A0A0F] border border-[#378ADD]/40 rounded-xl p-3">
+                <div className="w-10 h-10 rounded-lg bg-[#378ADD]/15 flex items-center justify-center shrink-0">
+                  <FileText className="h-5 w-5 text-[#378ADD]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{cvFileName || "CV uploaded"}</p>
+                  <p className="text-[#4ADE80] text-xs">Successfully uploaded</p>
+                </div>
+                <button type="button"
+                  onClick={() => { setFormData(p => ({ ...p, cv_url: "" })); setCvFileName("") }}
+                  className="text-[#6B7280] hover:text-red-400 shrink-0">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+                uploadingCv ? "border-[#378ADD]/30 opacity-60" : "border-[#1E1E2E] hover:border-[#378ADD]/40 hover:bg-[#378ADD]/5"
+              }`}>
+                <div className="w-12 h-12 rounded-xl bg-[#378ADD]/10 flex items-center justify-center">
+                  {uploadingCv ? (
+                    <div className="w-5 h-5 border-2 border-[#378ADD] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Upload className="h-5 w-5 text-[#378ADD]" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-white text-sm font-medium">{uploadingCv ? "Uploading…" : "Click to upload CV"}</p>
+                  <p className="text-[#6B7280] text-xs mt-0.5">PDF, DOC, DOCX — max 10 MB</p>
+                </div>
+                <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden" disabled={uploadingCv}
+                  onChange={e => e.target.files?.[0] && uploadCv(e.target.files[0])} />
+              </label>
+            )}
+          </div>
+
+          {/* Preferred Job Type */}
+          <div className="space-y-2">
+            <Label className="text-white font-medium">Preferred Job Type <span className="text-[#6B7280] font-normal text-xs">(select all that apply)</span></Label>
+            <div className="flex flex-wrap gap-2">
+              {JOB_TYPES.map(t => {
+                const active = formData.preferred_job_type.includes(t.id)
+                return (
+                  <button key={t.id} type="button" onClick={() => toggleJobType(t.id)}
+                    className={`px-4 py-2 rounded-xl text-sm border transition-all ${
+                      active
+                        ? "bg-[#378ADD] text-white border-[#378ADD] font-semibold"
+                        : "bg-transparent text-[#6B7280] border-[#1E1E2E] hover:border-[#378ADD]/50 hover:text-white"
+                    }`}>{t.label}</button>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-white font-medium">Years of Experience</Label>
@@ -595,26 +702,37 @@ export default function OnboardingForm({ userId }: { userId: string }) {
                 className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#378ADD] h-11" />
             </div>
             <div className="space-y-2">
-              <Label className="text-white font-medium">LinkedIn Profile</Label>
-              <Input value={formData.linkedin_url}
-                onChange={e => setFormData(p => ({ ...p, linkedin_url: e.target.value }))}
-                placeholder="linkedin.com/in/yourname"
-                className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#378ADD] h-11" />
+              <Label className="text-white font-medium">Expected Salary <span className="text-[#6B7280] font-normal text-xs">(per year)</span></Label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#475569]" />
+                <Input value={formData.expected_salary}
+                  onChange={e => setFormData(p => ({ ...p, expected_salary: e.target.value }))}
+                  placeholder="e.g. 6L – 10L"
+                  className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#378ADD] h-11 pl-9" />
+              </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white font-medium">Work Experience Summary</Label>
+            <Label className="text-white font-medium">LinkedIn Profile <span className="text-[#6B7280] font-normal text-xs">(optional)</span></Label>
+            <Input value={formData.linkedin_url}
+              onChange={e => setFormData(p => ({ ...p, linkedin_url: e.target.value }))}
+              placeholder="linkedin.com/in/yourname"
+              className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#378ADD] h-11" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-white font-medium">Work Experience Summary <span className="text-[#6B7280] font-normal text-xs">(optional)</span></Label>
             <Textarea value={formData.experience_description}
               onChange={e => setFormData(p => ({ ...p, experience_description: e.target.value }))}
-              placeholder="Briefly describe your past roles and achievements…"
+              placeholder="Describe your past roles, responsibilities, and key achievements…"
               rows={3}
-              className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#378ADD]" />
+              className="bg-[#0A0A0F] border-[#1E1E2E] text-white placeholder:text-[#475569] focus:border-[#378ADD] resize-none" />
           </div>
         </div>
       )}
 
-      {/* ── HIRE TALENT FIELDS (individual + company) ─────────────────── */}
+      {/* ── HIRE TALENT FIELDS ─────────────────────────────────────────── */}
       {isHireTalent && (
         <div className={`bg-[#12121A] rounded-2xl p-5 space-y-5 border ${isCompany ? "border-[#F97316]/30" : "border-[#F59E0B]/30"}`}>
           <h3 className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${isCompany ? "text-[#F97316]" : "text-[#F59E0B]"}`}>
@@ -634,7 +752,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-white font-medium">Website</Label>
+              <Label className="text-white font-medium">Website <span className="text-[#6B7280] font-normal text-xs">(optional)</span></Label>
               <Input value={formData.company_website}
                 onChange={e => setFormData(p => ({ ...p, company_website: e.target.value }))}
                 placeholder="https://yourcompany.com"
@@ -644,7 +762,7 @@ export default function OnboardingForm({ userId }: { userId: string }) {
               <Label className="text-white font-medium">Industry</Label>
               <select value={formData.industry}
                 onChange={e => setFormData(p => ({ ...p, industry: e.target.value }))}
-                className="w-full bg-[#0A0A0F] border border-[#1E1E2E] text-white rounded-md h-11 px-3 text-sm focus:outline-none">
+                className="w-full bg-[#0A0A0F] border border-[#1E1E2E] text-white rounded-md h-11 px-3 text-sm focus:outline-none focus:border-[#F59E0B]">
                 <option value="">Select industry…</option>
                 {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
               </select>
