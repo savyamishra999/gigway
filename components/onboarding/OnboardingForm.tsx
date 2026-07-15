@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
-  X, Plus, Search, Camera, CheckCircle2, Briefcase, BookOpen,
+  X, Plus, Search, Camera, CheckCircle2, BookOpen,
   Building2, Users, ChevronRight, Package, Upload, FileText,
   IndianRupee,
 } from "lucide-react"
@@ -85,12 +85,24 @@ function initForm(): FormData {
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-export default function OnboardingForm({ userId }: { userId: string }) {
+export default function OnboardingForm({
+  userId,
+  initialName  = "",
+  initialAvatar = "",
+}: {
+  userId: string
+  initialName?: string
+  initialAvatar?: string
+}) {
   const [step, setStep]                   = useState<1|2|3>(1)
   const [mainRole, setMainRole]           = useState<MainRole|null>(null)
   const [findWorkType, setFindWorkType]   = useState<FindWorkType|null>(null)
   const [hireType, setHireType]           = useState<HireType|null>(null)
-  const [formData, setFormData]           = useState<FormData>(initForm())
+  const [formData, setFormData]           = useState<FormData>(() => ({
+    ...initForm(),
+    full_name:  initialName,
+    avatar_url: initialAvatar,
+  }))
   const [loading, setLoading]             = useState(false)
   const [uploading, setUploading]         = useState(false)
   const [uploadingCv, setUploadingCv]     = useState(false)
