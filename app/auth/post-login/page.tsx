@@ -4,8 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
   .split(",").map(e => e.trim().toLowerCase())
 
-// Server component — called after OTP verification.
-// Decides where to send the user based on role.
 export default async function PostLoginPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,8 +20,8 @@ export default async function PostLoginPage() {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (!profile || profile.profile_completed === false) {
-    redirect("/onboarding")
+  if (!profile || !profile.profile_completed) {
+    redirect("/profile/complete")
   }
 
   redirect("/dashboard")

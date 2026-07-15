@@ -35,21 +35,28 @@ export default function VerificationReviewList({ pending: initial }: { pending: 
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState("")
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const action = async (userId: string, act: "approve" | "reject", reason?: string) => {
     setLoading(userId + act)
+    setActionError(null)
     try {
       const res = await fetch("/api/admin/verify-freelancer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, action: act, reason }),
       })
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
         setList(l => l.filter(p => p.id !== userId))
         setRejectModal(null)
         setRejectReason("")
+      } else {
+        setActionError(data.error || `Failed (${res.status}) — check SUPABASE_SERVICE_ROLE_KEY in Vercel env vars`)
       }
-    } catch { /* ignore */ }
+    } catch {
+      setActionError("Network error — please try again")
+    }
     setLoading(null)
   }
 
@@ -120,6 +127,16 @@ export default function VerificationReviewList({ pending: initial }: { pending: 
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Action error */}
+      {actionError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3 text-red-400 text-sm">
+          <span>⚠️ {actionError}</span>
+          <button onClick={() => setActionError(null)} className="flex-shrink-0">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 

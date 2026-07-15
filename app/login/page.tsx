@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Mail, Loader2, Users } from "lucide-react"
+import { Mail, Loader2, Users, Phone } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
   const [otp, setOtp] = useState("")
   const [step, setStep] = useState<"email" | "otp">("email")
   const [loading, setLoading] = useState(false)
@@ -45,7 +46,7 @@ export default function LoginPage() {
     setLoading(true)
     setMessage(null)
 
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email,
       token: otp,
       type: "email",
@@ -53,9 +54,31 @@ export default function LoginPage() {
 
     if (error) {
       setMessage({ type: "error", text: error.message })
-    } else {
-      window.location.href = "/auth/post-login"
+      setLoading(false)
+      return
     }
+
+    const otpUser = data.user
+    if (otpUser) {
+      const { data: existing } = await supabase
+        .from("profiles").select("id").eq("id", otpUser.id).maybeSingle()
+
+      if (!existing) {
+        await supabase.from("profiles").insert({
+          id:                otpUser.id,
+          email:             otpUser.email,
+          phone:             phone || null,
+          full_name:         null,
+          profile_completed: false,
+          user_roles:        [],
+        }).then(() => null, () => null)
+      } else if (phone) {
+        await supabase.from("profiles").update({ phone }).eq("id", otpUser.id)
+          .then(() => null, () => null)
+      }
+    }
+
+    window.location.href = "/auth/post-login"
     setLoading(false)
   }
 
@@ -94,14 +117,26 @@ export default function LoginPage() {
             <TabsContent value="email">
               {step === "email" ? (
                 <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                       <Input
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder="Email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={loading}
+                        className="pl-10 py-6 text-base bg-white/20 border-white/30 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                      <Input
+                        type="tel"
+                        placeholder="Phone number (e.g. 9876543210)"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
                         required
                         disabled={loading}
                         className="pl-10 py-6 text-base bg-white/20 border-white/30 text-white placeholder:text-gray-400"

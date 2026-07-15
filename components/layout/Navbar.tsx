@@ -174,6 +174,7 @@ export default function Navbar() {
   // ── Active nav links ────────────────────────────────────────────────────────
   const navLinks: NavLink[] = (() => {
     if (!user) return []
+    if (isAdmin) return []
     if (isBoth) {
       return navTab === "find_work"
         ? getFindWorkLinks(findWorkType)
