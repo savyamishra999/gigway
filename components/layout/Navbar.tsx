@@ -7,7 +7,7 @@ import {
   Bell, User, LogOut, ChevronDown, Menu, X,
   MessageSquare, Edit, Bookmark, Headphones, Crown,
   Briefcase, Users, Package, Layers, FileText, Search,
-  Building2, FolderOpen, PlusCircle,
+  Building2, FolderOpen, PlusCircle, ShieldCheck,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
@@ -24,6 +24,7 @@ interface Profile {
   user_roles?: string[] | null
   find_work_type?: string | null
   hire_talent_type?: string | null
+  verification_status?: string | null
 }
 
 interface NavLink { href: string; label: string; icon?: React.ReactNode; post?: boolean }
@@ -118,7 +119,7 @@ export default function Navbar() {
       setIsAdmin(adminEmails.includes((user.email ?? "").toLowerCase()))
 
       supabase.from("profiles")
-        .select("full_name,avatar_url,user_roles,find_work_type,hire_talent_type")
+        .select("full_name,avatar_url,user_roles,find_work_type,hire_talent_type,verification_status")
         .eq("id", user.id).single()
         .then(({ data }) => setProfile(data))
 
@@ -321,6 +322,13 @@ export default function Navbar() {
                     <DropdownMenuItem asChild className="hover:bg-white/5 cursor-pointer">
                       <Link href="/profile/edit" className="flex items-center gap-2"><Edit className="h-4 w-4" /> Edit Profile</Link>
                     </DropdownMenuItem>
+                    {!isAdmin && profile?.verification_status !== "approved" && (
+                      <DropdownMenuItem asChild className="hover:bg-[#4F46E5]/10 cursor-pointer">
+                        <Link href="/verify" className="flex items-center gap-2 text-[#818CF8]">
+                          <ShieldCheck className="h-4 w-4" /> Get Verified
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild className="hover:bg-white/5 cursor-pointer">
                       <Link href="/saved" className="flex items-center gap-2"><Bookmark className="h-4 w-4" /> Saved Items</Link>
                     </DropdownMenuItem>
@@ -433,6 +441,11 @@ export default function Navbar() {
                     <Link href="/profile/edit" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm">
                       <Edit className="h-4 w-4" /> Edit Profile
                     </Link>
+                    {!isAdmin && profile?.verification_status !== "approved" && (
+                      <Link href="/verify" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#818CF8] hover:text-white hover:bg-[#4F46E5]/10 text-sm">
+                        <ShieldCheck className="h-4 w-4" /> Get Verified
+                      </Link>
+                    )}
                     <Link href="/saved" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm">
                       <Bookmark className="h-4 w-4" /> Saved Items
                     </Link>
