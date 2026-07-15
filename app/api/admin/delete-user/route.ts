@@ -24,21 +24,38 @@ export async function DELETE(req: NextRequest) {
   )
 
   try {
-    // 1. Delete FK-dependent data in parallel to avoid constraint violations
+    // 1. Delete all FK-dependent data in parallel
     await Promise.allSettled([
+      // Content
       adminClient.from("gigs").delete().eq("freelancer_id", userId),
       adminClient.from("jobs").delete().eq("poster_id", userId),
       adminClient.from("projects").delete().eq("client_id", userId),
       adminClient.from("proposals").delete().eq("freelancer_id", userId),
       adminClient.from("job_applications").delete().eq("applicant_id", userId),
+      adminClient.from("portfolio_items").delete().eq("freelancer_id", userId),
+      // Reviews (both as reviewer and reviewee)
+      adminClient.from("reviews").delete().eq("reviewer_id", userId),
+      adminClient.from("reviews").delete().eq("reviewee_id", userId),
+      // Social / saved
+      adminClient.from("saved_items").delete().eq("user_id", userId),
+      // Comms
       adminClient.from("messages").delete().or(`sender_id.eq.${userId},receiver_id.eq.${userId}`),
       adminClient.from("notifications").delete().eq("user_id", userId),
+      adminClient.from("support_tickets").delete().eq("user_id", userId),
+      // Finance
+      adminClient.from("payments").delete().eq("user_id", userId),
+      adminClient.from("connects_transactions").delete().eq("user_id", userId),
+      adminClient.from("subscriptions").delete().eq("user_id", userId),
+      // Affiliate
+      adminClient.from("affiliates").delete().eq("user_id", userId),
+      adminClient.from("affiliate_clicks").delete().eq("user_id", userId),
+      adminClient.from("affiliate_conversions").delete().eq("user_id", userId),
     ])
 
-    // 2. Delete profile (note: verification docs in storage are kept per policy)
+    // 2. Delete profile
     await adminClient.from("profiles").delete().eq("id", userId)
 
-    // 3. Delete auth user (cascades remaining auth-linked data)
+    // 3. Delete auth user
     const { error: authErr } = await adminClient.auth.admin.deleteUser(userId)
     if (authErr) {
       console.error("[delete-user] auth.deleteUser error:", authErr.message)

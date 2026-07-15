@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
+
 import { Users } from "lucide-react"
 import AdminUsersClient from "@/components/admin/AdminUsersClient"
 
@@ -14,11 +15,6 @@ export const metadata: Metadata = {
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 const PAGE_SIZE = 20
 
-const adminDb = createServiceClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 type Filter = "all" | "boosted" | "verified" | "new"
 interface SearchParams { filter?: string; page?: string; q?: string }
 
@@ -27,17 +23,23 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
+  // Use service role client when key is available (bypasses RLS), fall back to session client
+  const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  const db = hasServiceRole
+    ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    : supabase
+
   const params = await searchParams
   const filter = (params.filter ?? "all") as Filter
   const page = Math.max(1, parseInt(params.page ?? "1"))
   const q = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
-  let query = adminDb
+  let query = db
     .from("profiles")
     .select("id,full_name,email,phone,created_at,is_boosted,is_verified,verification_status,boost_expires_at,subscription_tier,user_roles,plan,plan_expires_at", { count: "exact" })
 
-  if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+  if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`)
   if (filter === "boosted") query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())
   else if (filter === "verified") query = query.eq("is_verified", true)
   else if (filter === "new") {

@@ -13,11 +13,6 @@ export const metadata: Metadata = {
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 const PAGE_SIZE = 20
 
-const adminDb = createServiceClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 type TabFilter = "all" | "verified" | "boosted" | "banned"
 interface SearchParams { tab?: string; page?: string; q?: string }
 
@@ -26,13 +21,17 @@ export default async function AdminFreelancersPage({ searchParams }: { searchPar
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
+  const db = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    : supabase
+
   const params = await searchParams
   const tab    = (params.tab ?? "all") as TabFilter
   const page   = Math.max(1, parseInt(params.page ?? "1"))
   const q      = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
-  let query = adminDb
+  let query = db
     .from("profiles")
     .select(
       "id,full_name,email,avatar_url,skills,hourly_rate,is_verified,is_boosted,is_banned,boost_expires_at,created_at",
