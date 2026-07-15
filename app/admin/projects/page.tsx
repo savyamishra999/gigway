@@ -34,7 +34,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
   let query = adminDb
     .from("projects")
     .select(
-      `id, title, budget_min, budget_max, status, created_at,
+      `id, title, budget, category, status, created_at,
        client:client_id(full_name, email)`,
       { count: "exact" }
     )
@@ -47,7 +47,7 @@ export default async function AdminProjectsPage({ searchParams }: { searchParams
     .range(offset, offset + PAGE_SIZE - 1)
 
   type PRow = {
-    id: string; title: string; budget_min: number | null; budget_max: number | null
+    id: string; title: string; budget: number | null; category: string | null
     status: string | null; created_at: string
     client: { full_name: string | null; email: string | null } | { full_name: string | null; email: string | null }[] | null
   }

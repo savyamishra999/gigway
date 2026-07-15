@@ -2,161 +2,79 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { Bell, Plus, Briefcase, Package, FileText, Users, Layers } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Bell, Plus, Briefcase, Star, Package } from "lucide-react"
-import BoostProfileCard from "@/components/boost/BoostProfileCard"
-import VerifiedBadgeCard from "@/components/verify/VerifiedBadgeCard"
+import { Button } from "@/components/ui/button"
 import NoticeBanner from "@/components/notices/NoticeBanner"
 import DashboardSupportButton from "@/components/support/DashboardSupportButton"
+import FomoBar from "@/components/dashboard/FomoBar"
+import PlanCard from "@/components/dashboard/PlanCard"
+import DashboardTabs from "@/components/dashboard/DashboardTabs"
 
-const PROPOSAL_STATUS: Record<string, string> = {
-  pending:  "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  accepted: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  rejected: "bg-red-500/20 text-red-400 border-red-500/30",
+// ── Status badge colors ───────────────────────────────────────────────────────
+const STATUS_COLORS: Record<string, string> = {
+  active:      "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  open:        "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  applied:     "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  reviewing:   "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  shortlisted: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  interview:   "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  selected:    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  rejected:    "bg-red-500/20 text-red-400 border-red-500/30",
+  pending:     "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  accepted:    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  closed:      "bg-[#334155] text-[#94A3B8] border-[#334155]",
 }
 
-// ── Connects progress bar ──────────────────────────────────────────────────
-function ConnectsCard({ balance }: { balance: number }) {
-  const DISPLAY_MAX = 20           // full bar = 20 connects
-  const pct = Math.min(100, Math.round((balance / DISPLAY_MAX) * 100))
-  const isEmpty = balance === 0
-  const isLow   = balance > 0 && balance <= 5
+function statusBadge(status: string) {
+  return STATUS_COLORS[status] ?? "bg-[#334155] text-[#94A3B8] border-[#334155]"
+}
 
-  const barColor = isEmpty ? "bg-red-500"
-    : isLow ? "bg-orange-400"
-    : "bg-[#4ADE80]"
-
-  const borderColor = isEmpty ? "border-red-500/40"
-    : isLow ? "border-orange-400/40"
-    : "border-[#1E1E2E]"
-
-  const label = isEmpty ? "text-red-400"
-    : isLow ? "text-orange-400"
-    : "text-[#4ADE80]"
-
+// ── Stat card ─────────────────────────────────────────────────────────────────
+function StatCard({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
-    <div className={`bg-[#12121A] border ${borderColor} rounded-2xl p-5 mb-6`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🔗</span>
-          <p className="text-white font-bold text-sm">Connects</p>
-        </div>
-        <span className={`${label} font-black text-lg`}>{balance}</span>
-      </div>
+    <div className="bg-[#12121A] border border-[#1E293B] rounded-xl p-4 text-center">
+      <p className={`text-3xl font-black ${color}`}>{value}</p>
+      <p className="text-[#64748B] text-xs mt-1">{label}</p>
+    </div>
+  )
+}
 
-      {/* Progress bar */}
-      <div className="h-2.5 bg-[#1E1E2E] rounded-full overflow-hidden mb-2">
-        <div
-          className={`h-full rounded-full transition-all ${barColor}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className={`text-xs mb-4 ${label}`}>
-        {isEmpty ? "0 connects left — you can't apply to projects!"
-          : isLow ? `Only ${balance} connects left — running low`
-          : `${balance} connects remaining`}
-      </p>
-
-      {/* Zero-connects popup CTA */}
-      {isEmpty && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-3 text-center">
-          <p className="text-red-300 font-semibold text-sm mb-3">
-            You&apos;re out of connects!<br />
-            <span className="text-[#94A3B8] font-normal text-xs">Buy connects to apply to more projects.</span>
-          </p>
-          <Link href="/pricing#connects">
-            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-[#F97316] to-[#F59E0B] text-white font-black text-sm shadow-lg shadow-[#F97316]/20 hover:opacity-90 transition-opacity">
-              Buy 20 for ₹99 →
-            </button>
-          </Link>
-        </div>
-      )}
-
-      {/* Low-connects warning CTA */}
-      {isLow && !isEmpty && (
-        <Link href="/pricing#connects">
-          <button className="w-full py-2.5 rounded-xl bg-orange-400/10 border border-orange-400/30 text-orange-300 font-bold text-sm hover:bg-orange-400/20 transition-colors">
-            Buy More Connects →
-          </button>
+// ── Section header ────────────────────────────────────────────────────────────
+function SectionHeader({
+  title, icon, href, linkLabel,
+}: {
+  title: string
+  icon: React.ReactNode
+  href?: string
+  linkLabel?: string
+}) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-[#F8FAFC] font-bold text-lg flex items-center gap-2">
+        {icon} {title}
+      </h2>
+      {href && linkLabel && (
+        <Link href={href}>
+          <Button size="sm" className="bg-[#1E293B] hover:bg-[#334155] text-white border border-[#334155] text-xs font-bold gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> {linkLabel}
+          </Button>
         </Link>
-      )}
-
-      {/* Normal state */}
-      {!isEmpty && !isLow && (
-        <div className="flex items-center justify-between">
-          <p className="text-[#6B7280] text-xs">Each project application = 2 connects</p>
-          <Link href="/pricing#connects" className="text-[#4ADE80] text-xs font-semibold hover:underline">
-            Buy more →
-          </Link>
-        </div>
       )}
     </div>
   )
 }
 
-// ── Profile completion score ──────────────────────────────────────────────
-interface CompletionItem {
-  done: boolean
-  label: string
-  cta: string
-  href: string
-  pct: number
-  icon: string
-}
-
-function ProfileCompletionCard({
-  items,
-  totalPct,
-}: {
-  items: CompletionItem[]
-  totalPct: number
-}) {
-  if (totalPct === 100) return null   // fully complete — hide the card
-
-  const incomplete = items.filter(i => !i.done)
-
+// ── Empty state ───────────────────────────────────────────────────────────────
+function EmptyState({ message, cta, href }: { message: string; cta: string; href: string }) {
   return (
-    <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-5 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-white font-bold text-sm">Profile Strength</p>
-        <span className={`font-black text-base ${
-          totalPct >= 80 ? "text-[#4ADE80]"
-          : totalPct >= 50 ? "text-orange-400"
-          : "text-red-400"
-        }`}>{totalPct}%</span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-2.5 bg-[#1E1E2E] rounded-full overflow-hidden mb-4">
-        <div
-          className={`h-full rounded-full transition-all ${
-            totalPct >= 80 ? "bg-[#4ADE80]"
-            : totalPct >= 50 ? "bg-orange-400"
-            : "bg-red-400"
-          }`}
-          style={{ width: `${totalPct}%` }}
-        />
-      </div>
-
-      {/* Incomplete items — up to 3 shown */}
-      <div className="space-y-2">
-        {incomplete.slice(0, 3).map(item => (
-          <Link key={item.label} href={item.href}>
-            <div className="flex items-center justify-between bg-[#1E1E2E] hover:bg-[#252535] rounded-xl px-4 py-2.5 transition-colors group">
-              <div className="flex items-center gap-2.5">
-                <span className="text-base">{item.icon}</span>
-                <div>
-                  <p className="text-[#CBD5E1] text-xs font-medium">{item.cta}</p>
-                </div>
-              </div>
-              <span className="text-[#4ADE80] text-xs font-bold bg-[#4ADE80]/10 px-2 py-0.5 rounded-full">
-                +{item.pct}%
-              </span>
-            </div>
-          </Link>
-        ))}
-      </div>
+    <div className="bg-[#12121A] border border-[#1E293B] rounded-xl p-8 text-center">
+      <p className="text-[#64748B] text-sm mb-4">{message}</p>
+      <Link href={href}>
+        <Button size="sm" className="bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold">
+          {cta}
+        </Button>
+      </Link>
     </div>
   )
 }
@@ -174,145 +92,399 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single()
 
-  if (!profile?.profile_completed) redirect("/onboarding")
+  if (!profile?.profile_completed) redirect("/profile/complete")
+
+  const now = new Date()
+  const nowISO = now.toISOString()
+
+  // ── Role detection ──────────────────────────────────────────────────────────
+  const rawRoles = (profile.user_roles as string[] | null) ?? []
+  const isFindWork   = rawRoles.includes("find_work") || rawRoles.length === 0
+  const isHireTalent = rawRoles.includes("hire_talent")
+  const isBoth       = isFindWork && isHireTalent
+
+  // ── Plan status ─────────────────────────────────────────────────────────────
+  const planExpiry     = profile.plan_expires_at ? new Date(profile.plan_expires_at) : null
+  const findWorkActive = profile.plan === "find_work"   && !!planExpiry && planExpiry > now
+  const hireTalentActive = profile.plan === "hire_talent" && !!planExpiry && planExpiry > now
 
   const firstName = profile.full_name?.split(" ")[0] || "there"
-  const now = new Date().toISOString()
 
   const adminDb = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // ── Parallel data fetch ─────────────────────────────────────────────────────
   const [
     { data: notifications },
     { data: myGigs },
-    { data: myJobs },
     { data: myProposals },
-    { data: openProjects },
-    { count: boostedCount },
+    { data: myApplications },
+    { data: recommendedProjects },
+    { data: myJobs },
+    { data: myProjects },
     { data: activeNotices },
   ] = await Promise.all([
-    supabase.from("notifications").select("*").eq("user_id", user.id).eq("is_read", false)
-      .order("created_at", { ascending: false }).limit(5),
-    supabase.from("gigs").select("id, title, price, category, delivery_days, rating, status")
-      .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(6),
-    supabase.from("jobs").select("id, title, job_type, status, created_at")
-      .eq("poster_id", user.id).order("created_at", { ascending: false }).limit(6),
-    supabase.from("proposals").select("id, status, bid_amount, created_at, projects:project_id(id, title)")
-      .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(5),
-    supabase.from("projects").select("id, title, description, budget, category, status")
-      .eq("status", "open").order("created_at", { ascending: false }).limit(6),
-    supabase.from("profiles").select("*", { count: "exact", head: true })
-      .eq("is_boosted", true).gt("boost_expires_at", now),
-    adminDb.from("notices")
-      .select("id, title, content, type")
+    supabase.from("notifications").select("id, message, body, link")
+      .eq("user_id", user.id).eq("is_read", false)
+      .order("created_at", { ascending: false }).limit(4),
+
+    isFindWork
+      ? supabase.from("gigs").select("id, title, price, category, status, delivery_days")
+          .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: [] }),
+
+    isFindWork
+      ? supabase.from("proposals").select("id, status, bid_amount, projects:project_id(id, title)")
+          .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(5)
+      : Promise.resolve({ data: [] }),
+
+    isFindWork
+      ? supabase.from("job_applications")
+          .select("id, status, created_at, job:job_id(id, title)")
+          .eq("applicant_id", user.id).order("created_at", { ascending: false }).limit(5)
+      : Promise.resolve({ data: [] }),
+
+    isFindWork
+      ? supabase.from("projects").select("id, title, description, budget, category")
+          .eq("status", "open").order("created_at", { ascending: false }).limit(4)
+      : Promise.resolve({ data: [] }),
+
+    isHireTalent
+      ? supabase.from("jobs").select("id, title, job_type, status, application_count, created_at")
+          .eq("poster_id", user.id).order("created_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: [] }),
+
+    isHireTalent
+      ? supabase.from("projects").select("id, title, budget, status, created_at")
+          .eq("client_id", user.id).order("created_at", { ascending: false }).limit(4)
+      : Promise.resolve({ data: [] }),
+
+    adminDb.from("notices").select("id, title, content, type")
       .eq("is_active", true)
-      .or(`show_until.is.null,show_until.gt.${now}`)
-      .order("created_at", { ascending: false })
-      .limit(3),
+      .or(`show_until.is.null,show_until.gt.${nowISO}`)
+      .order("created_at", { ascending: false }).limit(3),
   ])
 
-  const hasGigs      = (myGigs?.length ?? 0) > 0
-  const hasJobs      = (myJobs?.length ?? 0) > 0
-  const hasProposals = (myProposals?.length ?? 0) > 0
-  const unreadCount  = notifications?.length ?? 0
-  const connectsBal  = profile.connects_balance ?? 0
+  const unreadCount       = notifications?.length ?? 0
+  const connectsBal       = profile.connects_balance ?? 0
+  const appliedCount      = myApplications?.length ?? 0
+  const proposalCount     = myProposals?.length ?? 0
+  const totalApplied      = appliedCount + proposalCount
+  const receivedAppsTotal = (myJobs as Array<{ application_count?: number }> | null)
+    ?.reduce((sum, j) => sum + (j.application_count ?? 0), 0) ?? 0
 
-  // ── Profile completion score ─────────────────────────────────────────────
-  const completionItems: CompletionItem[] = [
-    {
-      done:  !!profile.full_name,
-      label: "Full Name",
-      cta:   "Add your full name",
-      href:  "/profile/edit",
-      pct:   15,
-      icon:  "✏️",
-    },
-    {
-      done:  !!profile.avatar_url,
-      label: "Photo",
-      cta:   "Add a profile photo",
-      href:  "/profile/edit",
-      pct:   15,
-      icon:  "📸",
-    },
-    {
-      done:  !!profile.bio,
-      label: "Bio",
-      cta:   "Write a short bio",
-      href:  "/profile/edit",
-      pct:   15,
-      icon:  "📝",
-    },
-    {
-      done:  ((profile.skills as string[] | null)?.length ?? 0) > 0,
-      label: "Skills",
-      cta:   "Add your skills",
-      href:  "/profile/edit",
-      pct:   15,
-      icon:  "🛠️",
-    },
-    {
-      done:  !!profile.phone,
-      label: "Phone",
-      cta:   "Add phone number → +10%",
-      href:  "/profile/edit",
-      pct:   10,
-      icon:  "📱",
-    },
-    {
-      done:  !!profile.is_verified,
-      label: "Verified",
-      cta:   "Get verified → Unlock premium clients",
-      href:  "/pricing",
-      pct:   15,
-      icon:  "✅",
-    },
-    {
-      done:  hasGigs,
-      label: "First Gig",
-      cta:   "Create your first gig",
-      href:  "/gigs/new",
-      pct:   15,
-      icon:  "🚀",
-    },
-  ]
+  // ── FIND WORK section ──────────────────────────────────────────────────────
+  const FindWorkContent = (
+    <div className="space-y-8">
+      <FomoBar
+        type="find_work"
+        planActive={findWorkActive}
+        planExpiresAt={profile.plan_expires_at}
+      />
 
-  const totalPct = completionItems
-    .filter(i => i.done)
-    .reduce((sum, i) => sum + i.pct, 0)
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="My Gigs"    value={myGigs?.length ?? 0}   color="text-[#6366F1]" />
+        <StatCard label="Applied"    value={totalApplied}           color="text-[#8B5CF6]" />
+        <StatCard label="Connects"   value={connectsBal}            color="text-[#06B6D4]" />
+        <StatCard label="Proposals"  value={proposalCount}          color="text-[#F97316]" />
+      </div>
 
-  // isProfileReady threshold: 60%+ (was 80%)
-  const isProfileReady = totalPct >= 60
-  const isActiveBoosted = !!(
-    profile.is_boosted &&
-    profile.boost_expires_at &&
-    new Date(profile.boost_expires_at) > new Date()
+      {/* Payment card (if no plan) */}
+      {!findWorkActive && (
+        <PlanCard type="find_work" isLoggedIn={true} />
+      )}
+
+      {/* My Gigs */}
+      <div>
+        <SectionHeader
+          title="My Gigs"
+          icon={<Package className="h-5 w-5 text-[#6366F1]" />}
+          href="/gigs/new"
+          linkLabel="New Gig"
+        />
+        {!myGigs || myGigs.length === 0 ? (
+          <EmptyState
+            message="No gigs yet. Create one to showcase your services."
+            cta="Create Your First Gig →"
+            href="/gigs/new"
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {myGigs.map(gig => (
+              <Link key={gig.id} href={`/gigs/${gig.id}`}>
+                <div className="bg-[#12121A] border border-[#1E293B] hover:border-[#6366F1]/40 rounded-xl p-4 transition-all h-full">
+                  <p className="text-[#64748B] text-xs capitalize mb-1">{gig.category}</p>
+                  <p className="text-[#F8FAFC] font-semibold text-sm line-clamp-2 mb-3">{gig.title}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#6366F1] font-bold text-sm">₹{gig.price?.toLocaleString()}</span>
+                    <Badge className={`border capitalize text-xs ${statusBadge(gig.status ?? "active")}`}>
+                      {gig.status ?? "active"}
+                    </Badge>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* My Applications (job_applications) */}
+      {myApplications && myApplications.length > 0 && (
+        <div>
+          <SectionHeader
+            title="My Applications"
+            icon={<FileText className="h-5 w-5 text-[#8B5CF6]" />}
+            href="/dashboard/applications"
+          />
+          <div className="space-y-2">
+            {(myApplications as Array<{
+              id: string
+              status: string
+              created_at: string
+              job: { id: string; title: string } | null
+            }>).map(app => (
+              <Link key={app.id} href={`/jobs/${app.job?.id ?? "#"}`}>
+                <div className="bg-[#12121A] border border-[#1E293B] hover:border-[#8B5CF6]/40 rounded-xl p-4 flex items-center justify-between transition-all">
+                  <div>
+                    <p className="text-[#F8FAFC] font-medium text-sm">{app.job?.title ?? "Job"}</p>
+                    <p className="text-[#64748B] text-xs mt-0.5">
+                      {new Date(app.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  <Badge className={`border capitalize text-xs ${statusBadge(app.status)}`}>
+                    {app.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Applied Projects (proposals) */}
+      {myProposals && myProposals.length > 0 && (
+        <div>
+          <SectionHeader
+            title="Applied Projects"
+            icon={<Layers className="h-5 w-5 text-[#06B6D4]" />}
+          />
+          <div className="space-y-2">
+            {(myProposals as Array<{
+              id: string
+              status: string
+              bid_amount: number
+              projects: { id?: string; title?: string } | null
+            }>).map(p => (
+              <Link key={p.id} href={`/projects/${p.projects?.id ?? "#"}`}>
+                <div className="bg-[#12121A] border border-[#1E293B] hover:border-[#06B6D4]/40 rounded-xl p-4 flex items-center justify-between transition-all">
+                  <div>
+                    <p className="text-[#F8FAFC] font-medium text-sm">{p.projects?.title ?? "Project"}</p>
+                    <p className="text-[#64748B] text-xs mt-0.5">Bid: ₹{p.bid_amount?.toLocaleString()}</p>
+                  </div>
+                  <Badge className={`border capitalize text-xs ${statusBadge(p.status)}`}>
+                    {p.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommended Projects */}
+      {recommendedProjects && recommendedProjects.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[#F8FAFC] font-bold text-lg">Recommended Projects</h2>
+            <Link href="/projects" className="text-[#A5B4FC] text-xs hover:underline">View all →</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {recommendedProjects.map(p => (
+              <Link key={p.id} href={`/projects/${p.id}`}>
+                <div className="bg-[#12121A] border border-[#1E293B] hover:border-[#6366F1]/40 rounded-xl p-4 h-full transition-all">
+                  <p className="text-[#F8FAFC] font-medium text-sm line-clamp-2 mb-2">{p.title}</p>
+                  <p className="text-[#64748B] text-xs line-clamp-2 mb-3">{p.description}</p>
+                  <p className="text-[#06B6D4] font-bold text-sm">₹{p.budget?.toLocaleString()}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[#1E293B]">
+        <Link href="/gigs/new">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E293B] border border-[#1E293B] text-[#F8FAFC] font-medium gap-2">
+            <Package className="h-4 w-4 text-[#6366F1]" /> Create Gig
+          </Button>
+        </Link>
+        <Link href="/projects">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E293B] border border-[#1E293B] text-[#F8FAFC] font-medium gap-2">
+            <Layers className="h-4 w-4 text-[#06B6D4]" /> Browse Projects
+          </Button>
+        </Link>
+        <Link href="/jobs">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E293B] border border-[#1E293B] text-[#F8FAFC] font-medium gap-2">
+            <Briefcase className="h-4 w-4 text-[#8B5CF6]" /> Browse Jobs
+          </Button>
+        </Link>
+      </div>
+    </div>
   )
 
+  // ── HIRE TALENT section ────────────────────────────────────────────────────
+  const HireTalentContent = (
+    <div className="space-y-8">
+      <FomoBar
+        type="hire_talent"
+        planActive={hireTalentActive}
+        planExpiresAt={hireTalentActive ? profile.plan_expires_at : null}
+      />
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Jobs Posted"   value={myJobs?.length ?? 0}     color="text-[#F59E0B]" />
+        <StatCard label="Projects"      value={myProjects?.length ?? 0}  color="text-[#F97316]" />
+        <StatCard label="Applications"  value={receivedAppsTotal}         color="text-[#8B5CF6]" />
+        <StatCard label="Hired"         value={0}                         color="text-[#4ADE80]" />
+      </div>
+
+      {/* Payment card (if no plan) */}
+      {!hireTalentActive && (
+        <PlanCard type="hire_talent" isLoggedIn={true} />
+      )}
+
+      {/* Post actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link href="/jobs/new">
+          <div className="bg-[#F59E0B]/10 border-2 border-[#F59E0B]/40 hover:border-[#F59E0B]/70 rounded-xl p-5 text-center transition-all cursor-pointer">
+            <Briefcase className="h-8 w-8 text-[#F59E0B] mx-auto mb-2" />
+            <p className="text-white font-bold">+ Post New Job</p>
+            <p className="text-[#94A3B8] text-xs mt-1">Find the right candidate</p>
+          </div>
+        </Link>
+        <Link href="/projects/new">
+          <div className="bg-[#F97316]/10 border-2 border-[#F97316]/40 hover:border-[#F97316]/70 rounded-xl p-5 text-center transition-all cursor-pointer">
+            <Layers className="h-8 w-8 text-[#F97316] mx-auto mb-2" />
+            <p className="text-white font-bold">+ Post New Project</p>
+            <p className="text-[#94A3B8] text-xs mt-1">Get proposals from freelancers</p>
+          </div>
+        </Link>
+      </div>
+
+      {/* My Jobs */}
+      <div>
+        <SectionHeader
+          title="My Job Posts"
+          icon={<Briefcase className="h-5 w-5 text-[#F59E0B]" />}
+          href="/jobs/new"
+          linkLabel="Post Job"
+        />
+        {!myJobs || myJobs.length === 0 ? (
+          <EmptyState
+            message="No jobs posted yet. Post a job to find the right talent."
+            cta="Post Your First Job →"
+            href="/jobs/new"
+          />
+        ) : (
+          <div className="space-y-2">
+            {(myJobs as Array<{
+              id: string
+              title: string
+              job_type: string
+              status: string
+              application_count?: number
+            }>).map(job => (
+              <Link key={job.id} href={`/dashboard/my-jobs/${job.id}/applicants`}>
+                <div className="bg-[#12121A] border border-[#1E293B] hover:border-[#F59E0B]/40 rounded-xl p-4 flex items-center justify-between transition-all">
+                  <div>
+                    <p className="text-[#F8FAFC] font-medium text-sm">{job.title}</p>
+                    <p className="text-[#64748B] text-xs mt-0.5 capitalize">
+                      {job.job_type?.replace("-", " ")} · {job.application_count ?? 0} applicants
+                    </p>
+                  </div>
+                  <Badge className={`border capitalize text-xs ${statusBadge(job.status)}`}>
+                    {job.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* My Projects */}
+      {myProjects && myProjects.length > 0 && (
+        <div>
+          <SectionHeader
+            title="My Projects"
+            icon={<Layers className="h-5 w-5 text-[#F97316]" />}
+            href="/projects/new"
+            linkLabel="New Project"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(myProjects as Array<{
+              id: string
+              title: string
+              budget: number
+              status: string
+            }>).map(p => (
+              <Link key={p.id} href={`/projects/${p.id}`}>
+                <div className="bg-[#12121A] border border-[#1E293B] hover:border-[#F97316]/40 rounded-xl p-4 transition-all">
+                  <p className="text-[#F8FAFC] font-medium text-sm mb-2">{p.title}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#F97316] font-bold text-sm">₹{p.budget?.toLocaleString()}</span>
+                    <Badge className={`border capitalize text-xs ${statusBadge(p.status)}`}>
+                      {p.status}
+                    </Badge>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Browse freelancers */}
+      <div className="pt-4 border-t border-[#1E293B]">
+        <Link href="/freelancers">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E293B] border border-[#1E293B] text-[#F8FAFC] font-medium gap-2">
+            <Users className="h-4 w-4 text-[#F59E0B]" /> Browse Freelancers
+          </Button>
+        </Link>
+      </div>
+    </div>
+  )
+
+  // ── PAGE RENDER ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0F172A]">
-      <div className="container mx-auto px-4 py-10 max-w-6xl">
+    <div className="min-h-screen bg-[#0A0A0F]">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-black text-[#F8FAFC]">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#F8FAFC]">
               Hey{" "}
               <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
                 {firstName}!
               </span>
             </h1>
-            <p className="text-[#94A3B8] mt-1">
-              {totalPct < 60 ? "Complete your profile to start landing projects" : "Here's what's happening on GigWAY"}
+            <p className="text-[#64748B] text-sm mt-0.5">
+              {isBoth ? "You have both Find Work & Hire Talent roles"
+                : isFindWork ? "Find Work dashboard"
+                : "Hire Talent dashboard"}
             </p>
           </div>
-          <Link href="/notifications" className="relative">
-            <Button variant="outline" size="icon" className="border-[#334155] bg-[#1E293B] hover:bg-[#334155]">
+          <Link href="/notifications" className="relative flex-shrink-0">
+            <Button variant="outline" size="icon" className="border-[#1E293B] bg-[#12121A] hover:bg-[#1E293B]">
               <Bell className="h-5 w-5 text-[#F8FAFC]" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#6366F1] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#6366F1] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
@@ -320,72 +492,28 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {/* ── GigWay Notices ────────────────────────────────────── */}
+        {/* Notices */}
         {activeNotices && activeNotices.length > 0 && (
           <NoticeBanner notices={activeNotices} />
         )}
 
-        {/* ── Connects gamification card ─────────────────────────── */}
-        <ConnectsCard balance={connectsBal} />
-
-        {/* ── Profile completion score ───────────────────────────── */}
-        <ProfileCompletionCard items={completionItems} totalPct={totalPct} />
-
-        {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-[#6366F1]">{myProposals?.length ?? 0}</p>
-            <p className="text-[#94A3B8] text-sm mt-1">Proposals Sent</p>
-          </div>
-          <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-[#8B5CF6]">{myGigs?.length ?? 0}</p>
-            <p className="text-[#94A3B8] text-sm mt-1">Gigs Created</p>
-          </div>
-          <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-[#06B6D4]">{connectsBal}</p>
-            <p className="text-[#94A3B8] text-sm mt-1">Connects</p>
-          </div>
-          <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-[#F8FAFC]">
-              {profile.avg_rating ? profile.avg_rating.toFixed(1) : "—"}
-            </p>
-            <p className="text-[#94A3B8] text-sm mt-1">Avg Rating</p>
-          </div>
-        </div>
-
-        {/* Revenue cards: Boost + Verified Badge */}
-        {isProfileReady && (
-          <div className="mb-6 space-y-4">
-            <BoostProfileCard
-              isAlreadyBoosted={isActiveBoosted}
-              boostPlan={profile.boost_plan as string | null}
-              boostExpiresAt={profile.boost_expires_at as string | null}
-              boostedCount={boostedCount ?? 0}
-            />
-            <VerifiedBadgeCard
-              verificationStatus={profile.verification_status as string | null}
-              isVerified={profile.is_verified as boolean | null}
-            />
-          </div>
-        )}
-
-        {/* Notifications panel */}
+        {/* Notifications strip */}
         {notifications && notifications.length > 0 && (
-          <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 mb-6">
-            <h2 className="text-[#F8FAFC] font-semibold mb-3 flex items-center gap-2">
+          <div className="bg-[#12121A] border border-[#1E293B] rounded-xl p-4 mb-6">
+            <p className="text-[#F8FAFC] font-semibold text-sm mb-2 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#6366F1] inline-block" />
-              New Notifications
-            </h2>
-            <div className="space-y-2">
+              Notifications
+            </p>
+            <div className="space-y-1.5">
               {notifications.map((n: { id: string; message?: string; body?: string; link?: string }) => (
-                <div key={n.id} className="flex items-start gap-3 text-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6366F1] mt-2 flex-shrink-0" />
+                <div key={n.id} className="flex items-start gap-2 text-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6366F1] mt-1.5 flex-shrink-0" />
                   {n.link ? (
-                    <Link href={n.link} className="text-[#CBD5E1] hover:text-white transition-colors">
+                    <Link href={n.link} className="text-[#94A3B8] hover:text-white transition-colors text-xs">
                       {n.message || n.body}
                     </Link>
                   ) : (
-                    <p className="text-[#CBD5E1]">{n.message || n.body}</p>
+                    <p className="text-[#94A3B8] text-xs">{n.message || n.body}</p>
                   )}
                 </div>
               ))}
@@ -393,146 +521,21 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        <div className="space-y-8">
-          {/* My Proposals */}
-          {hasProposals && (
-            <div>
-              <h2 className="text-[#F8FAFC] font-bold text-xl mb-4">My Proposals</h2>
-              <div className="space-y-3">
-                {myProposals!.map(p => {
-                  const project = p.projects as { id?: string; title?: string } | null
-                  return (
-                    <Link key={p.id} href={`/projects/${project?.id ?? "#"}`}>
-                      <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-[#6366F1]/40 transition-all flex items-center justify-between">
-                        <div>
-                          <p className="text-[#F8FAFC] font-medium">{project?.title ?? "Project"}</p>
-                          <p className="text-[#94A3B8] text-sm mt-0.5">Bid: ₹{p.bid_amount?.toLocaleString()}</p>
-                        </div>
-                        <Badge className={`border ${PROPOSAL_STATUS[p.status] ?? PROPOSAL_STATUS.pending} capitalize`}>
-                          {p.status}
-                        </Badge>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+        {/* Main content — role based */}
+        {isBoth ? (
+          <DashboardTabs
+            findWorkContent={FindWorkContent}
+            hireTalentContent={HireTalentContent}
+          />
+        ) : isFindWork ? (
+          FindWorkContent
+        ) : (
+          HireTalentContent
+        )}
 
-          {/* My Gigs */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[#F8FAFC] font-bold text-xl flex items-center gap-2">
-                <Package className="h-5 w-5 text-[#6366F1]" /> My Gigs
-              </h2>
-              <Link href="/gigs/new">
-                <Button size="sm" className="bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-xs">
-                  <Plus className="h-3.5 w-3.5 mr-1" /> New Gig
-                </Button>
-              </Link>
-            </div>
-            {!hasGigs ? (
-              <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-8 text-center">
-                <p className="text-[#94A3B8] text-sm mb-3">No gigs yet. Create one to showcase your services.</p>
-                <Link href="/gigs/new">
-                  <Button size="sm" className="bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold">
-                    Create Your First Gig →
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myGigs!.map(gig => (
-                  <Link key={gig.id} href={`/gigs/${gig.id}`}>
-                    <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-[#6366F1]/40 transition-all">
-                      <p className="text-[#94A3B8] text-xs capitalize mb-1">{gig.category}</p>
-                      <p className="text-[#F8FAFC] font-semibold text-sm line-clamp-2 mb-2">{gig.title}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[#6366F1] font-bold text-sm">₹{gig.price?.toLocaleString()}</span>
-                        <span className="text-[#475569] text-xs">{gig.delivery_days}d delivery</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* My Posted Jobs */}
-          {hasJobs && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[#F8FAFC] font-bold text-xl flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-[#8B5CF6]" /> My Job Posts
-                </h2>
-                <Link href="/jobs/new">
-                  <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold text-xs">
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Post Job
-                  </Button>
-                </Link>
-              </div>
-              <div className="space-y-3">
-                {myJobs!.map(job => (
-                  <Link key={job.id} href={`/jobs/${job.id}`}>
-                    <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-[#8B5CF6]/40 transition-all flex items-center justify-between">
-                      <div>
-                        <p className="text-[#F8FAFC] font-medium">{job.title}</p>
-                        <p className="text-[#94A3B8] text-sm capitalize mt-0.5">{job.job_type?.replace("-", " ")}</p>
-                      </div>
-                      <Badge className={`border ${job.status === "active" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-[#334155] text-[#94A3B8] border-[#334155]"} capitalize`}>
-                        {job.status}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Open Projects */}
-          {openProjects && openProjects.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[#F8FAFC] font-bold text-xl">Open Projects</h2>
-                <Link href="/projects" className="text-[#A5B4FC] text-sm hover:underline">View all</Link>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {openProjects.map(p => (
-                  <Link key={p.id} href={`/projects/${p.id}`}>
-                    <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-[#6366F1]/40 transition-all h-full">
-                      <h3 className="text-[#F8FAFC] font-medium line-clamp-2 mb-2">{p.title}</h3>
-                      <p className="text-[#94A3B8] text-sm line-clamp-2 mb-3">{p.description}</p>
-                      <p className="text-[#06B6D4] font-bold">₹{p.budget?.toLocaleString()}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-[#334155]">
-            <Link href="/gigs/new">
-              <Button className="w-full bg-[#1E293B] hover:bg-[#334155] border border-[#334155] text-[#F8FAFC] font-medium gap-2">
-                <Package className="h-4 w-4 text-[#6366F1]" /> Create Gig
-              </Button>
-            </Link>
-            <Link href="/jobs/new">
-              <Button className="w-full bg-[#1E293B] hover:bg-[#334155] border border-[#334155] text-[#F8FAFC] font-medium gap-2">
-                <Briefcase className="h-4 w-4 text-[#8B5CF6]" /> Post Job
-              </Button>
-            </Link>
-            <Link href="/projects">
-              <Button className="w-full bg-[#1E293B] hover:bg-[#334155] border border-[#334155] text-[#F8FAFC] font-medium gap-2">
-                <Star className="h-4 w-4 text-[#06B6D4]" /> Browse Projects
-              </Button>
-            </Link>
-          </div>
-
-          {/* Support button */}
-          <div className="pt-2">
-            <DashboardSupportButton />
-          </div>
+        {/* Support */}
+        <div className="mt-8 pt-4 border-t border-[#1E293B]">
+          <DashboardSupportButton />
         </div>
       </div>
     </div>

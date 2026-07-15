@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { Users } from "lucide-react"
 import AdminUsersClient from "@/components/admin/AdminUsersClient"
 
@@ -12,6 +13,11 @@ export const metadata: Metadata = {
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 const PAGE_SIZE = 20
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 type Filter = "all" | "boosted" | "verified" | "new"
 interface SearchParams { filter?: string; page?: string; q?: string }
@@ -27,9 +33,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   const q = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
-  let query = supabase
+  let query = adminDb
     .from("profiles")
-    .select("id,full_name,email,created_at,is_boosted,is_verified,verification_status,boost_expires_at,subscription_tier", { count: "exact" })
+    .select("id,full_name,email,created_at,is_boosted,is_verified,verification_status,boost_expires_at,subscription_tier,user_roles,plan,plan_expires_at", { count: "exact" })
 
   if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
   if (filter === "boosted") query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())

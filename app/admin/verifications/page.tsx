@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
 import { ShieldCheck } from "lucide-react"
 import VerificationReviewList from "@/components/admin/VerificationReviewList"
@@ -11,6 +12,11 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
 
 const BUCKET = "verification-docs"
 
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 export default async function AdminVerificationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -18,26 +24,26 @@ export default async function AdminVerificationsPage() {
   if (!user) redirect("/login")
   if (!ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "")) redirect("/dashboard")
 
-  const { data: pending } = await supabase
+  const { data: pending } = await adminDb
     .from("profiles")
     .select("id,full_name,email,phone,aadhaar_front_url,aadhaar_back_url,verification_paid_at,created_at")
     .eq("verification_status", "pending")
     .order("created_at", { ascending: true })
 
-  // Generate signed URLs (1 hour) for each document
+  // Generate signed URLs (1 hour) for each document — storage also needs service role
   const pendingWithUrls = await Promise.all(
     (pending ?? []).map(async p => {
       let frontUrl: string | null = null
       let backUrl:  string | null = null
 
       if (p.aadhaar_front_url) {
-        const { data } = await supabase.storage
+        const { data } = await adminDb.storage
           .from(BUCKET)
           .createSignedUrl(p.aadhaar_front_url, 3600)
         frontUrl = data?.signedUrl ?? null
       }
       if (p.aadhaar_back_url) {
-        const { data } = await supabase.storage
+        const { data } = await adminDb.storage
           .from(BUCKET)
           .createSignedUrl(p.aadhaar_back_url, 3600)
         backUrl = data?.signedUrl ?? null
@@ -48,9 +54,9 @@ export default async function AdminVerificationsPage() {
   )
 
   const [{ count: totalPending }, { count: totalVerified }] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true })
+    adminDb.from("profiles").select("id", { count: "exact", head: true })
       .eq("verification_status", "pending"),
-    supabase.from("profiles").select("id", { count: "exact", head: true })
+    adminDb.from("profiles").select("id", { count: "exact", head: true })
       .eq("is_verified", true),
   ])
 

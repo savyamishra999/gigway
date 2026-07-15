@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { UserCheck } from "lucide-react"
 import AdminFreelancersClient from "@/components/admin/AdminFreelancersClient"
 
@@ -11,6 +12,11 @@ export const metadata: Metadata = {
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 const PAGE_SIZE = 20
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 type TabFilter = "all" | "verified" | "boosted" | "banned"
 interface SearchParams { tab?: string; page?: string; q?: string }
@@ -26,7 +32,7 @@ export default async function AdminFreelancersPage({ searchParams }: { searchPar
   const q      = params.q?.trim() ?? ""
   const offset = (page - 1) * PAGE_SIZE
 
-  let query = supabase
+  let query = adminDb
     .from("profiles")
     .select(
       "id,full_name,email,avatar_url,skills,hourly_rate,is_verified,is_boosted,is_banned,boost_expires_at,created_at",

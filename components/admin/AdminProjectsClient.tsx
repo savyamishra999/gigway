@@ -6,8 +6,8 @@ import { ExternalLink, Trash2, X, FolderOpen } from "lucide-react"
 interface ProjectRow {
   id: string
   title: string
-  budget_min: number | null
-  budget_max: number | null
+  budget: number | null
+  category: string | null
   status: string | null
   created_at: string
   poster_name: string | null
@@ -18,10 +18,9 @@ function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
 }
 
-function budget(min: number | null, max: number | null) {
-  if (!min && !max) return "—"
-  if (min && max) return `₹${min.toLocaleString()} – ₹${max.toLocaleString()}`
-  return `₹${(min || max)!.toLocaleString()}`
+function budget(amount: number | null) {
+  if (!amount) return "—"
+  return `₹${amount.toLocaleString()}`
 }
 
 function statusBadge(s: string | null) {
@@ -123,7 +122,8 @@ export default function AdminProjectsClient({ initial }: { initial: ProjectRow[]
                       <p className="text-[#94A3B8] text-xs truncate max-w-[140px]">{p.poster_name || p.poster_email || "—"}</p>
                     </td>
                     <td className="px-3 py-3 text-[#94A3B8] text-xs hidden md:table-cell whitespace-nowrap">
-                      {budget(p.budget_min, p.budget_max)}
+                      {budget(p.budget)}
+                      {p.category && <span className="ml-1 text-[#475569]">· {p.category}</span>}
                     </td>
                     <td className="px-3 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${statusBadge(p.status)}`}>

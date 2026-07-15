@@ -3,6 +3,9 @@ import Razorpay from "razorpay"
 import { createClient } from "@/lib/supabase/server"
 
 const PLANS: Record<string, number> = {
+  // Subscriptions
+  find_work_monthly:     4900,   // ₹49
+  hire_talent_monthly:  19900,   // ₹199
   // Boost
   boost_basic:           9900,
   boost_standard:       19900,

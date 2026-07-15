@@ -1,12 +1,18 @@
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { Megaphone } from "lucide-react"
 import BroadcastClient from "@/components/admin/BroadcastClient"
 
 export const metadata: Metadata = { title: "Admin — Broadcast — GigWay" }
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export default async function BroadcastPage() {
   const supabase = await createClient()
@@ -18,8 +24,8 @@ export default async function BroadcastPage() {
     { count: allCount },
     { count: boostedCount },
   ] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_boosted", true),
+    adminDb.from("profiles").select("id", { count: "exact", head: true }),
+    adminDb.from("profiles").select("id", { count: "exact", head: true }).eq("is_boosted", true),
   ])
 
   return (

@@ -74,11 +74,11 @@ export async function GET(request: Request) {
             }
           }
 
-          return NextResponse.redirect(new URL('/onboarding', request.url))
+          return NextResponse.redirect(new URL('/profile/complete', request.url))
         }
 
         if (profile.profile_completed === false) {
-          return NextResponse.redirect(new URL('/onboarding', request.url))
+          return NextResponse.redirect(new URL('/profile/complete', request.url))
         }
 
         return NextResponse.redirect(new URL('/dashboard', request.url))

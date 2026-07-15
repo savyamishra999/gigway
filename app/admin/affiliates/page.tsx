@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { ArrowLeft } from "lucide-react"
 import AdminAffiliatesClient from "@/components/admin/AdminAffiliatesClient"
 
@@ -11,6 +12,11 @@ export const metadata: Metadata = {
 }
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export default async function AdminAffiliatesPage() {
   const supabase = await createClient()
@@ -23,15 +29,15 @@ export default async function AdminAffiliatesPage() {
     { data: approved },
     { data: payoutsRaw },
   ] = await Promise.all([
-    supabase.from("affiliates")
+    adminDb.from("affiliates")
       .select("id,name,email,phone,platform_link,how_promote,ref_code,created_at")
       .eq("status", "pending")
       .order("created_at", { ascending: false }),
-    supabase.from("affiliates")
+    adminDb.from("affiliates")
       .select("id,name,email,ref_code,total_earnings,commission_rate,created_at")
       .eq("status", "approved")
       .order("total_earnings", { ascending: false }),
-    supabase.from("affiliate_payouts")
+    adminDb.from("affiliate_payouts")
       .select("id,amount,upi_id,status,created_at,paid_at,affiliates:affiliate_id(name,email)")
       .order("created_at", { ascending: false })
       .limit(100),

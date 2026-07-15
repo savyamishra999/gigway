@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { Gift } from "lucide-react"
 import SpecialGrantsClient from "@/components/admin/SpecialGrantsClient"
 
@@ -8,12 +9,17 @@ export const metadata: Metadata = { title: "Admin — Special Grants — GigWay"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 export default async function SpecialGrantsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
-  const { data: history } = await supabase
+  const { data: history } = await adminDb
     .from("admin_grants")
     .select("id, grant_type, note, granted_at, profiles:user_id(full_name, email)")
     .order("granted_at", { ascending: false })

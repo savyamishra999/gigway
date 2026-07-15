@@ -11,6 +11,7 @@ const adminDb = createServiceClient(
 
 // Amount in rupees for affiliate commission
 const PLAN_AMOUNTS_RUPEES: Record<string, number> = {
+  find_work_monthly:    49,  hire_talent_monthly:  199,
   boost_basic:          99,  boost_standard:     199,  boost_premium:     299,
   verified_badge:       299, employer_verified:  499,
   connects_20:          99,  connects_60:        249,  connects_150:      499,
@@ -69,9 +70,44 @@ export async function POST(req: NextRequest) {
   }).then(() => null, (e) => console.error("[verify] payments insert error:", e))
 
   // ── 2. Plan-specific logic ────────────────────────────────────────────────
+  const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  // Find Work monthly subscription
+  if (plan_type === "find_work_monthly") {
+    const { error } = await adminDb
+      .from("profiles")
+      .update({ plan: "find_work", plan_expires_at: thirtyDays })
+      .eq("id", user.id)
+    if (error) return NextResponse.json({ error: "Failed to activate plan" }, { status: 500 })
+
+    await adminDb.from("notifications").insert({
+      user_id: user.id,
+      type: "plan_activated",
+      title: "🔍 Find Work Plan Activated!",
+      body: "Your ₹49/month plan is now active. Your profile is visible in search results.",
+      is_read: false,
+    }).then(() => null, () => null)
+  }
+
+  // Hire Talent monthly subscription
+  else if (plan_type === "hire_talent_monthly") {
+    const { error } = await adminDb
+      .from("profiles")
+      .update({ plan: "hire_talent", plan_expires_at: thirtyDays })
+      .eq("id", user.id)
+    if (error) return NextResponse.json({ error: "Failed to activate plan" }, { status: 500 })
+
+    await adminDb.from("notifications").insert({
+      user_id: user.id,
+      type: "plan_activated",
+      title: "👔 Hire Talent Plan Activated!",
+      body: "Your ₹199/month plan is now active. Post unlimited jobs and projects.",
+      is_read: false,
+    }).then(() => null, () => null)
+  }
 
   // Boost plans
-  if (BOOST_PLANS.has(plan_type)) {
+  else if (BOOST_PLANS.has(plan_type)) {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     const { error } = await adminDb
       .from("profiles")
