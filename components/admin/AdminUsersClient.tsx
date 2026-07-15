@@ -7,6 +7,7 @@ interface UserRow {
   id: string
   full_name: string | null
   email: string | null
+  phone: string | null
   created_at: string
   is_boosted: boolean | null
   is_verified: boolean | null
@@ -132,6 +133,7 @@ export default function AdminUsersClient({ initial }: { initial: UserRow[] }) {
                     </td>
                     <td className="px-3 py-3 text-[#94A3B8] hidden sm:table-cell">
                       <span className="truncate max-w-[180px] block">{u.email}</span>
+                      {u.phone && <span className="text-[#475569] text-xs block">{u.phone}</span>}
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-1.5 flex-wrap">

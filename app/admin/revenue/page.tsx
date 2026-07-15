@@ -86,7 +86,7 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
   const { data: allPayments } = await adminDb
     .from("payments")
     .select("id, plan, amount, created_at, user_id")
-    .eq("status", "success")
+    .in("status", ["success", "captured", "paid"])
 
   const all = allPayments ?? []
 
@@ -100,7 +100,7 @@ export default async function AdminRevenuePage({ searchParams }: { searchParams:
   let txQuery = adminDb
     .from("payments")
     .select("id, plan, amount, razorpay_payment_id, razorpay_order_id, created_at, user_id, profiles:user_id(full_name, email)")
-    .eq("status", "success")
+    .in("status", ["success", "captured", "paid"])
 
   if (periodStart) txQuery = txQuery.gte("created_at", periodStart)
 

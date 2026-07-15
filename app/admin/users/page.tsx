@@ -35,7 +35,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
 
   let query = adminDb
     .from("profiles")
-    .select("id,full_name,email,created_at,is_boosted,is_verified,verification_status,boost_expires_at,subscription_tier,user_roles,plan,plan_expires_at", { count: "exact" })
+    .select("id,full_name,email,phone,created_at,is_boosted,is_verified,verification_status,boost_expires_at,subscription_tier,user_roles,plan,plan_expires_at", { count: "exact" })
 
   if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
   if (filter === "boosted") query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())

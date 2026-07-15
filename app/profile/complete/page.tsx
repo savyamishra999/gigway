@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Image from "next/image"
-import ProfileCompleteForm from "@/components/onboarding/ProfileCompleteForm"
+import OnboardingForm from "@/components/onboarding/OnboardingForm"
 
 export default async function ProfileCompletePage() {
   const supabase = await createClient()
@@ -20,17 +20,9 @@ export default async function ProfileCompletePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-start py-10 px-4">
       <div className="w-full max-w-2xl">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Image
-            src="/logo.png"
-            width={140}
-            height={37}
-            alt="GigWay"
-            priority
-            className="object-contain"
-            style={{ maxHeight: "37px", width: "auto" }}
-          />
+          <Image src="/logo.png" width={140} height={37} alt="GigWay" priority
+            className="object-contain" style={{ maxHeight:"37px", width:"auto" }} />
         </div>
 
         <div className="text-center mb-8">
@@ -38,8 +30,8 @@ export default async function ProfileCompletePage() {
           <p className="text-[#94A3B8]">Set up your profile in 2 quick steps</p>
         </div>
 
-        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-6 sm:p-8">
-          <ProfileCompleteForm userId={user.id} />
+        <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 sm:p-8">
+          <OnboardingForm userId={user.id} />
         </div>
 
         <p className="text-center text-[#475569] text-xs mt-6">

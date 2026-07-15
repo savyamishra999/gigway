@@ -12,6 +12,7 @@ const adminDb = createServiceClient(
 // Amount in rupees for affiliate commission
 const PLAN_AMOUNTS_RUPEES: Record<string, number> = {
   find_work_monthly:    49,  hire_talent_monthly:  199,
+  verification_yearly:  199,
   boost_basic:          99,  boost_standard:     199,  boost_premium:     299,
   verified_badge:       299, employer_verified:  499,
   connects_20:          99,  connects_60:        249,  connects_150:      499,
@@ -124,19 +125,24 @@ export async function POST(req: NextRequest) {
     }).then(() => null, () => null)
   }
 
-  // Verified badge
-  else if (plan_type === "verified_badge" || plan_type === "employer_verified") {
+  // Verified badge / verification yearly
+  else if (plan_type === "verified_badge" || plan_type === "employer_verified" || plan_type === "verification_yearly") {
     const { error } = await adminDb
       .from("profiles")
       .update({ verification_paid_at: new Date().toISOString() })
       .eq("id", user.id)
     if (error) return NextResponse.json({ error: "Failed to record verification payment" }, { status: 500 })
 
+    await adminDb.from("profiles")
+      .update({ verification_paid_year: new Date().getFullYear() })
+      .eq("id", user.id)
+      .then(() => null, () => null)
+
     await adminDb.from("notifications").insert({
       user_id: user.id,
       type: "verification_payment",
-      title: "✅ Payment received!",
-      body: "Upload your Aadhaar documents to complete verification.",
+      title: "✅ Verification Payment Received!",
+      body: "Now upload your documents at gigway.in/verify to complete verification.",
       is_read: false,
     }).then(() => null, () => null)
   }

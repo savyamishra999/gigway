@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
   .split(",").map(e => e.trim().toLowerCase())
@@ -18,21 +18,36 @@ export async function DELETE(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 })
   if (userId === user.id) return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 })
 
-  // Use service role client to delete auth user (cascades to profiles via FK)
-  const adminClient = createSupabaseClient(
+  const adminClient = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Delete profile data first (gigs, jobs, projects cascade if FK set)
-  await adminClient.from("profiles").delete().eq("id", userId)
+  try {
+    // 1. Delete FK-dependent data in parallel to avoid constraint violations
+    await Promise.allSettled([
+      adminClient.from("gigs").delete().eq("freelancer_id", userId),
+      adminClient.from("jobs").delete().eq("poster_id", userId),
+      adminClient.from("projects").delete().eq("client_id", userId),
+      adminClient.from("proposals").delete().eq("freelancer_id", userId),
+      adminClient.from("job_applications").delete().eq("applicant_id", userId),
+      adminClient.from("messages").delete().or(`sender_id.eq.${userId},receiver_id.eq.${userId}`),
+      adminClient.from("notifications").delete().eq("user_id", userId),
+    ])
 
-  // Delete auth user
-  const { error } = await adminClient.auth.admin.deleteUser(userId)
-  if (error) {
-    console.error("[delete-user]", error.message)
-    // Profile already deleted; auth delete failed — non-fatal
+    // 2. Delete profile (note: verification docs in storage are kept per policy)
+    await adminClient.from("profiles").delete().eq("id", userId)
+
+    // 3. Delete auth user (cascades remaining auth-linked data)
+    const { error: authErr } = await adminClient.auth.admin.deleteUser(userId)
+    if (authErr) {
+      console.error("[delete-user] auth.deleteUser error:", authErr.message)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("[delete-user]", msg)
+    return NextResponse.json({ error: "Delete failed: " + msg }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true })
 }

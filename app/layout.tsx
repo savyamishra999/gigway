@@ -4,7 +4,6 @@ import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import StickyBanner from '@/components/layout/StickyBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -39,7 +38,6 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <StickyBanner />
           <Navbar />
           <main className="min-h-screen">
             {children}
