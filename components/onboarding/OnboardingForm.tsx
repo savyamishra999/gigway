@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
-  X, Plus, Search, Camera, CheckCircle2, BookOpen,
+  X, Plus, Search, Camera, CheckCircle2, Briefcase, BookOpen,
   Building2, Users, ChevronRight, Package, Upload, FileText,
   IndianRupee,
 } from "lucide-react"
@@ -58,7 +58,7 @@ const JOB_TYPES = [
 // ── types ──────────────────────────────────────────────────────────────────────
 
 type MainRole     = "find_work" | "hire_talent"
-type FindWorkType = "freelancer" | "job_seeker"
+type FindWorkType = "freelancer" | "job_seeker" | "both_fw"
 type HireType     = "individual" | "company"
 
 interface FormData {
@@ -119,8 +119,8 @@ export default function OnboardingForm({
   // ── derived ────────────────────────────────────────────────────────────────
   const isFindWork   = mainRole === "find_work"
   const isHireTalent = mainRole === "hire_talent"
-  const isFreelancer = isFindWork && findWorkType === "freelancer"
-  const isJobSeeker  = isFindWork && findWorkType === "job_seeker"
+  const isFreelancer = isFindWork && (findWorkType === "freelancer" || findWorkType === "both_fw")
+  const isJobSeeker  = isFindWork && (findWorkType === "job_seeker"  || findWorkType === "both_fw")
   const isCompany    = isHireTalent && hireType === "company"
 
   const canProceed1 =
@@ -210,7 +210,7 @@ export default function OnboardingForm({
 
     const { error: upErr } = await supabase.from("profiles").update({
       user_roles:              [mainRole],
-      find_work_type:          isFindWork   ? findWorkType  : null,
+      find_work_type:          isFindWork   ? (findWorkType === "both_fw" ? "both" : findWorkType) : null,
       hire_talent_type:        isHireTalent ? hireType      : null,
       account_type:            isCompany ? "company" : "individual",
       full_name:               formData.full_name.trim(),
@@ -324,10 +324,11 @@ export default function OnboardingForm({
         {isFindWork && (
           <div className="space-y-3">
             <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-widest">I want to find work as a…</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { id:"freelancer", label:"Freelancer", sub:"Offer services & get paid per project", icon:Package,  color:"#6366F1" },
-                { id:"job_seeker", label:"Job Seeker", sub:"Apply for full-time / part-time roles",  icon:BookOpen, color:"#378ADD" },
+                { id:"freelancer", label:"Freelancer", sub:"Offer services & get paid per project", icon:Package,   color:"#6366F1" },
+                { id:"job_seeker", label:"Job Seeker", sub:"Apply for full-time / part-time roles",  icon:BookOpen,  color:"#378ADD" },
+                { id:"both_fw",    label:"Both",       sub:"Freelance gigs + full-time jobs",         icon:Briefcase, color:"#1D9E75" },
               ].map(opt => {
                 const Icon   = opt.icon
                 const active = findWorkType === opt.id
@@ -426,15 +427,23 @@ export default function OnboardingForm({
 
       {/* Role chip */}
       <div className="flex flex-wrap gap-2">
-        {isFreelancer && (
-          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/30">
-            <Package className="h-3 w-3" /> Freelancer
+        {isFindWork && findWorkType === "both_fw" ? (
+          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#1D9E75]/15 text-[#6EE7B7] border border-[#1D9E75]/30">
+            <Briefcase className="h-3 w-3" /> Freelancer + Job Seeker
           </span>
-        )}
-        {isJobSeeker && (
-          <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#378ADD]/15 text-[#93C5FD] border border-[#378ADD]/30">
-            <BookOpen className="h-3 w-3" /> Job Seeker
-          </span>
+        ) : (
+          <>
+            {isFreelancer && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/30">
+                <Package className="h-3 w-3" /> Freelancer
+              </span>
+            )}
+            {isJobSeeker && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#378ADD]/15 text-[#93C5FD] border border-[#378ADD]/30">
+                <BookOpen className="h-3 w-3" /> Job Seeker
+              </span>
+            )}
+          </>
         )}
         {isHireTalent && (
           <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold bg-[#F59E0B]/15 text-[#FCD34D] border border-[#F59E0B]/30">
