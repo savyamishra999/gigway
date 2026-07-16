@@ -119,7 +119,9 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single()
 
-  if (!profile?.profile_completed) redirect("/profile/complete")
+  const rawRoles = (profile?.user_roles as string[] | null) ?? []
+  // Must have completed onboarding and have a role assigned
+  if (!profile?.profile_completed || rawRoles.length === 0) redirect("/profile/complete")
 
   const adminDb = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -130,8 +132,7 @@ export default async function DashboardPage() {
   const nowISO = now.toISOString()
 
   // ── Role resolution ──────────────────────────────────────────────────────────
-  const rawRoles     = (profile.user_roles as string[] | null) ?? []
-  const isFindWork   = rawRoles.includes("find_work") || rawRoles.length === 0
+  const isFindWork   = rawRoles.includes("find_work")
   const isHireTalent = rawRoles.includes("hire_talent")
   const isBoth       = isFindWork && isHireTalent
   const fwType       = profile.find_work_type as string | null   // freelancer | job_seeker | both
