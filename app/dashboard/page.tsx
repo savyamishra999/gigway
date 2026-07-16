@@ -217,7 +217,7 @@ export default async function DashboardPage() {
   // ── FREELANCER VIEW ──────────────────────────────────────────────────────────
   const FreelancerContent = (
     <div className="space-y-8">
-      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} />
+      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} findWorkType={fwType} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="My Gigs"   value={myGigs?.length ?? 0}  color="text-[#818CF8]" />
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
       </div>
 
       <VerificationCard status={verificationStatus} planActive={findWorkActive} />
-      {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} />}
+      {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />}
 
       <div>
         <SectionHdr title="My Gigs" icon={<Package className="h-5 w-5 text-[#818CF8]" />} href="/gigs/new" linkLabel="New Gig" />
@@ -317,7 +317,7 @@ export default async function DashboardPage() {
 
   const JobSeekerContent = (
     <div className="space-y-8">
-      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} />
+      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} findWorkType={fwType} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Applied"     value={appliedCount}  color="text-[#378ADD]" />
@@ -327,7 +327,7 @@ export default async function DashboardPage() {
       </div>
 
       <VerificationCard status={verificationStatus} planActive={findWorkActive} />
-      {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} />}
+      {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />}
 
       <div>
         <SectionHdr title="My Applications" icon={<FileText className="h-5 w-5 text-[#378ADD]" />} href="/jobs" linkLabel="Browse Jobs" />
