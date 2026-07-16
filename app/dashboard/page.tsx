@@ -509,17 +509,102 @@ export default async function DashboardPage() {
     </div>
   )
 
+  // ── BOTH (Freelancer + Job Seeker) — combined, no duplicate shared elements ──
+  const BothFWContent = (
+    <div className="space-y-8">
+      {/* Shared: FomoBar once */}
+      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} findWorkType={fwType} />
+
+      {/* Combined stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat label="My Gigs"   value={myGigs?.length ?? 0} color="text-[#818CF8]" />
+        <Stat label="Proposals" value={proposalCount}         color="text-[#8B5CF6]" />
+        <Stat label="Applied"   value={appliedCount}          color="text-[#378ADD]" />
+        <Stat label="Connects"  value={connectsBal}           color="text-[#06B6D4]" />
+      </div>
+
+      {/* Shared: VerificationCard once */}
+      <VerificationCard status={verificationStatus} planActive={findWorkActive} />
+      {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />}
+      {dashboardAd && <BannerAd ad={dashboardAd} />}
+
+      {/* Freelancer content */}
+      <div>
+        <SectionHdr title="My Gigs" icon={<Package className="h-5 w-5 text-[#818CF8]" />} href="/gigs/new" linkLabel="New Gig" />
+        {!myGigs || myGigs.length === 0
+          ? <Empty message="No gigs yet. Create one to showcase your services." cta="Create Your First Gig →" href="/gigs/new" />
+          : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {myGigs.map(gig => (
+                <Link key={gig.id} href={`/gigs/${gig.id}`}>
+                  <div className="bg-[#12121A] border border-[#1E1E2E] hover:border-[#4F46E5]/40 rounded-xl p-4 transition-all h-full">
+                    <p className="text-[#6B7280] text-xs capitalize mb-1">{gig.category}</p>
+                    <p className="text-white font-semibold text-sm line-clamp-2 mb-3">{gig.title}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#818CF8] font-bold text-sm">₹{gig.price?.toLocaleString()}</span>
+                      <Badge className={`border capitalize text-xs ${sColor(gig.status ?? "active")}`}>{gig.status ?? "active"}</Badge>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+      </div>
+
+      {/* Job Seeker content */}
+      <div className="border-t border-[#1E1E2E] pt-8">
+        <SectionHdr title="My Applications" icon={<FileText className="h-5 w-5 text-[#378ADD]" />} href="/jobs" linkLabel="Browse Jobs" />
+        {!myApplications || myApplications.length === 0
+          ? <Empty message="No applications yet. Start applying to your dream jobs!" cta="Browse Jobs →" href="/jobs" />
+          : (
+            <div className="space-y-2">
+              {(myApplications as Array<{
+                id: string; status: string; created_at: string
+                job: { id: string; title: string; company_name?: string } | null
+              }>).map(app => (
+                <Link key={app.id} href={`/jobs/${app.job?.id ?? "#"}`}>
+                  <div className="bg-[#12121A] border border-[#1E1E2E] hover:border-[#378ADD]/40 rounded-xl p-4 flex items-center justify-between transition-all">
+                    <div>
+                      <p className="text-white font-medium text-sm">{app.job?.title ?? "Job"}</p>
+                      <p className="text-[#6B7280] text-xs mt-0.5">
+                        {app.job?.company_name && `${app.job.company_name} · `}
+                        {new Date(app.created_at).toLocaleDateString("en-IN", { day:"numeric", month:"short" })}
+                      </p>
+                    </div>
+                    <Badge className={`border capitalize text-xs ${sColor(app.status)}`}>{app.status}</Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+      </div>
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[#1E1E2E]">
+        <Link href="/gigs/new">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E1E2E] border border-[#1E1E2E] text-white font-medium gap-2">
+            <Package className="h-4 w-4 text-[#818CF8]" /> Create Gig
+          </Button>
+        </Link>
+        <Link href="/jobs">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E1E2E] border border-[#1E1E2E] text-white font-medium gap-2">
+            <Briefcase className="h-4 w-4 text-[#378ADD]" /> Browse Jobs
+          </Button>
+        </Link>
+        <Link href="/projects">
+          <Button className="w-full bg-[#12121A] hover:bg-[#1E1E2E] border border-[#1E1E2E] text-white font-medium gap-2">
+            <Layers className="h-4 w-4 text-[#06B6D4]" /> Browse Projects
+          </Button>
+        </Link>
+      </div>
+    </div>
+  )
+
   // ── Find Work content — route by subtype ─────────────────────────────────────
   const FindWorkFull = (
     isJobSeeker && !isFreelancer ? JobSeekerContent
     : isFreelancer && !isJobSeeker ? FreelancerContent
-    : (
-      /* both_fw — show combined */
-      <div className="space-y-8">
-        {FreelancerContent}
-        <div className="border-t border-[#1E1E2E] pt-8">{JobSeekerContent}</div>
-      </div>
-    )
+    : BothFWContent
   )
 
   // ── Page ──────────────────────────────────────────────────────────────────────
