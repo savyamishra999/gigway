@@ -16,6 +16,10 @@ export default async function EditProfilePage() {
     .eq("id", user.id)
     .single()
 
+  // If onboarding not done, send them there first
+  const onboardingDone = profile?.profile_completed === true && (profile?.user_roles ?? []).length > 0
+  if (!onboardingDone) redirect("/profile/complete")
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] py-12">
       <div className="container mx-auto max-w-2xl px-4">
