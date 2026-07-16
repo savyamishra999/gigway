@@ -343,9 +343,6 @@ export default function Navbar() {
                     <DropdownMenuItem asChild className="hover:bg-white/5 cursor-pointer">
                       <Link href="/profile" className="flex items-center gap-2"><User className="h-4 w-4" /> My Profile</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="hover:bg-white/5 cursor-pointer">
-                      <Link href="/profile/edit" className="flex items-center gap-2"><Edit className="h-4 w-4" /> Edit Profile</Link>
-                    </DropdownMenuItem>
                     {!isAdmin && profile?.verification_status !== "approved" && (
                       <DropdownMenuItem asChild className="hover:bg-[#4F46E5]/10 cursor-pointer">
                         <Link href="/verify" className="flex items-center gap-2 text-[#818CF8]">
@@ -469,9 +466,6 @@ export default function Navbar() {
                     </Link>
                     <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm">
                       <User className="h-4 w-4" /> My Profile
-                    </Link>
-                    <Link href="/profile/edit" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B7280] hover:text-white hover:bg-white/5 text-sm">
-                      <Edit className="h-4 w-4" /> Edit Profile
                     </Link>
                     {!isAdmin && profile?.verification_status !== "approved" && (
                       <Link href="/verify" className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#818CF8] hover:text-white hover:bg-[#4F46E5]/10 text-sm">
