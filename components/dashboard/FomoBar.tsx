@@ -100,7 +100,7 @@ export default function FomoBar({ type, planActive, planExpiresAt, findWorkType,
               label="Get ₹49 Now →"
               description="GigWay Find Work — ₹49/month"
               isLoggedIn={true}
-              redirectTo="/dashboard"
+              redirectTo="/payment/success?plan=find_work_monthly"
               className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
             />
             <CountdownTimer className="text-xs" />
@@ -130,7 +130,7 @@ export default function FomoBar({ type, planActive, planExpiresAt, findWorkType,
               label="Post Now ₹199 →"
               description="GigWay Hire Talent — ₹199/month"
               isLoggedIn={true}
-              redirectTo="/dashboard"
+              redirectTo="/payment/success?plan=hire_talent_monthly"
               className="bg-[#F59E0B] hover:bg-[#D97706] text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
             />
             <CountdownTimer className="text-xs" />
@@ -159,7 +159,7 @@ export default function FomoBar({ type, planActive, planExpiresAt, findWorkType,
             label="Post Now ₹199 →"
             description="GigWay Hire Talent — ₹199/month"
             isLoggedIn={true}
-            redirectTo="/dashboard"
+            redirectTo="/payment/success?plan=hire_talent_monthly"
             className="bg-[#F59E0B] hover:bg-[#D97706] text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
           />
           <CountdownTimer className="text-xs" />

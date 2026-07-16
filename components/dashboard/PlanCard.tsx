@@ -132,7 +132,7 @@ export default function PlanCard({ type, isLoggedIn, findWorkType, hireTalentTyp
             : "GigWay Hire Talent — ₹199/month"
         }
         isLoggedIn={isLoggedIn}
-        redirectTo="/dashboard"
+        redirectTo={`/payment/success?plan=${isFindWork ? "find_work_monthly" : "hire_talent_monthly"}`}
         className={
           isFindWork
             ? "bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white font-black text-base py-3.5"

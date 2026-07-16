@@ -73,36 +73,45 @@ export async function POST(req: NextRequest) {
   // ── 2. Plan-specific logic ────────────────────────────────────────────────
   const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  // Find Work monthly subscription
+  // Find Work monthly subscription — also boosts profile in search for 30 days
   if (plan_type === "find_work_monthly") {
     const { error } = await adminDb
       .from("profiles")
-      .update({ plan: "find_work", plan_expires_at: thirtyDays })
+      .update({
+        plan:             "find_work",
+        plan_expires_at:  thirtyDays,
+        is_boosted:       true,
+        boost_expires_at: thirtyDays,
+        boost_plan:       "find_work_monthly",
+      })
       .eq("id", user.id)
     if (error) return NextResponse.json({ error: "Failed to activate plan" }, { status: 500 })
 
     await adminDb.from("notifications").insert({
       user_id: user.id,
-      type: "plan_activated",
-      title: "🔍 Find Work Plan Activated!",
-      body: "Your ₹49/month plan is now active. Your profile is visible in search results.",
+      type:    "plan_activated",
+      title:   "🔍 Find Work Plan Activated!",
+      body:    "Your ₹49/month plan is now active. Your profile is boosted to the top of search results.",
       is_read: false,
     }).then(() => null, () => null)
   }
 
-  // Hire Talent monthly subscription
+  // Hire Talent monthly subscription — boosts company/individual in project/job listings
   else if (plan_type === "hire_talent_monthly") {
     const { error } = await adminDb
       .from("profiles")
-      .update({ plan: "hire_talent", plan_expires_at: thirtyDays })
+      .update({
+        plan:            "hire_talent",
+        plan_expires_at: thirtyDays,
+      })
       .eq("id", user.id)
     if (error) return NextResponse.json({ error: "Failed to activate plan" }, { status: 500 })
 
     await adminDb.from("notifications").insert({
       user_id: user.id,
-      type: "plan_activated",
-      title: "👔 Hire Talent Plan Activated!",
-      body: "Your ₹199/month plan is now active. Post unlimited jobs and projects.",
+      type:    "plan_activated",
+      title:   "👔 Hire Talent Plan Activated!",
+      body:    "Your ₹199/month plan is now active. Post unlimited jobs and projects — applicants can find you now.",
       is_read: false,
     }).then(() => null, () => null)
   }

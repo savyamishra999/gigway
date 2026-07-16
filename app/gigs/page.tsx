@@ -21,10 +21,12 @@ export default async function GigsPage() {
     { data: { user } },
   ] = await Promise.all([
     supabase.from("gigs")
-      .select("id, title, price, delivery_days, category, tags, rating, orders_count, image_url, freelancer_id, owner_id, created_at")
+      .select("id, title, price, delivery_days, category, tags, rating, orders_count, image_url, freelancer_id, owner_id, created_at, is_featured, featured_until")
       .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(30),
+      .order("is_featured", { ascending: false })
+      .order("orders_count",  { ascending: false })
+      .order("created_at",    { ascending: false })
+      .limit(50),
     supabase.auth.getUser(),
   ])
 

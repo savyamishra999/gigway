@@ -33,25 +33,51 @@ export default async function FreelancersPage() {
     )
   }
 
-  // SSR: fetch initial data — boosted first, then by rating
+  // Ranking algorithm:
+  // Tier 1 — Boosted (paid boost_basic/standard/premium or find_work plan)
+  // Tier 2 — Plan active but not boosted (find_work plan, boost expired or never set)
+  // Tier 3 — Verified profiles
+  // Tier 4 — Rest, by rating
+
   const { data: boosted } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability")
+    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability, plan, plan_expires_at")
     .eq("profile_completed", true)
     .eq("is_boosted", true)
     .gt("boost_expires_at", now)
     .order("boost_expires_at", { ascending: false })
-    .limit(3)
+    .limit(6)
 
+  const boostedIds = boosted && boosted.length > 0
+    ? `(${boosted.map(b => `"${b.id}"`).join(",")})`
+    : `("00000000-0000-0000-0000-000000000000")`
+
+  // Tier 2: plan-active but not in boosted list
+  const { data: planActive } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability, plan, plan_expires_at")
+    .eq("profile_completed", true)
+    .eq("plan", "find_work")
+    .gt("plan_expires_at", now)
+    .not("id", "in", boostedIds)
+    .order("avg_rating", { ascending: false })
+    .limit(10)
+
+  const planActiveIds = planActive && planActive.length > 0
+    ? `(${[...boosted ?? [], ...planActive].map(b => `"${b.id}"`).join(",")})`
+    : boostedIds
+
+  // Tier 3 + 4: rest
   const { data: rest } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability")
+    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability, plan, plan_expires_at")
     .eq("profile_completed", true)
-    .not("id", "in", boosted && boosted.length > 0 ? `(${boosted.map(b => `"${b.id}"`).join(",")})` : `("")`)
-    .order("avg_rating", { ascending: false })
-    .limit(48)
+    .not("id", "in", planActiveIds)
+    .order("is_verified", { ascending: false })
+    .order("avg_rating",  { ascending: false })
+    .limit(44)
 
-  const initialFreelancers = [...(boosted ?? []), ...(rest ?? [])]
+  const initialFreelancers = [...(boosted ?? []), ...(planActive ?? []), ...(rest ?? [])]
 
   return (
     <div className="min-h-screen bg-[#0A0A0F]">
