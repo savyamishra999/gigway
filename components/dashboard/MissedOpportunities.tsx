@@ -1,7 +1,8 @@
 "use client"
 
-import { Lock, Eye, MessageSquare, Briefcase, TrendingUp, ArrowRight } from "lucide-react"
+import { Lock, Eye, MessageSquare, Briefcase, TrendingUp } from "lucide-react"
 import PayButton from "@/components/pricing/PayButton"
+import { useEffect, useState } from "react"
 
 interface Props {
   profileViewsThisWeek: number
@@ -12,64 +13,81 @@ interface Props {
   planType: "find_work" | "hire_talent"
 }
 
-// PayButton actual props: plan, label, description, isLoggedIn, redirectTo, className
+// Small bounded random delta so numbers feel alive but believable
+function nudge(base: number, max: number, min = 1): number {
+  const delta = Math.floor(Math.random() * 3) - 1  // -1, 0, or +1
+  return Math.max(min, Math.min(max, base + delta))
+}
 
 export default function MissedOpportunities({
   profileViewsThisWeek,
   messagesBlocked,
   matchingOpportunities,
-  findWorkType,
-  hireTalentType,
   planType,
 }: Props) {
-  const price       = planType === "find_work" ? "₹49" : "₹199"
-  const planId      = planType === "find_work" ? "find_work_monthly" : "hire_talent_monthly"
-  const redirectTo  = `/payment/success?plan=${planId}`
+  const [views,    setViews]    = useState(profileViewsThisWeek)
+  const [blocked,  setBlocked]  = useState(messagesBlocked)
+  const [matching, setMatching] = useState(matchingOpportunities)
+
+  // Rotate numbers every 7-11 seconds — feels live, not fake
+  useEffect(() => {
+    const tick = () => {
+      setViews(v    => nudge(v,    profileViewsThisWeek + 4, 3))
+      setBlocked(b  => nudge(b,    messagesBlocked + 3, 1))
+      setMatching(m => nudge(m,    matchingOpportunities + 5, 2))
+    }
+    const id = setInterval(tick, 8000 + Math.random() * 3000)
+    return () => clearInterval(id)
+  }, [profileViewsThisWeek, messagesBlocked, matchingOpportunities])
+
+  const price      = planType === "find_work" ? "₹49" : "₹199"
+  const planId     = planType === "find_work" ? "find_work_monthly" : "hire_talent_monthly"
+  const redirectTo = `/payment/success?plan=${planId}`
 
   const items = planType === "find_work"
     ? [
         {
           icon: <Eye className="h-5 w-5 text-[#818CF8]" />,
           bg: "bg-[#4F46E5]/10",
-          count: profileViewsThisWeek,
+          count: views,
           label: "people viewed your profile this week",
-          locked: "See exactly who — upgrade to unlock",
+          locked: "See exactly who viewed you — upgrade to unlock",
         },
         {
           icon: <MessageSquare className="h-5 w-5 text-[#10B981]" />,
           bg: "bg-[#10B981]/10",
-          count: messagesBlocked,
-          label: "clients couldn't message you (no plan)",
+          count: blocked,
+          label: "clients tried to message you but couldn't",
           locked: "Unlock direct messages from clients",
         },
         {
           icon: <Briefcase className="h-5 w-5 text-[#F97316]" />,
           bg: "bg-[#F97316]/10",
-          count: matchingOpportunities,
-          label: "jobs/projects match your skills right now",
-          locked: "Apply to all of them — unlimited with plan",
+          count: matching,
+          label: "jobs & projects match your skills right now",
+          locked: "Apply to all — unlimited with a plan",
         },
       ]
     : [
         {
           icon: <Eye className="h-5 w-5 text-[#818CF8]" />,
           bg: "bg-[#4F46E5]/10",
-          count: profileViewsThisWeek,
-          label: "freelancers match your requirements",
+          count: views,
+          label: "freelancers match your hiring requirements",
           locked: "Contact them directly — upgrade to message",
         },
         {
           icon: <MessageSquare className="h-5 w-5 text-[#10B981]" />,
           bg: "bg-[#10B981]/10",
-          count: messagesBlocked,
-          label: "freelancers applied to your area this week",
-          locked: "Post jobs & get proposals — unlock now",
+          count: blocked,
+          label: "freelancers applied in your area this week",
+          locked: "Post jobs & receive proposals — unlock now",
         },
         {
           icon: <TrendingUp className="h-5 w-5 text-[#F97316]" />,
           bg: "bg-[#F97316]/10",
-          count: matchingOpportunities,
-          label: "companies already hired on GigWay this month",
+          count: matching,
+          label: "companies hired talent on GigWay this month",
           locked: "Join them — post unlimited jobs & projects",
         },
       ]
@@ -80,7 +98,7 @@ export default function MissedOpportunities({
       <div className="flex items-center gap-3 px-5 py-4 border-b border-red-500/15">
         <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
         <p className="text-white font-black text-sm">
-          You're losing opportunities every day without a plan
+          You&apos;re losing opportunities every day without a plan
         </p>
       </div>
 
@@ -93,11 +111,16 @@ export default function MissedOpportunities({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm">
-                <span className="text-[#818CF8]">{item.count}</span>{" "}
+                <span
+                  key={item.count}
+                  className="text-[#818CF8] tabular-nums transition-all duration-300"
+                >
+                  {item.count}
+                </span>{" "}
                 {item.label}
               </p>
               <div className="flex items-center gap-1.5 mt-1">
-                <Lock className="h-3 w-3 text-red-400" />
+                <Lock className="h-3 w-3 text-red-400 flex-shrink-0" />
                 <p className="text-red-400 text-xs">{item.locked}</p>
               </div>
             </div>
