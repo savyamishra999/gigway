@@ -7,7 +7,7 @@ import {
   Bell, User, LogOut, ChevronDown, Menu, X,
   MessageSquare, Edit, Bookmark, Headphones, Crown,
   Briefcase, Users, Package, Layers, FileText, Search,
-  Building2, FolderOpen, PlusCircle, ShieldCheck,
+  Building2, FolderOpen, PlusCircle, ShieldCheck, LayoutDashboard,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
@@ -33,33 +33,34 @@ interface NavLink { href: string; label: string; icon?: React.ReactNode; post?: 
 // ── Link sets per role ────────────────────────────────────────────────────────
 
 const FREELANCER_LINKS: NavLink[] = [
-  { href: "/gigs",     label: "Gigs",     icon: <Package className="h-4 w-4" /> },
-  { href: "/projects", label: "Projects", icon: <Layers  className="h-4 w-4" /> },
+  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { href: "/gigs",      label: "Gigs",      icon: <Package         className="h-4 w-4" /> },
+  { href: "/projects",  label: "Projects",  icon: <Layers          className="h-4 w-4" /> },
 ]
 
 const JOB_SEEKER_LINKS: NavLink[] = [
-  { href: "/jobs",      label: "Jobs",            icon: <Briefcase className="h-4 w-4" /> },
-  { href: "/dashboard", label: "My Applications", icon: <FileText  className="h-4 w-4" /> },
+  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { href: "/jobs",      label: "Jobs",      icon: <Briefcase       className="h-4 w-4" /> },
 ]
 
 const FIND_WORK_BOTH_LINKS: NavLink[] = [
-  { href: "/gigs",      label: "Gigs",         icon: <Package   className="h-4 w-4" /> },
-  { href: "/projects",  label: "Projects",     icon: <Layers    className="h-4 w-4" /> },
-  { href: "/jobs",      label: "Jobs",         icon: <Briefcase className="h-4 w-4" /> },
-  { href: "/dashboard", label: "Applications", icon: <FileText  className="h-4 w-4" /> },
+  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { href: "/gigs",      label: "Gigs",      icon: <Package         className="h-4 w-4" /> },
+  { href: "/projects",  label: "Projects",  icon: <Layers          className="h-4 w-4" /> },
+  { href: "/jobs",      label: "Jobs",      icon: <Briefcase       className="h-4 w-4" /> },
 ]
 
 const INDIVIDUAL_HIRE_LINKS: NavLink[] = [
-  { href: "/projects/new", label: "Post Project",      icon: <PlusCircle  className="h-4 w-4" />, post: true },
-  { href: "/freelancers",  label: "Browse Freelancers",icon: <Users       className="h-4 w-4" /> },
-  { href: "/dashboard",    label: "My Projects",       icon: <FolderOpen  className="h-4 w-4" /> },
+  { href: "/dashboard",    label: "Dashboard",    icon: <LayoutDashboard className="h-4 w-4" /> },
+  { href: "/projects/new", label: "Post Project", icon: <PlusCircle      className="h-4 w-4" />, post: true },
+  { href: "/freelancers",  label: "Freelancers",  icon: <Users           className="h-4 w-4" /> },
 ]
 
 const COMPANY_LINKS: NavLink[] = [
-  { href: "/jobs/new",     label: "Post Job",     icon: <Briefcase  className="h-4 w-4" />, post: true },
-  { href: "/projects/new", label: "Post Project", icon: <PlusCircle className="h-4 w-4" />, post: true },
-  { href: "/freelancers",  label: "Browse",       icon: <Users      className="h-4 w-4" /> },
-  { href: "/dashboard",    label: "Applications", icon: <FileText   className="h-4 w-4" /> },
+  { href: "/dashboard",    label: "Dashboard",    icon: <LayoutDashboard className="h-4 w-4" /> },
+  { href: "/jobs/new",     label: "Post Job",     icon: <Briefcase       className="h-4 w-4" />, post: true },
+  { href: "/projects/new", label: "Post Project", icon: <PlusCircle      className="h-4 w-4" />, post: true },
+  { href: "/freelancers",  label: "Browse",       icon: <Users           className="h-4 w-4" /> },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

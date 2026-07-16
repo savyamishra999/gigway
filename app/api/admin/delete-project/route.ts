@@ -22,6 +22,10 @@ export async function DELETE(req: NextRequest) {
   const { projectId } = await req.json()
   if (!projectId) return NextResponse.json({ error: "projectId required" }, { status: 400 })
 
+  // Delete proposals first to avoid FK constraint violation
+  const { error: propErr } = await adminDb.from("proposals").delete().eq("project_id", projectId)
+  if (propErr) return NextResponse.json({ error: propErr.message }, { status: 500 })
+
   const { error } = await adminDb.from("projects").delete().eq("id", projectId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
