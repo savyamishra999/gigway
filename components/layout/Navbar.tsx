@@ -25,6 +25,7 @@ interface Profile {
   find_work_type?: string | null
   hire_talent_type?: string | null
   verification_status?: string | null
+  profile_completed?: boolean | null
 }
 
 interface NavLink { href: string; label: string; icon?: React.ReactNode; post?: boolean }
@@ -119,7 +120,7 @@ export default function Navbar() {
       setIsAdmin(adminEmails.includes((user.email ?? "").toLowerCase()))
 
       supabase.from("profiles")
-        .select("full_name,avatar_url,user_roles,find_work_type,hire_talent_type,verification_status")
+        .select("full_name,avatar_url,user_roles,find_work_type,hire_talent_type,verification_status,profile_completed")
         .eq("id", user.id).single()
         .then(({ data }) => setProfile(data))
 
@@ -164,17 +165,19 @@ export default function Navbar() {
   }
 
   // ── Role resolution ─────────────────────────────────────────────────────────
-  const rawRoles      = (profile?.user_roles as string[] | null) ?? []
-  const isFindWork    = user ? (rawRoles.includes("find_work") || rawRoles.length === 0) : false
-  const isHireTalent  = user ? rawRoles.includes("hire_talent") : false
-  const isBoth        = isFindWork && isHireTalent
-  const findWorkType  = profile?.find_work_type   // 'freelancer' | 'job_seeker' | 'both'
-  const hireTalentType = profile?.hire_talent_type // 'individual' | 'company'
+  const rawRoles       = (profile?.user_roles as string[] | null) ?? []
+  const profileDone    = profile?.profile_completed === true && rawRoles.length > 0
+  const isFindWork     = profileDone && rawRoles.includes("find_work")
+  const isHireTalent   = profileDone && rawRoles.includes("hire_talent")
+  const isBoth         = isFindWork && isHireTalent
+  const findWorkType   = profile?.find_work_type    // 'freelancer' | 'job_seeker' | 'both'
+  const hireTalentType = profile?.hire_talent_type  // 'individual' | 'company'
 
   // ── Active nav links ────────────────────────────────────────────────────────
   const navLinks: NavLink[] = (() => {
     if (!user) return []
     if (isAdmin) return []
+    if (!profileDone) return []   // no role links before onboarding is done
     if (isBoth) {
       return navTab === "find_work"
         ? getFindWorkLinks(findWorkType)
@@ -233,10 +236,16 @@ export default function Navbar() {
 
           {/* Desktop center — tab switcher + links */}
           <div className="hidden md:flex items-center gap-4 flex-1 justify-center">
-            {user && isBoth && <TabSwitcher />}
+            {user && isBoth && profileDone && <TabSwitcher />}
 
             {user ? (
               <div className="flex items-center gap-5">
+                {!isAdmin && !profileDone && (
+                  <Link href="/profile/complete"
+                    className="text-sm font-semibold text-[#6366F1] hover:text-[#818CF8] transition-colors flex items-center gap-1.5 animate-pulse">
+                    ✦ Complete your profile →
+                  </Link>
+                )}
                 {navLinks.map((link, i) => (
                   <Link key={`${link.href}-${i}`} href={link.href} className={linkCls(link, pathname)}>
                     {link.label}
@@ -309,11 +318,16 @@ export default function Navbar() {
                         <span className="text-[10px] bg-[#F97316]/15 text-[#FB923C] border border-[#F97316]/25 rounded-full px-2 py-0.5">
                           👑 Admin
                         </span>
+                      ) : !profileDone ? (
+                        <Link href="/profile/complete"
+                          className="text-[10px] bg-[#6366F1]/15 text-[#818CF8] border border-[#6366F1]/25 rounded-full px-2 py-0.5 hover:bg-[#6366F1]/25 transition-colors">
+                          ✦ Complete profile
+                        </Link>
                       ) : (
                         <>
-                          {(isFindWork || rawRoles.length === 0) && (
+                          {isFindWork && (
                             <span className="text-[10px] bg-[#6366F1]/15 text-[#A5B4FC] border border-[#6366F1]/25 rounded-full px-2 py-0.5">
-                              🔍 {findWorkType === "job_seeker" ? "Job Seeker" : "Freelancer"}
+                              🔍 {findWorkType === "job_seeker" ? "Job Seeker" : findWorkType === "both" ? "Freelancer + Job Seeker" : "Freelancer"}
                             </span>
                           )}
                           {isHireTalent && (
@@ -397,8 +411,16 @@ export default function Navbar() {
           <div ref={mobileRef} className="md:hidden border-t border-[#1E1E2E] bg-[#0A0A0F]">
             <div className="container mx-auto px-4 py-4 space-y-1">
 
+              {/* Complete profile prompt — mobile */}
+              {user && !isAdmin && !profileDone && (
+                <Link href="/profile/complete"
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#6366F1]/10 border border-[#6366F1]/30 text-[#818CF8] text-sm font-semibold mb-2">
+                  ✦ Complete your profile to unlock GigWay
+                </Link>
+              )}
+
               {/* Tab switcher mobile */}
-              {user && isBoth && (
+              {user && isBoth && profileDone && (
                 <div className="flex gap-2 pb-3">
                   <button
                     onClick={() => setNavTab("find_work")}
