@@ -73,15 +73,16 @@ function VerificationCard({ status, planActive }: { status: string | null; planA
   if (status === "approved") return null
   const isUnverified = !status || status === "unverified"
   const isPending    = status === "pending"
-  return (
-    <div className={`rounded-xl border p-4 flex items-start gap-3 ${
+
+  const inner = (
+    <div className={`rounded-xl border p-4 flex items-start gap-3 transition-all ${
       isPending
         ? "bg-[#F59E0B]/10 border-[#F59E0B]/30"
-        : "bg-[#1E1E2E] border-[#334155]"
+        : "bg-[#1E1E2E] border-[#334155] hover:border-[#4F46E5]/50 cursor-pointer"
     }`}>
       {isPending
         ? <AlertCircle className="h-5 w-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
-        : <CheckCircle2 className="h-5 w-5 text-[#6B7280] flex-shrink-0 mt-0.5" />
+        : <CheckCircle2 className="h-5 w-5 text-[#4F46E5] flex-shrink-0 mt-0.5" />
       }
       <div className="flex-1">
         <p className="text-white font-semibold text-sm">
@@ -95,15 +96,16 @@ function VerificationCard({ status, planActive }: { status: string | null; planA
               : "Verification rejected. Submit correct documents."}
         </p>
       </div>
-      {!isPending && planActive && (
-        <Link href="/verify">
-          <Button size="sm" className="bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex-shrink-0">
-            Verify Now
-          </Button>
-        </Link>
+      {!isPending && (
+        <Button size="sm" className="bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex-shrink-0">
+          Verify Now
+        </Button>
       )}
     </div>
   )
+
+  if (isPending) return inner
+  return <Link href="/verify">{inner}</Link>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
