@@ -6,6 +6,7 @@ import {
   Briefcase, IndianRupee, Clock, Link2, FileText,
   Search, Building2,
 } from "lucide-react"
+import ProfileCompletion from "@/components/profile/ProfileCompletion"
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -40,6 +41,44 @@ export default async function ProfilePage() {
     : "Member"
 
   const initial = profile?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "?"
+
+  // ── Profile completion score ──────────────────────────────────────────────
+  const completionItems: { label: string; done: boolean }[] = [
+    { label: "Full name",    done: !!profile?.full_name },
+    { label: "Profile photo",done: !!profile?.avatar_url },
+    { label: "Bio",          done: !!profile?.bio },
+    { label: "Location",     done: !!profile?.location },
+    { label: "Phone",        done: !!profile?.phone },
+  ]
+  if (isFreelancer) {
+    completionItems.push(
+      { label: "Skills",        done: !!(profile?.skills && (profile.skills as string[]).length > 0) },
+      { label: "Job function",  done: !!(profile?.job_function && (Array.isArray(profile.job_function) ? profile.job_function : [profile.job_function]).length > 0) },
+      { label: "Portfolio link",done: !!(profile?.portfolio_links && (profile.portfolio_links as string[]).length > 0) },
+      { label: "Hourly rate",   done: !!profile?.hourly_rate },
+    )
+  }
+  if (isJobSeeker) {
+    completionItems.push(
+      { label: "Experience years",    done: !!profile?.experience_years },
+      { label: "Expected salary",     done: !!profile?.expected_salary },
+      { label: "Preferred job type",  done: !!(profile?.preferred_job_type && (profile.preferred_job_type as string[]).length > 0) },
+      { label: "LinkedIn profile",    done: !!profile?.linkedin_url },
+      { label: "CV / Resume",         done: !!profile?.cv_url },
+    )
+  }
+  if (isHireTalent) {
+    completionItems.push(
+      { label: "Company name", done: !!profile?.company_name },
+      { label: "Industry",     done: !!profile?.industry },
+      { label: "Company size", done: !!profile?.company_size },
+      { label: "Website",      done: !!profile?.company_website },
+    )
+  }
+  const done  = completionItems.filter(i => i.done).length
+  const total = completionItems.length
+  const completionPct = Math.round((done / total) * 100)
+  const missingItems  = completionItems.filter(i => !i.done).map(i => i.label)
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-10">
@@ -94,6 +133,9 @@ export default async function ProfilePage() {
             </Link>
           </div>
         </div>
+
+        {/* Completion */}
+        <ProfileCompletion pct={completionPct} missing={missingItems} />
 
         {/* About */}
         {profile?.bio && (
