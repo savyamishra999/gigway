@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import FreelancersClient from "@/components/freelancers/FreelancersClient"
+import BannerAd from "@/components/ads/BannerAd"
+import { fetchAd } from "@/lib/ads"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -20,10 +22,12 @@ export default async function FreelancersPage() {
   // Check if the logged-in user has a paid plan (boost, verified, or pro)
   const { data: { user } } = await supabase.auth.getUser()
   let isProUser = false
+  let flRoles: string[] = []
+  let flHtType: string | null = null
   if (user) {
     const { data: myProfile } = await supabase
       .from("profiles")
-      .select("is_boosted, boost_expires_at, is_verified, subscription_tier")
+      .select("is_boosted, boost_expires_at, is_verified, subscription_tier, user_roles, hire_talent_type")
       .eq("id", user.id)
       .single()
     isProUser = !!(
@@ -31,7 +35,11 @@ export default async function FreelancersPage() {
       myProfile?.is_verified ||
       (myProfile?.subscription_tier && ["pro", "business"].includes(myProfile.subscription_tier))
     )
+    flRoles  = (myProfile?.user_roles as string[] | null) ?? []
+    flHtType = myProfile?.hire_talent_type ?? null
   }
+
+  const ad = await fetchAd("freelancers", flRoles, null, flHtType)
 
   // Ranking algorithm:
   // Tier 1 — Boosted (paid boost_basic/standard/premium or find_work plan)
@@ -83,8 +91,9 @@ export default async function FreelancersPage() {
     <div className="min-h-screen bg-[#0A0A0F]">
       <div className="container mx-auto px-4 py-10 max-w-6xl">
         <h1 className="text-3xl font-bold text-white mb-2">Find Freelancers</h1>
-        <p className="text-[#6B7280] text-sm mb-8">India&apos;s top verified freelancers — zero commission</p>
+        <p className="text-[#6B7280] text-sm mb-6">India&apos;s top verified freelancers — zero commission</p>
 
+        {ad && <BannerAd ad={ad} className="mb-8" />}
         <FreelancersClient initialFreelancers={initialFreelancers} isProUser={isProUser} />
       </div>
     </div>

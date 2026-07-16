@@ -12,6 +12,8 @@ import NoticeBanner from "@/components/notices/NoticeBanner"
 import DashboardSupportButton from "@/components/support/DashboardSupportButton"
 import FomoBar from "@/components/dashboard/FomoBar"
 import PlanCard from "@/components/dashboard/PlanCard"
+import BannerAd from "@/components/ads/BannerAd"
+import { fetchAd } from "@/lib/ads"
 import DashboardTabs from "@/components/dashboard/DashboardTabs"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -149,8 +151,10 @@ export default async function DashboardPage() {
   const hireTalentActive = profile.plan === "hire_talent" && !!planExpiry && planExpiry > now
   const verificationStatus = profile.verification_status as string | null
 
-  const firstName  = profile.full_name?.split(" ")[0] || "there"
+  const firstName   = profile.full_name?.split(" ")[0] || "there"
   const connectsBal = profile.connects_balance ?? 0
+
+  const dashboardAd = await fetchAd("dashboard", rawRoles, fwType, htType)
 
   // ── Parallel data fetch ──────────────────────────────────────────────────────
   const [
@@ -230,6 +234,7 @@ export default async function DashboardPage() {
 
       <VerificationCard status={verificationStatus} planActive={findWorkActive} />
       {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />}
+      {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       <div>
         <SectionHdr title="My Gigs" icon={<Package className="h-5 w-5 text-[#818CF8]" />} href="/gigs/new" linkLabel="New Gig" />
@@ -330,6 +335,7 @@ export default async function DashboardPage() {
 
       <VerificationCard status={verificationStatus} planActive={findWorkActive} />
       {!findWorkActive && <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />}
+      {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       <div>
         <SectionHdr title="My Applications" icon={<FileText className="h-5 w-5 text-[#378ADD]" />} href="/jobs" linkLabel="Browse Jobs" />
@@ -418,6 +424,7 @@ export default async function DashboardPage() {
       </div>
 
       {!hireTalentActive && <PlanCard type="hire_talent" isLoggedIn={true} hireTalentType={htType} />}
+      {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       {/* Post actions */}
       <div className={`grid gap-3 ${isCompany ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
