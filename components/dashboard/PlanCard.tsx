@@ -6,10 +6,12 @@ import PayButton from "@/components/pricing/PayButton"
 interface Props {
   type: "find_work" | "hire_talent"
   isLoggedIn: boolean
-  findWorkType?: string | null  // "freelancer" | "job_seeker" | "both"
+  findWorkType?: string | null    // "freelancer" | "job_seeker" | "both"
+  hireTalentType?: string | null  // "individual" | "company"
 }
 
-const BENEFITS = {
+/* ── Benefits per role ── */
+const BENEFITS: Record<string, string[]> = {
   freelancer: [
     "Apply to unlimited projects",
     "Gig stays listed & visible",
@@ -22,46 +24,59 @@ const BENEFITS = {
     "Profile in job seeker search",
     "Priority application badge",
   ],
-  both: [
+  both_fw: [
     "Apply to unlimited jobs & projects",
     "Gig stays listed & visible",
     "Profile in all search results",
     "Priority application badge",
   ],
-  hire_talent: [
-    "Post unlimited jobs",
+  individual: [
     "Post unlimited projects",
+    "Find verified freelancers instantly",
+    "Direct message any freelancer",
+    "Verified Hirer badge",
+  ],
+  company: [
+    "Post unlimited jobs & projects",
     "Access full CV database",
     "Verified Company badge",
-    "Featured listings",
+    "Featured job listings",
+    "Priority applicant matching",
   ],
 }
 
-const TESTIMONIALS = {
+/* ── Testimonials per role ── */
+const TESTIMONIALS: Record<string, string> = {
   freelancer: `💬 "Rahul from Delhi paid ₹49 and got a ₹8,000 project in 3 days"`,
   job_seeker: `💬 "Priya from Mumbai paid ₹49 and got an interview call in 2 days"`,
-  both:       `💬 "Arjun from Bengaluru paid ₹49, got a freelance gig + a full-time offer in a week"`,
-  hire_talent:`💬 "TechCorp posted a job for ₹199 and got 47 qualified applications in 24 hours"`,
+  both_fw:    `💬 "Arjun from Bengaluru paid ₹49, got a freelance gig + a full-time offer in a week"`,
+  individual: `💬 "Sneha hired a developer for ₹199 and got her website ready in 5 days"`,
+  company:    `💬 "TechCorp posted a job for ₹199 and got 47 qualified applications in 24 hours"`,
 }
 
-export default function PlanCard({ type, isLoggedIn, findWorkType }: Props) {
+/* ── Plan titles per role ── */
+const TITLES: Record<string, string> = {
+  freelancer: "⚡ Find Work Plan",
+  job_seeker: "⚡ Job Seeker Plan",
+  both_fw:    "⚡ Find Work Plan",
+  individual: "🚀 Hire Talent Plan",
+  company:    "🏢 Company Plan",
+}
+
+export default function PlanCard({ type, isLoggedIn, findWorkType, hireTalentType }: Props) {
   const isFindWork = type === "find_work"
 
-  const fwKey = (findWorkType === "job_seeker" || findWorkType === "both" || findWorkType === "freelancer")
-    ? findWorkType
-    : "freelancer"
+  /* Resolve key */
+  const key = isFindWork
+    ? findWorkType === "job_seeker" ? "job_seeker"
+      : findWorkType === "both"    ? "both_fw"
+      : "freelancer"
+    : hireTalentType === "individual" ? "individual"
+    : "company"
 
-  const benefitsKey = isFindWork ? fwKey : "hire_talent"
-  const testimonial = TESTIMONIALS[benefitsKey]
-  const benefits    = BENEFITS[benefitsKey]
-
-  const planTitle = isFindWork
-    ? fwKey === "job_seeker"
-      ? "⚡ Job Seeker Plan"
-      : fwKey === "both"
-      ? "⚡ Find Work Plan"
-      : "⚡ Find Work Plan"
-    : "🚀 Hire Talent Plan"
+  const benefits   = BENEFITS[key]
+  const testimonial = TESTIMONIALS[key]
+  const planTitle  = TITLES[key]
 
   return (
     <div

@@ -406,7 +406,7 @@ export default async function DashboardPage() {
   // ── HIRE TALENT — determine correct view ──────────────────────────────────────
   const HireTalentContent = (
     <div className="space-y-8">
-      <FomoBar type="hire_talent" planActive={hireTalentActive} planExpiresAt={hireTalentActive ? profile.plan_expires_at : null} />
+      <FomoBar type="hire_talent" planActive={hireTalentActive} planExpiresAt={hireTalentActive ? profile.plan_expires_at : null} hireTalentType={htType} />
 
       <div className={`grid gap-3 ${isCompany ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"}`}>
         {isCompany && <Stat label="Jobs Posted"  value={myJobs?.length ?? 0}    color="text-[#F97316]" />}
@@ -415,7 +415,7 @@ export default async function DashboardPage() {
         <Stat label="Hired"        value={0}                         color="text-[#4ADE80]" />
       </div>
 
-      {!hireTalentActive && <PlanCard type="hire_talent" isLoggedIn={true} />}
+      {!hireTalentActive && <PlanCard type="hire_talent" isLoggedIn={true} hireTalentType={htType} />}
 
       {/* Post actions */}
       <div className={`grid gap-3 ${isCompany ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
