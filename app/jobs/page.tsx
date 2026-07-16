@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import JobsClient from "@/components/jobs/JobsClient"
+import BannerAd from "@/components/ads/BannerAd"
+import { fetchAd } from "@/lib/ads"
 import Link from "next/link"
 import type { Metadata } from "next"
 
@@ -33,6 +35,10 @@ export default async function JobsPage() {
   let isJobSeeker  = false
   let isCompany    = false
 
+  let roles: string[] = []
+  let fwType: string | null = null
+  let htType: string | null = null
+
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -40,14 +46,16 @@ export default async function JobsPage() {
       .eq("id", user.id)
       .single()
 
-    const roles  = (profile?.user_roles as string[] | null) ?? []
-    const fwType = profile?.find_work_type
-    const htType = profile?.hire_talent_type
+    roles   = (profile?.user_roles as string[] | null) ?? []
+    fwType  = profile?.find_work_type ?? null
+    htType  = profile?.hire_talent_type ?? null
 
     canPostJob  = roles.includes("hire_talent") && htType === "company"
     isCompany   = canPostJob
     isJobSeeker = roles.includes("find_work") && (fwType === "job_seeker" || fwType === "both")
   }
+
+  const ad = await fetchAd("jobs", roles, fwType, htType)
 
   const heading    = isJobSeeker ? "Find Your Dream Job" : isCompany ? "Jobs Board" : "Job Listings"
   const subheading = isJobSeeker
@@ -97,6 +105,7 @@ export default async function JobsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {ad && <BannerAd ad={ad} className="mb-6" />}
         <JobsClient
           initialJobs={initialJobs ?? []}
           canPostJob={canPostJob}

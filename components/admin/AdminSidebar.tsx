@@ -2,25 +2,26 @@ import Link from "next/link"
 import {
   LayoutDashboard, Users, CheckCircle2, FileText,
   Briefcase, Rocket, TrendingUp, Megaphone, Gift, Headphones, UserCheck, Radio, Bell,
-  ClipboardList, Building2,
+  ClipboardList, Building2, Image,
 } from "lucide-react"
 
 const NAV = [
-  { href: "/admin",                  label: "Dashboard",      icon: LayoutDashboard, exact: true  },
-  { href: "/admin/users",            label: "Users",          icon: Users            },
-  { href: "/admin/freelancers",      label: "Freelancers",    icon: UserCheck        },
-  { href: "/admin/employers",        label: "Employers",      icon: Building2        },
-  { href: "/admin/verifications",    label: "Verifications",  icon: CheckCircle2     },
-  { href: "/admin/applications",     label: "Applications",   icon: ClipboardList    },
-  { href: "/admin/gigs",             label: "Gigs",           icon: FileText         },
-  { href: "/admin/jobs",             label: "Jobs",           icon: Briefcase        },
-  { href: "/admin/projects",         label: "Projects",       icon: Rocket           },
-  { href: "/admin/revenue",          label: "Revenue",        icon: TrendingUp       },
-  { href: "/admin/affiliates",       label: "Affiliates",     icon: Megaphone        },
-  { href: "/admin/broadcast",        label: "Broadcast",      icon: Radio            },
-  { href: "/admin/notices",          label: "Notices",        icon: Bell             },
-  { href: "/admin/special-grants",   label: "Special Grants", icon: Gift             },
-  { href: "/admin/support",          label: "Support",        icon: Headphones       },
+  { href: "/admin",                   label: "Dashboard",      icon: LayoutDashboard, exact: true  },
+  { href: "/admin/users",             label: "Users",          icon: Users            },
+  { href: "/admin/freelancers",       label: "Freelancers",    icon: UserCheck        },
+  { href: "/admin/employers",         label: "Employers",      icon: Building2        },
+  { href: "/admin/verifications",     label: "Verifications",  icon: CheckCircle2     },
+  { href: "/admin/applications",      label: "Applications",   icon: ClipboardList    },
+  { href: "/admin/gigs",              label: "Gigs",           icon: FileText         },
+  { href: "/admin/jobs",              label: "Jobs",           icon: Briefcase        },
+  { href: "/admin/projects",          label: "Projects",       icon: Rocket           },
+  { href: "/admin/advertisements",    label: "Ads / Banners",  icon: Image            },
+  { href: "/admin/revenue",           label: "Revenue",        icon: TrendingUp       },
+  { href: "/admin/affiliates",        label: "Affiliates",     icon: Megaphone        },
+  { href: "/admin/broadcast",         label: "Broadcast",      icon: Radio            },
+  { href: "/admin/notices",           label: "Notices",        icon: Bell             },
+  { href: "/admin/special-grants",    label: "Special Grants", icon: Gift             },
+  { href: "/admin/support",           label: "Support",        icon: Headphones       },
 ]
 
 function isActive(pathname: string, href: string, exact?: boolean) {

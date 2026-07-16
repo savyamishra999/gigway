@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import GigsClient from "@/components/gigs/GigsClient"
+import BannerAd from "@/components/ads/BannerAd"
+import { fetchAd } from "@/lib/ads"
 import Link from "next/link"
 import type { Metadata } from "next"
 
@@ -32,16 +34,20 @@ export default async function GigsPage() {
 
   // Only freelancers can create gigs
   let canCreateGig = false
+  let gigRoles: string[] = []
+  let gigFwType: string | null = null
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("user_roles, find_work_type")
       .eq("id", user.id)
       .single()
-    const roles   = (profile?.user_roles as string[] | null) ?? []
-    const fwType  = profile?.find_work_type
-    canCreateGig  = roles.includes("find_work") && fwType !== "job_seeker"
+    gigRoles   = (profile?.user_roles as string[] | null) ?? []
+    gigFwType  = profile?.find_work_type ?? null
+    canCreateGig = gigRoles.includes("find_work") && gigFwType !== "job_seeker"
   }
+
+  const ad = await fetchAd("gigs", gigRoles, gigFwType, null)
 
   return (
     <div className="min-h-screen bg-[#0A0A0F]">
@@ -61,6 +67,7 @@ export default async function GigsPage() {
             )}
           </div>
 
+          {ad && <BannerAd ad={ad} className="mb-6" />}
           <GigsClient initialGigs={initialGigs ?? []} />
         </div>
       </div>
