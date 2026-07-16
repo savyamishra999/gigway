@@ -29,7 +29,7 @@ const SECTIONS = [
   },
   {
     title: "Your Rights",
-    body: `You have the right to access the personal data we hold about you, correct inaccurate information, request deletion of your account and data, and opt out of non-essential communications. To exercise any of these rights, email us at support@gigway.in.`,
+    body: `You have the right to access the personal data we hold about you, correct inaccurate information, request deletion of your account and data, and opt out of non-essential communications. To exercise any of these rights, email us at business@vjenix.com.`,
   },
   {
     title: "Security",
@@ -45,7 +45,7 @@ const SECTIONS = [
   },
   {
     title: "Contact Us",
-    body: `For any privacy-related questions or requests, contact us at support@gigway.in or through our Contact page. We aim to respond within 5 business days.`,
+    body: `For any privacy-related questions or requests, contact us at business@vjenix.com or through our Contact page. We aim to respond within 5 business days.`,
   },
 ]
 

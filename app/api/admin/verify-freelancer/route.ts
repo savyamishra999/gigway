@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     message: "Verification not approved",
     body:    reason
       ? `Reason: ${reason}. Please resubmit at gigway.in/verify`
-      : "Your verification document could not be verified. Please contact support@gigway.in",
+      : "Your verification document could not be verified. Please contact business@vjenix.com",
     link:    "/verify",
     is_read: false,
   }).then(() => null, () => null)

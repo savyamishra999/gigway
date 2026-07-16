@@ -17,7 +17,7 @@ const SECTIONS = [
   },
   {
     title: "User Accounts",
-    body: `You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You must notify us immediately at support@gigway.in if you suspect unauthorised access. GigWay reserves the right to suspend or terminate accounts that violate these terms.`,
+    body: `You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You must notify us immediately at business@vjenix.com if you suspect unauthorised access. GigWay reserves the right to suspend or terminate accounts that violate these terms.`,
   },
   {
     title: "Zero Commission Policy",
@@ -33,7 +33,7 @@ const SECTIONS = [
   },
   {
     title: "Payments and Refunds",
-    body: `Premium features (Boost, Verified Badge) are processed via Razorpay. Payments are subject to Razorpay's terms. GigWay's refund policy: Boost plans may be refunded within the first 30 days if the feature does not function as described — contact support@gigway.in. Verified Badge fees are non-refundable once the verification process has begun. Razorpay processing fees are non-refundable in all cases.`,
+    body: `Premium features (Boost, Verified Badge) are processed via Razorpay. Payments are subject to Razorpay's terms. GigWay's refund policy: Boost plans may be refunded within the first 30 days if the feature does not function as described — contact business@vjenix.com. Verified Badge fees are non-refundable once the verification process has begun. Razorpay processing fees are non-refundable in all cases.`,
   },
   {
     title: "Dispute Resolution Between Users",

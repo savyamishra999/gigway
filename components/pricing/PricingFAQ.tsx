@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: "Agar boost kaam na kare toh?",
-    a: "Pehle mahine mein full refund. No questions asked. Bas support@gigway.in pe message karo.",
+    a: "Pehle mahine mein full refund. No questions asked. Bas business@vjenix.com pe message karo.",
   },
 ]
 

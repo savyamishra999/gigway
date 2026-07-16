@@ -25,17 +25,18 @@ const SAMPLE_FREELANCERS = [
 interface HeroProps {
   freelancerCount: number
   gigCount: number
+  jobCount: number
 }
 
-export default function Hero({ freelancerCount, gigCount }: HeroProps) {
+export default function Hero({ freelancerCount, gigCount, jobCount }: HeroProps) {
   const [intent, setIntent] = useState<"work" | "hire">("work")
   const tabs = intent === "work" ? FREELANCER_TABS : CLIENT_TABS
 
   const stats = [
-    { value: freelancerCount > 0 ? `${freelancerCount}+` : "Growing", label: "Freelancers" },
-    { value: gigCount > 0 ? `${gigCount}+` : "New",                   label: "Gigs Posted" },
+    { value: freelancerCount > 0 ? `${freelancerCount}+` : "Growing", label: "Professionals" },
+    { value: gigCount > 0 ? `${gigCount}+` : "Active",                label: "Gigs Listed" },
+    { value: jobCount > 0 ? `${jobCount}+` : "Live",                  label: "Jobs Posted" },
     { value: "0%",                                                     label: "Commission" },
-    { value: "100%",                                                   label: "Earnings Kept" },
   ]
 
   return (
@@ -56,20 +57,29 @@ export default function Hero({ freelancerCount, gigCount }: HeroProps) {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#4F46E5]/30 bg-[#4F46E5]/10 mb-8">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="text-[#A5B4FC] text-sm font-medium">India&apos;s #1 Zero Commission Platform</span>
+              <span className="text-[#A5B4FC] text-sm font-medium">India&apos;s #1 Zero Commission Career Platform</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] mb-4">
               India&apos;s First{" "}
               <span className="block bg-gradient-to-r from-[#4F46E5] via-[#818CF8] to-[#F97316] bg-clip-text text-transparent">
                 Zero Commission
               </span>
-              <span className="block">Freelance Platform</span>
+              <span className="block">Career Platform</span>
             </h1>
 
+            {/* Subheading pill */}
+            <div className="flex items-center gap-0 mb-8 text-sm font-bold">
+              <span className="text-[#818CF8] bg-[#4F46E5]/10 border border-[#4F46E5]/20 px-4 py-1.5 rounded-l-full">Freelance</span>
+              <span className="text-[#6B7280] bg-[#1E1E2E] border-y border-[#1E1E2E] px-3 py-1.5">•</span>
+              <span className="text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-4 py-1.5">Jobs</span>
+              <span className="text-[#6B7280] bg-[#1E1E2E] border-y border-[#1E1E2E] px-3 py-1.5">•</span>
+              <span className="text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-4 py-1.5 rounded-r-full">Hire Talent</span>
+            </div>
+
             <p className="text-lg text-[#9CA3AF] mb-10 max-w-lg leading-relaxed">
-              Find freelance gigs. Browse jobs.{" "}
-              <span className="text-white font-semibold">Keep 100% of your earnings.</span>
+              Freelance, find a job, or hire top talent —{" "}
+              <span className="text-white font-semibold">keep 100% of what you earn.</span>
               <br />
               No hidden fees. No middlemen. Just opportunity.
             </p>

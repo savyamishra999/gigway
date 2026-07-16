@@ -27,7 +27,7 @@ export default function Footer() {
               GigWAY
             </Link>
             <p className="text-[#6B7280] text-sm mt-3 leading-relaxed max-w-xs">
-              India&apos;s zero commission freelance platform. Keep 100% of what you earn.
+              India&apos;s zero commission career platform. Freelance, find jobs, hire talent — keep 100% of what you earn.
             </p>
             <div className="flex items-center gap-3 mt-5">
               <a href="https://twitter.com/gigway_in" target="_blank" rel="noopener noreferrer"
@@ -75,9 +75,9 @@ export default function Footer() {
             </ul>
             <div className="mt-6">
               <p className="text-[#6B7280] text-xs">Email us</p>
-              <a href="mailto:support@gigway.in"
+              <a href="mailto:business@vjenix.com"
                 className="text-[#818CF8] text-sm hover:text-white transition-colors">
-                support@gigway.in
+                business@vjenix.com
               </a>
             </div>
           </div>

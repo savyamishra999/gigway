@@ -15,14 +15,16 @@ export default async function HomePage() {
   const [
     { count: freelancerCount },
     { count: gigCount },
+    { count: jobCount },
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("profile_completed", true),
     supabase.from("gigs").select("*", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("jobs").select("*", { count: "exact", head: true }).eq("status", "active"),
   ])
 
   return (
     <main className="min-h-screen bg-[#0A0A0F]">
-      <Hero freelancerCount={freelancerCount ?? 0} gigCount={gigCount ?? 0} />
+      <Hero freelancerCount={freelancerCount ?? 0} gigCount={gigCount ?? 0} jobCount={jobCount ?? 0} />
       <TrustBar freelancerCount={freelancerCount ?? 0} />
       <AIToolsSection />
       <HomePricing />

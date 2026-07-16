@@ -49,9 +49,9 @@ export default async function AffiliateDashboardPage() {
               <p className="text-[#94A3B8] text-sm mb-4">
                 Your affiliate application was not approved. Contact us for more information.
               </p>
-              <a href="mailto:support@gigway.in"
+              <a href="mailto:business@vjenix.com"
                 className="text-[#818CF8] text-sm hover:text-white transition-colors">
-                support@gigway.in
+                business@vjenix.com
               </a>
             </>
           )}

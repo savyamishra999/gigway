@@ -45,7 +45,7 @@ export default function ContactPage() {
           </a>
 
           <a
-            href="mailto:support@gigway.in"
+            href="mailto:business@vjenix.com"
             className="flex items-center gap-4 bg-[#1E293B] hover:bg-[#1E293B]/80 border border-[#334155] hover:border-[#4F46E5]/40 rounded-2xl px-5 py-4 transition-all group"
           >
             <div className="w-11 h-11 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#4F46E5]/20 transition-colors">
@@ -53,7 +53,7 @@ export default function ContactPage() {
             </div>
             <div className="min-w-0">
               <p className="text-white font-semibold text-sm">Email</p>
-              <p className="text-[#94A3B8] text-xs mt-0.5 truncate">support@gigway.in</p>
+              <p className="text-[#94A3B8] text-xs mt-0.5 truncate">business@vjenix.com</p>
             </div>
           </a>
         </div>

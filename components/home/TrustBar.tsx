@@ -10,14 +10,14 @@ const TRUST_STATS = [
 ]
 
 export default function TrustBar({ freelancerCount }: TrustBarProps) {
-  const displayCount = freelancerCount > 0 ? `${freelancerCount}+` : "Hundreds of"
+  const displayCount = freelancerCount > 0 ? `${freelancerCount}+` : "Thousands of"
 
   return (
     <div className="bg-[#12121A] border-y border-[#1E1E2E]">
       <div className="container mx-auto px-4 py-5">
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
           <p className="text-[#6B7280] text-sm font-medium shrink-0">
-            Join <span className="text-white font-bold">{displayCount}</span> Indian freelancers who chose GigWay
+            Join <span className="text-white font-bold">{displayCount}</span> Indian professionals building careers on GigWay
           </p>
           <div className="flex items-center gap-8">
             {TRUST_STATS.map(stat => (
