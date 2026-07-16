@@ -16,6 +16,7 @@ interface Project {
   status: string
   created_at: string
   client_id: string
+  poster_name?: string | null
   profiles: { full_name: string | null } | null
 }
 
@@ -57,7 +58,7 @@ export default function ProjectsClient({ initialProjects }: Props) {
     setLoading(true)
     let query = supabase
       .from("projects")
-      .select("*, profiles:client_id(full_name)")
+      .select("*, profiles:client_id(full_name), poster_name")
       .eq("status", "open")
       .order("created_at", { ascending: false })
 
@@ -180,7 +181,7 @@ export default function ProjectsClient({ initialProjects }: Props) {
                       <Clock className="h-3 w-3" />
                       {timeAgo(project.created_at)}
                     </span>
-                    <span>{project.profiles?.full_name || "Anonymous"}</span>
+                    <span>{project.poster_name || project.profiles?.full_name || "Anonymous"}</span>
                   </div>
                 </div>
               </div>

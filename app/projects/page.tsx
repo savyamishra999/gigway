@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
 
   const { data: initialProjects } = await supabase
     .from("projects")
-    .select("*, profiles:client_id(full_name)")
+    .select("*, profiles:client_id(full_name), poster_name")
     .eq("status", "open")
     .order("created_at", { ascending: false })
     .limit(30)
