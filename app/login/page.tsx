@@ -87,9 +87,10 @@ export default function LoginPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Freelancers", value: "10K+" },
+              { label: "Jobs & Hiring", value: "1.5K+" },
               { label: "Projects Posted", value: "2K+" },
               { label: "Commission", value: "0%" },
             ].map(s => (
