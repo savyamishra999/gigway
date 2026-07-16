@@ -576,50 +576,6 @@ export default function EditProfileForm({ profile, userId }: { profile: Profile 
         </CardContent>
       </Card>
 
-      {/* Verification */}
-      <div className={`rounded-2xl border p-5 flex items-center gap-4 ${
-        isVerified
-          ? "border-[#10B981]/30 bg-[#10B981]/5"
-          : verificationStatus === "pending"
-          ? "border-[#F59E0B]/30 bg-[#F59E0B]/5"
-          : "border-[#4F46E5]/30 bg-[#4F46E5]/5"
-      }`}>
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          isVerified ? "bg-[#10B981]/15" : verificationStatus === "pending" ? "bg-[#F59E0B]/15" : "bg-[#4F46E5]/15"
-        }`}>
-          {isVerified
-            ? <CheckCircle2 className="h-5 w-5 text-[#10B981]" />
-            : verificationStatus === "pending"
-            ? <span className="text-lg">⏳</span>
-            : <ShieldCheck className="h-5 w-5 text-[#818CF8]" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          {isVerified ? (
-            <>
-              <p className="text-[#10B981] font-black text-sm">GigWay Verified ✓</p>
-              <p className="text-[#6B7280] text-xs mt-0.5">Your profile has a verified badge — clients trust you 3× more</p>
-            </>
-          ) : verificationStatus === "pending" ? (
-            <>
-              <p className="text-[#F59E0B] font-black text-sm">Under Review ⏳</p>
-              <p className="text-[#6B7280] text-xs mt-0.5">We are reviewing your documents — 24–48 hours</p>
-            </>
-          ) : (
-            <>
-              <p className="text-white font-black text-sm">Get Verified ✓</p>
-              <p className="text-[#6B7280] text-xs mt-0.5">Submit Aadhaar + selfie — get a verified badge that boosts trust 3×</p>
-            </>
-          )}
-        </div>
-        {!isVerified && verificationStatus !== "pending" && (
-          <Link
-            href="/verify"
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-black rounded-xl transition-colors flex-shrink-0"
-          >
-            Verify Now <ArrowRight className="h-3 w-3" />
-          </Link>
-        )}
-      </div>
 
       <div className="flex gap-4 justify-end">
         <Button type="button" variant="outline" onClick={() => router.back()}
