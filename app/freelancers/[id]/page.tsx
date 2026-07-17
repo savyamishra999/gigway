@@ -64,6 +64,14 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
   const reviewCount = reviews?.length ?? 0
   const avInfo = availabilityLabel[freelancer.availability || ""] || null
 
+  const hasContent = !!(
+    freelancer.bio ||
+    (freelancer.skills && freelancer.skills.length > 0) ||
+    (gigs && gigs.length > 0) ||
+    (freelancer.portfolio_links && freelancer.portfolio_links.length > 0) ||
+    (reviews && reviews.length > 0)
+  )
+
   // Rating breakdown
   const breakdown = [5, 4, 3, 2, 1].map(star => ({
     star,
@@ -149,6 +157,25 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
 
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-5">
+
+            {/* Incomplete profile notice */}
+            {!hasContent && (
+              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[#1E1E2E] flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">📋</span>
+                </div>
+                <h3 className="text-white font-bold text-lg mb-2">Profile not complete yet</h3>
+                <p className="text-[#6B7280] text-sm max-w-xs mx-auto leading-relaxed">
+                  This freelancer has just joined and hasn&apos;t filled in their skills, bio, or gigs yet.
+                </p>
+                {user && user.id !== id && (
+                  <p className="text-[#4B5563] text-xs mt-4">
+                    You can still send them a message to connect.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Bio */}
             {freelancer.bio && (
               <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
