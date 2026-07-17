@@ -28,33 +28,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "title and message required" }, { status: 400 })
   }
 
-  // Get target users (service role to see all profiles)
   let query = adminDb.from("profiles").select("id")
-
   if (target === "boosted") {
     query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())
   }
 
-  const { data: users } = await query
-
+  const { data: users, error: usersErr } = await query
+  if (usersErr) return NextResponse.json({ error: usersErr.message }, { status: 500 })
   if (!users || users.length === 0) {
     return NextResponse.json({ success: true, sentTo: 0 })
   }
 
-  // Insert notifications in batches of 500
   const BATCH = 500
   const rows = users.map(u => ({
     user_id:  u.id,
     type:     "broadcast",
-    title:    `📢 GigWay ✅: ${title}`,
+    title:    `📢 GigWay: ${title}`,
     body:     message,
     is_read:  false,
     link:     null,
   }))
 
+  let sentTo = 0
+  let firstError: string | null = null
+
   for (let i = 0; i < rows.length; i += BATCH) {
-    await adminDb.from("notifications").insert(rows.slice(i, i + BATCH))
+    const { error, data } = await adminDb
+      .from("notifications")
+      .insert(rows.slice(i, i + BATCH))
+      .select("id")
+
+    if (error) {
+      firstError = error.message
+      console.error("Broadcast insert error:", error.message, error)
+      break
+    }
+    sentTo += data?.length ?? rows.slice(i, i + BATCH).length
   }
 
-  return NextResponse.json({ success: true, sentTo: users.length })
+  if (firstError) {
+    return NextResponse.json({ error: `Insert failed: ${firstError}` }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true, sentTo })
 }
