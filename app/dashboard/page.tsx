@@ -3,7 +3,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import {
-  Bell, Plus, Briefcase, Package, FileText, Users, Layers,
+  Plus, Briefcase, Package, FileText, Users, Layers,
   Search, Building2, CheckCircle2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -113,7 +113,6 @@ export default async function DashboardPage() {
 
   // ── Parallel data fetch ──────────────────────────────────────────────────────
   const [
-    { count: notifCount },
     { data: myGigs },
     { data: myProposals },
     { data: myApplications },
@@ -123,10 +122,6 @@ export default async function DashboardPage() {
     { data: myProjects },
     { data: activeNotices },
   ] = await Promise.all([
-    supabase.from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id).eq("is_read", false),
-
     isFreelancer
       ? supabase.from("gigs").select("id, title, price, category, status, delivery_days")
           .eq("freelancer_id", user.id).order("created_at", { ascending: false }).limit(6)
@@ -169,7 +164,6 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: false }).limit(3),
   ])
 
-  const unreadCount   = notifCount ?? 0
   const proposalCount = myProposals?.length ?? 0
   const appliedCount  = myApplications?.length ?? 0
   const receivedApps  = (myJobs as Array<{ application_count?: number }> | null)
@@ -571,23 +565,11 @@ export default async function DashboardPage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {verificationStatus === "approved" && (
-              <span className="flex items-center gap-1 text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-semibold">
-                <CheckCircle2 className="h-3 w-3" /> Verified
-              </span>
-            )}
-            <Link href="/notifications" className="relative">
-              <Button variant="outline" size="icon" className="border-[#1E1E2E] bg-[#12121A] hover:bg-[#1E1E2E] text-white">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#4F46E5] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
-          </div>
+          {verificationStatus === "approved" && (
+            <span className="flex items-center gap-1 text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-semibold">
+              <CheckCircle2 className="h-3 w-3" /> Verified
+            </span>
+          )}
         </div>
 
         {/* Notices */}

@@ -135,7 +135,16 @@ export default function Navbar() {
         .eq("receiver_id", user.id).eq("is_read", false)
         .then(({ count }) => setUnreadMsgs(count ?? 0))
 
+      const refreshNotifCount = () =>
+        supabase.from("notifications").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id).eq("is_read", false)
+          .then(({ count }) => setUnread(count ?? 0))
+
       channel = supabase.channel("navbar-rt")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          refreshNotifCount)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          refreshNotifCount)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
           () => setUnreadMsgs(p => p + 1))
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Bell, ExternalLink } from "lucide-react"
-import MarkAllReadButton from "@/components/notifications/MarkAllReadButton"
+import AutoMarkRead from "@/components/notifications/MarkAllReadButton"
 
 const TYPE_ICONS: Record<string, string> = {
   broadcast:         "📢",
@@ -38,25 +38,16 @@ export default async function NotificationsPage() {
     .order("created_at", { ascending: false })
     .limit(50)
 
-  const unreadCount = notifications?.filter(n => !n.is_read).length ?? 0
-
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-10">
+      <AutoMarkRead />
       <div className="container mx-auto px-4 max-w-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
-              <Bell className="h-5 w-5 text-[#818CF8]" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-white">Notifications</h1>
-              {unreadCount > 0 && (
-                <p className="text-[#818CF8] text-xs">{unreadCount} unread</p>
-              )}
-            </div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center">
+            <Bell className="h-5 w-5 text-[#818CF8]" />
           </div>
-          {unreadCount > 0 && <MarkAllReadButton />}
+          <h1 className="text-2xl font-black text-white">Notifications</h1>
         </div>
 
         {/* List */}
