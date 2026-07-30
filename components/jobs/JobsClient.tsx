@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -61,12 +61,26 @@ interface Props {
 }
 
 export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeker = false }: Props) {
-  const [jobs, setJobs]       = useState<Job[]>(initialJobs)
-  const [search, setSearch]   = useState("")
-  const [jobType, setJobType] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState("")
+  const [jobs, setJobs]           = useState<Job[]>(initialJobs)
+  const [search, setSearch]       = useState("")
+  const [jobType, setJobType]     = useState("")
+  const [skillFilter, setSkillFilter] = useState("")
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState("")
   const supabase = createClient()
+
+  const SKILL_FILTERS = useMemo(() => {
+    const freq: Record<string, number> = {}
+    for (const j of initialJobs) {
+      for (const sk of j.skills_required ?? []) {
+        freq[sk] = (freq[sk] ?? 0) + 1
+      }
+    }
+    return Object.entries(freq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 12)
+      .map(([sk]) => sk)
+  }, [initialJobs])
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
@@ -98,17 +112,22 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
           j.skills_required?.some(sk => sk.toLowerCase().includes(s))
       )
     }
+    if (skillFilter) {
+      results = results.filter(j =>
+        j.skills_required?.some(sk => sk.toLowerCase().includes(skillFilter.toLowerCase()))
+      )
+    }
     setJobs(results)
     setLoading(false)
-  }, [search, jobType]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, jobType, skillFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (search || jobType) {
+    if (search || jobType || skillFilter) {
       fetchJobs()
     } else {
       setJobs(initialJobs)
     }
-  }, [search, jobType]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, jobType, skillFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const featuredJobs = jobs.filter(isFeaturedActive)
   const regularJobs  = jobs.filter(j => !isFeaturedActive(j))
@@ -125,6 +144,35 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
           className="bg-[#12121A] border-[#1E1E2E] text-white placeholder:text-[#6B7280] pl-9 focus:border-[#4F46E5]"
         />
       </div>
+
+      {/* Skill Filters */}
+      {SKILL_FILTERS.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setSkillFilter("")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+              skillFilter === ""
+                ? "bg-[#4F46E5] text-white border-[#4F46E5] shadow-lg shadow-[#4F46E5]/20"
+                : "bg-transparent text-[#6B7280] border-[#1E1E2E] hover:border-[#4F46E5]/50 hover:text-white"
+            }`}
+          >
+            All Skills
+          </button>
+          {SKILL_FILTERS.map(skill => (
+            <button
+              key={skill}
+              onClick={() => setSkillFilter(skillFilter === skill ? "" : skill)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                skillFilter === skill
+                  ? "bg-[#4F46E5] text-white border-[#4F46E5] shadow-lg shadow-[#4F46E5]/20"
+                  : "bg-transparent text-[#6B7280] border-[#1E1E2E] hover:border-[#4F46E5]/50 hover:text-white"
+              }`}
+            >
+              {skill}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Job Type Filters */}
       <div className="flex flex-wrap gap-2 mb-8">

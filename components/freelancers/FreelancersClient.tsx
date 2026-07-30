@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import FreelancerCard from "@/components/freelancers/FreelancerCard"
 import { Input } from "@/components/ui/input"
@@ -22,7 +22,6 @@ interface Freelancer {
   availability: string | null
 }
 
-const SKILL_FILTERS = ["React", "Next.js", "TypeScript", "Node.js", "Python", "Figma", "UI/UX", "WordPress"]
 const MAX_FEATURED = 3
 const PAGE_1_SIZE  = 12   // first 12 are always visible
 
@@ -39,6 +38,19 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
   const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+
+  const SKILL_FILTERS = useMemo(() => {
+    const freq: Record<string, number> = {}
+    for (const f of initialFreelancers) {
+      for (const sk of f.skills ?? []) {
+        freq[sk] = (freq[sk] ?? 0) + 1
+      }
+    }
+    return Object.entries(freq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 14)
+      .map(([sk]) => sk)
+  }, [initialFreelancers])
 
   const fetchFreelancers = useCallback(async () => {
     setLoading(true)
