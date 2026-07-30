@@ -161,7 +161,7 @@ export default async function DashboardPage() {
 
   // ── Parallel data fetch ──────────────────────────────────────────────────────
   const [
-    { data: notifications },
+    { count: notifCount },
     { data: myGigs },
     { data: myProposals },
     { data: myApplications },
@@ -171,9 +171,9 @@ export default async function DashboardPage() {
     { data: myProjects },
     { data: activeNotices },
   ] = await Promise.all([
-    supabase.from("notifications").select("id, message, body, link")
-      .eq("user_id", user.id).eq("is_read", false)
-      .order("created_at", { ascending: false }).limit(4),
+    supabase.from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("is_read", false),
 
     isFreelancer
       ? supabase.from("gigs").select("id, title, price, category, status, delivery_days")
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: false }).limit(3),
   ])
 
-  const unreadCount   = notifications?.length ?? 0
+  const unreadCount   = notifCount ?? 0
   const proposalCount = myProposals?.length ?? 0
   const appliedCount  = myApplications?.length ?? 0
   const receivedApps  = (myJobs as Array<{ application_count?: number }> | null)
@@ -727,26 +727,6 @@ export default async function DashboardPage() {
 
         {/* Notices */}
         {activeNotices && activeNotices.length > 0 && <NoticeBanner notices={activeNotices} />}
-
-        {/* Notifications strip */}
-        {notifications && notifications.length > 0 && (
-          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-xl p-4 mb-6">
-            <p className="text-white font-semibold text-sm mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#4F46E5] inline-block" /> Notifications
-            </p>
-            <div className="space-y-1.5">
-              {(notifications as Array<{ id: string; message?: string; body?: string; link?: string }>).map(n => (
-                <div key={n.id} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] mt-1.5 flex-shrink-0" />
-                  {n.link
-                    ? <Link href={n.link} className="text-[#94A3B8] hover:text-white text-xs">{n.message || n.body}</Link>
-                    : <p className="text-[#94A3B8] text-xs">{n.message || n.body}</p>
-                  }
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Main content */}
         {isBoth ? (

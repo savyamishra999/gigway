@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -51,8 +57,8 @@ export async function GET(request: Request) {
     .single()
 
   if (!profile) {
-    // New user — create profile with Google metadata
-    await supabase.from("profiles").insert({
+    // New user — use service role so RLS cannot block this insert
+    await adminDb.from("profiles").insert({
       id:               user.id,
       email:            user.email,
       full_name:        user.user_metadata?.full_name   ?? null,

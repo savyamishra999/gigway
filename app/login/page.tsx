@@ -31,15 +31,6 @@ export default function LoginPage() {
     setLoading(true); setMsg(null)
     const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" })
     if (error) { setMsg({ type: "error", text: error.message }); setLoading(false); return }
-    const u = data.user
-    if (u) {
-      const { data: existing } = await supabase.from("profiles").select("id").eq("id", u.id).maybeSingle()
-      if (!existing) {
-        await supabase.from("profiles").insert({
-          id: u.id, email: u.email, full_name: null, profile_completed: false, user_roles: [],
-        }).then(() => null, () => null)
-      }
-    }
     window.location.href = "/auth/post-login"
     setLoading(false)
   }

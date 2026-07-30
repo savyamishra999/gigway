@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -113,7 +112,6 @@ export default function OnboardingForm({
   const [skillCategory, setSkillCategory] = useState("Development")
   const [linkInput, setLinkInput]         = useState("")
   const [jfSearch, setJfSearch]           = useState("")
-  const router = useRouter()
   const supabase = createClient()
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -208,41 +206,51 @@ export default function OnboardingForm({
 
     setLoading(true)
 
-    const { error: upErr } = await supabase.from("profiles").update({
-      user_roles:              [mainRole],
-      find_work_type:          isFindWork   ? (findWorkType === "both_fw" ? "both" : findWorkType) : null,
-      hire_talent_type:        isHireTalent ? hireType      : null,
-      account_type:            isCompany ? "company" : "individual",
-      full_name:               formData.full_name.trim(),
-      phone:                   formData.phone.trim(),
-      avatar_url:              formData.avatar_url || null,
-      bio:                     formData.bio || null,
-      location:                formData.location || null,
-      // freelancer
-      job_function:            isFreelancer && formData.job_function.length > 0 ? formData.job_function : null,
-      skills:                  isFreelancer ? formData.skills : [],
-      portfolio_links:         isFreelancer ? formData.portfolio_links : [],
-      hourly_rate:             isFreelancer && formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-      // job seeker
-      experience_years:        isJobSeeker && formData.experience_years ? parseInt(formData.experience_years) : null,
-      experience_description:  isJobSeeker ? (formData.experience_description || null) : null,
-      linkedin_url:            isJobSeeker ? (formData.linkedin_url || null) : null,
-      cv_url:                  isJobSeeker ? (formData.cv_url || null) : null,
-      expected_salary:         isJobSeeker ? (formData.expected_salary || null) : null,
-      preferred_job_type:      isJobSeeker && formData.preferred_job_type.length > 0 ? formData.preferred_job_type : null,
-      // company/employer
-      company_name:            isHireTalent ? (formData.company_name.trim() || null) : null,
-      company_size:            isCompany ? (formData.company_size || null) : null,
-      company_website:         isHireTalent ? (formData.company_website || null) : null,
-      industry:                isHireTalent ? (formData.industry || null) : null,
-      gst_number:              isCompany ? (formData.gst_number.trim() || null) : null,
-      profile_completed:       true,
-    }).eq("id", userId)
+    const res = await fetch("/api/onboarding/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_roles:       [mainRole],
+        find_work_type:   isFindWork   ? (findWorkType === "both_fw" ? "both" : findWorkType) : null,
+        hire_talent_type: isHireTalent ? hireType : null,
+        account_type:     isCompany ? "company" : "individual",
+        full_name:        formData.full_name.trim(),
+        phone:            formData.phone.trim(),
+        avatar_url:       formData.avatar_url || null,
+        bio:              formData.bio || null,
+        location:         formData.location || null,
+        // freelancer
+        job_function:     isFreelancer && formData.job_function.length > 0 ? formData.job_function : null,
+        skills:           isFreelancer ? formData.skills : [],
+        portfolio_links:  isFreelancer ? formData.portfolio_links : [],
+        hourly_rate:      isFreelancer && formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+        // job seeker
+        experience_years:        isJobSeeker && formData.experience_years ? parseInt(formData.experience_years) : null,
+        experience_description:  isJobSeeker ? (formData.experience_description || null) : null,
+        linkedin_url:            isJobSeeker ? (formData.linkedin_url || null) : null,
+        cv_url:                  isJobSeeker ? (formData.cv_url || null) : null,
+        expected_salary:         isJobSeeker ? (formData.expected_salary || null) : null,
+        preferred_job_type:      isJobSeeker && formData.preferred_job_type.length > 0 ? formData.preferred_job_type : null,
+        // company/employer
+        company_name:    isHireTalent ? (formData.company_name.trim() || null) : null,
+        company_size:    isCompany ? (formData.company_size || null) : null,
+        company_website: isHireTalent ? (formData.company_website || null) : null,
+        industry:        isHireTalent ? (formData.industry || null) : null,
+        gst_number:      isCompany ? (formData.gst_number.trim() || null) : null,
+      }),
+    })
 
     setLoading(false)
-    if (upErr) { setError("Failed to save: " + upErr.message); return }
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || "Failed to save profile. Please try again.")
+      return
+    }
+
     setStep(3)
-    setTimeout(() => router.push("/dashboard"), 1800)
+    // Hard redirect — ensures dashboard server reads fresh DB data (not stale cache)
+    setTimeout(() => { window.location.href = "/dashboard" }, 1800)
   }
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Star, CheckCircle, ExternalLink, Calendar, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import type { Metadata } from "next"
+import SkillsList from "@/components/profile/SkillsList"
 
 export async function generateMetadata(
   props: { params: Promise<{ id: string }> }
@@ -82,12 +83,12 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
   }))
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] py-10">
+    <div className="min-h-screen bg-[#0A0A0F] py-6 sm:py-10">
       <div className="container mx-auto px-4 max-w-5xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Sidebar */}
           <div className="space-y-4">
-            <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
+            <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
               {/* Avatar */}
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-black text-3xl mb-4 mx-auto">
                 {freelancer.avatar_url
@@ -178,30 +179,27 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
 
             {/* Bio */}
             {freelancer.bio && (
-              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
-                <h2 className="text-white font-bold text-lg mb-4">About</h2>
-                <p className="text-[#9CA3AF] leading-relaxed">{freelancer.bio}</p>
+              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+                <h2 className="text-white font-bold text-base sm:text-lg mb-3">About</h2>
+                <p className="text-[#9CA3AF] text-sm leading-relaxed">{freelancer.bio}</p>
               </div>
             )}
 
             {/* Skills */}
             {freelancer.skills && freelancer.skills.length > 0 && (
-              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
-                <h2 className="text-white font-bold text-lg mb-4">Skills</h2>
-                <div className="flex flex-wrap gap-2">
-                  {freelancer.skills.map((skill: string) => (
-                    <Badge key={skill} className="bg-[#4F46E5]/10 text-[#818CF8] border-[#4F46E5]/20 px-3 py-1 text-sm">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
+              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+                <h2 className="text-white font-bold text-base sm:text-lg mb-3">
+                  Skills
+                  <span className="ml-2 text-[#6B7280] text-xs font-normal">({(freelancer.skills as string[]).length})</span>
+                </h2>
+                <SkillsList skills={freelancer.skills as string[]} />
               </div>
             )}
 
             {/* Gigs */}
             {gigs && gigs.length > 0 && (
-              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6">
-                <h2 className="text-white font-bold text-lg mb-4">Gigs</h2>
+              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+                <h2 className="text-white font-bold text-base sm:text-lg mb-3">Gigs</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {gigs.map(gig => (
                     <Link key={gig.id} href={`/gigs/${gig.id}`}
