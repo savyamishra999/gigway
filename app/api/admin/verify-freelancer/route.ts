@@ -28,8 +28,22 @@ export async function POST(req: NextRequest) {
 
   const { userId, action, reason } = body
   if (!userId || !action) return NextResponse.json({ error: "userId and action required" }, { status: 400 })
-  if (action !== "approve" && action !== "reject") {
-    return NextResponse.json({ error: "action must be approve or reject" }, { status: 400 })
+  if (!["approve", "reject", "delete"].includes(action)) {
+    return NextResponse.json({ error: "action must be approve, reject, or delete" }, { status: 400 })
+  }
+
+  if (action === "delete") {
+    const { error } = await adminDb
+      .from("profiles")
+      .update({
+        verification_status:  null,
+        aadhaar_front_url:    null,
+        aadhaar_back_url:     null,
+        verification_doc:     null,
+      })
+      .eq("id", userId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, action: "deleted" })
   }
 
   if (action === "approve") {

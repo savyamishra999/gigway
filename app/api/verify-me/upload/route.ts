@@ -39,8 +39,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid form data" }, { status: 400 })
   }
 
-  const frontFile = formData.get("front") as File | null
-  const backFile  = formData.get("back")  as File | null
+  const frontFile = formData.get("front")    as File | null
+  const backFile  = formData.get("back")     as File | null
+  const docType   = formData.get("doc_type") as string | null
 
   if (!frontFile || !backFile) {
     return NextResponse.json({ error: "Both front and back files are required" }, { status: 400 })
@@ -76,9 +77,10 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase
       .from("profiles")
       .update({
-        aadhaar_front_url: frontPath,
-        aadhaar_back_url:  backPath,
+        aadhaar_front_url:   frontPath,
+        aadhaar_back_url:    backPath,
         verification_status: "pending",
+        ...(docType ? { verification_doc: `company:${docType}` } : {}),
       })
       .eq("id", user.id)
 

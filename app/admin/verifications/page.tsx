@@ -26,7 +26,7 @@ export default async function AdminVerificationsPage() {
 
   const { data: pending } = await adminDb
     .from("profiles")
-    .select("id,full_name,email,phone,aadhaar_front_url,aadhaar_back_url,verification_paid_at,created_at")
+    .select("id,full_name,email,phone,aadhaar_front_url,aadhaar_back_url,verification_paid_at,verification_doc,account_type,user_roles,find_work_type,hire_talent_type,created_at")
     .eq("verification_status", "pending")
     .order("created_at", { ascending: true })
 
