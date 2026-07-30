@@ -4,17 +4,12 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import {
   Bell, Plus, Briefcase, Package, FileText, Users, Layers,
-  Search, Building2, CheckCircle2, AlertCircle,
+  Search, Building2, CheckCircle2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import NoticeBanner from "@/components/notices/NoticeBanner"
 import DashboardSupportButton from "@/components/support/DashboardSupportButton"
-import FomoBar from "@/components/dashboard/FomoBar"
-import PlanCard from "@/components/dashboard/PlanCard"
-import MissedOpportunities from "@/components/dashboard/MissedOpportunities"
-import ApplicationCounter from "@/components/dashboard/ApplicationCounter"
-import SocialProofTicker from "@/components/common/SocialProofTicker"
 import BannerAd from "@/components/ads/BannerAd"
 import { fetchAd } from "@/lib/ads"
 import DashboardTabs from "@/components/dashboard/DashboardTabs"
@@ -74,45 +69,6 @@ function Empty({ message, cta, href }: { message: string; cta: string; href: str
   )
 }
 
-function VerificationCard({ status, planActive }: { status: string | null; planActive: boolean }) {
-  if (status === "approved") return null
-  const isUnverified = !status || status === "unverified"
-  const isPending    = status === "pending"
-
-  const inner = (
-    <div className={`rounded-xl border p-4 flex items-start gap-3 transition-all ${
-      isPending
-        ? "bg-[#F59E0B]/10 border-[#F59E0B]/30"
-        : "bg-[#1E1E2E] border-[#334155] hover:border-[#4F46E5]/50 cursor-pointer"
-    }`}>
-      {isPending
-        ? <AlertCircle className="h-5 w-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
-        : <CheckCircle2 className="h-5 w-5 text-[#4F46E5] flex-shrink-0 mt-0.5" />
-      }
-      <div className="flex-1">
-        <p className="text-white font-semibold text-sm">
-          {isPending ? "Verification Under Review" : "Get Verified ✓"}
-        </p>
-        <p className="text-[#6B7280] text-xs mt-0.5">
-          {isPending
-            ? "Our team is reviewing your documents. You'll be notified soon."
-            : isUnverified
-              ? "Stand out with a verified badge — clients trust verified profiles 3× more."
-              : "Verification rejected. Submit correct documents."}
-        </p>
-      </div>
-      {!isPending && (
-        <Button size="sm" className="bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex-shrink-0">
-          Verify Now
-        </Button>
-      )}
-    </div>
-  )
-
-  if (isPending) return inner
-  return <Link href="/verify">{inner}</Link>
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
@@ -148,10 +104,6 @@ export default async function DashboardPage() {
   const isJobSeeker  = isFindWork && (fwType === "job_seeker" || fwType === "both")
   const isCompany    = isHireTalent && htType === "company"
 
-  // ── Plan status ──────────────────────────────────────────────────────────────
-  const planExpiry       = profile.plan_expires_at ? new Date(profile.plan_expires_at) : null
-  const findWorkActive   = profile.plan === "find_work"   && !!planExpiry && planExpiry > now
-  const hireTalentActive = profile.plan === "hire_talent" && !!planExpiry && planExpiry > now
   const verificationStatus = profile.verification_status as string | null
 
   const firstName   = profile.full_name?.split(" ")[0] || "there"
@@ -223,48 +175,15 @@ export default async function DashboardPage() {
   const receivedApps  = (myJobs as Array<{ application_count?: number }> | null)
     ?.reduce((s, j) => s + (j.application_count ?? 0), 0) ?? 0
 
-  // ── Profile views this week (for MissedOpportunities) ───────────────────────
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { count: profileViewsRaw } = await supabase
-    .from("profile_views")
-    .select("id", { count: "exact", head: true })
-    .eq("profile_id", user.id)
-    .gte("created_at", oneWeekAgo)
-  // Generate a convincing pseudo-random but stable number if table is empty/new
-  const seed = user.id.charCodeAt(0) + user.id.charCodeAt(1)
-  const profileViews = (profileViewsRaw ?? 0) > 0
-    ? profileViewsRaw!
-    : 5 + (seed % 12)   // 5-16 range, stable per user
-  const messagesBlocked  = Math.max(2, Math.floor(profileViews * 0.4))
-  const matchingOppCount = (recommendedProjects?.length ?? 0) + (recommendedJobs?.length ?? 0) + 3
-
   // ── FREELANCER VIEW ──────────────────────────────────────────────────────────
   const FreelancerContent = (
     <div className="space-y-8">
-      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} findWorkType={fwType} />
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Stat label="My Gigs"   value={myGigs?.length ?? 0}  color="text-[#818CF8]" />
         <Stat label="Proposals" value={proposalCount}          color="text-[#8B5CF6]" />
         <Stat label="Connects"  value={connectsBal}            color="text-[#06B6D4]" />
-        <Stat label="Applied"   value={proposalCount}          color="text-[#F97316]" />
       </div>
 
-      <VerificationCard status={verificationStatus} planActive={findWorkActive} />
-      {!findWorkActive && (
-        <>
-          <MissedOpportunities
-            profileViewsThisWeek={profileViews}
-            messagesBlocked={messagesBlocked}
-            matchingOpportunities={matchingOppCount}
-            findWorkType={fwType}
-            planType="find_work"
-          />
-          <ApplicationCounter used={proposalCount} limit={5} type="proposals" />
-          <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />
-          <SocialProofTicker />
-        </>
-      )}
       {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       <div>
@@ -355,30 +274,12 @@ export default async function DashboardPage() {
 
   const JobSeekerContent = (
     <div className="space-y-8">
-      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} findWorkType={fwType} />
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Stat label="Applied"     value={appliedCount}  color="text-[#378ADD]" />
         <Stat label="Shortlisted" value={shortlisted}   color="text-[#8B5CF6]" />
         <Stat label="Connects"    value={connectsBal}   color="text-[#06B6D4]" />
-        <Stat label="Profile %"   value="70%"           color="text-[#4ADE80]" />
       </div>
 
-      <VerificationCard status={verificationStatus} planActive={findWorkActive} />
-      {!findWorkActive && (
-        <>
-          <MissedOpportunities
-            profileViewsThisWeek={profileViews}
-            messagesBlocked={messagesBlocked}
-            matchingOpportunities={matchingOppCount}
-            findWorkType={fwType}
-            planType="find_work"
-          />
-          <ApplicationCounter used={appliedCount} limit={5} type="applications" />
-          <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />
-          <SocialProofTicker />
-        </>
-      )}
       {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       <div>
@@ -458,28 +359,12 @@ export default async function DashboardPage() {
   // ── HIRE TALENT — determine correct view ──────────────────────────────────────
   const HireTalentContent = (
     <div className="space-y-8">
-      <FomoBar type="hire_talent" planActive={hireTalentActive} planExpiresAt={hireTalentActive ? profile.plan_expires_at : null} hireTalentType={htType} />
-
-      <div className={`grid gap-3 ${isCompany ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"}`}>
+      <div className={`grid gap-3 ${isCompany ? "grid-cols-3" : "grid-cols-2"}`}>
         {isCompany && <Stat label="Jobs Posted"  value={myJobs?.length ?? 0}    color="text-[#F97316]" />}
         <Stat label="Projects"     value={myProjects?.length ?? 0}  color="text-[#F59E0B]" />
         <Stat label="Applications" value={receivedApps}              color="text-[#8B5CF6]" />
-        <Stat label="Hired"        value={0}                         color="text-[#4ADE80]" />
       </div>
 
-      {!hireTalentActive && (
-        <>
-          <MissedOpportunities
-            profileViewsThisWeek={profileViews}
-            messagesBlocked={messagesBlocked}
-            matchingOpportunities={matchingOppCount}
-            hireTalentType={htType}
-            planType="hire_talent"
-          />
-          <PlanCard type="hire_talent" isLoggedIn={true} hireTalentType={htType} />
-          <SocialProofTicker />
-        </>
-      )}
       {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       {/* Post actions */}
@@ -568,10 +453,6 @@ export default async function DashboardPage() {
   // ── BOTH (Freelancer + Job Seeker) — combined, no duplicate shared elements ──
   const BothFWContent = (
     <div className="space-y-8">
-      {/* Shared: FomoBar once */}
-      <FomoBar type="find_work" planActive={findWorkActive} planExpiresAt={profile.plan_expires_at} findWorkType={fwType} />
-
-      {/* Combined stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="My Gigs"   value={myGigs?.length ?? 0} color="text-[#818CF8]" />
         <Stat label="Proposals" value={proposalCount}         color="text-[#8B5CF6]" />
@@ -579,22 +460,6 @@ export default async function DashboardPage() {
         <Stat label="Connects"  value={connectsBal}           color="text-[#06B6D4]" />
       </div>
 
-      {/* Shared: VerificationCard once */}
-      <VerificationCard status={verificationStatus} planActive={findWorkActive} />
-      {!findWorkActive && (
-        <>
-          <MissedOpportunities
-            profileViewsThisWeek={profileViews}
-            messagesBlocked={messagesBlocked}
-            matchingOpportunities={matchingOppCount}
-            findWorkType={fwType}
-            planType="find_work"
-          />
-          <ApplicationCounter used={proposalCount + appliedCount} limit={5} type="applications" />
-          <PlanCard type="find_work" isLoggedIn={true} findWorkType={fwType} />
-          <SocialProofTicker />
-        </>
-      )}
       {dashboardAd && <BannerAd ad={dashboardAd} />}
 
       {/* Freelancer content */}
