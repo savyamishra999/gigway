@@ -2,7 +2,7 @@ import Link from "next/link"
 import {
   LayoutDashboard, Users, CheckCircle2, FileText,
   Briefcase, Rocket, TrendingUp, Megaphone, Gift, Headphones, UserCheck, Radio, Bell,
-  ClipboardList, Building2, Image,
+  ClipboardList, Building2, Image, Share2,
 } from "lucide-react"
 
 const NAV = [
@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/advertisements",    label: "Ads / Banners",  icon: Image            },
   { href: "/admin/revenue",           label: "Revenue",        icon: TrendingUp       },
   { href: "/admin/affiliates",        label: "Affiliates",     icon: Megaphone        },
+  { href: "/admin/social",             label: "Social Posts",   icon: Share2           },
   { href: "/admin/broadcast",         label: "Broadcast",      icon: Radio            },
   { href: "/admin/notices",           label: "Notices",        icon: Bell             },
   { href: "/admin/special-grants",    label: "Special Grants", icon: Gift             },
