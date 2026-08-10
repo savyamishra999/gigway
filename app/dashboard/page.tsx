@@ -84,7 +84,7 @@ export default async function DashboardPage() {
 
   const rawRoles = (profile?.user_roles as string[] | null) ?? []
   // Must have completed onboarding and have a role assigned
-  if (!profile?.profile_completed || rawRoles.length === 0) redirect("/profile/complete")
+  if (!profile?.profile_completed || !profile?.username) redirect("/profile/complete")
 
   const adminDb = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

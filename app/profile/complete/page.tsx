@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Image from "next/image"
-import OnboardingForm from "@/components/onboarding/OnboardingForm"
+import IdentityOnboarding from "@/components/identity/IdentityOnboarding"
 
 export default async function ProfileCompletePage() {
   const supabase = await createClient()
@@ -11,13 +11,14 @@ export default async function ProfileCompletePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("profile_completed, user_roles, full_name, avatar_url")
+    .select("profile_completed, username, full_name")
     .eq("id", user.id)
     .single()
 
-  // Only skip onboarding if both profile_completed AND user_roles are filled
-  const onboardingDone = profile?.profile_completed === true && (profile?.user_roles ?? []).length > 0
+  const onboardingDone = profile?.profile_completed === true && !!profile?.username
   if (onboardingDone) redirect("/dashboard")
+
+  const { data: intents } = await supabase.from("profile_intents").select("intent").eq("profile_id", user.id)
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-start py-10 px-4">
@@ -29,15 +30,11 @@ export default async function ProfileCompletePage() {
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Welcome to GigWay</h1>
-          <p className="text-[#94A3B8]">Set up your profile in 2 quick steps</p>
+          <p className="text-[#94A3B8]">Set up your personal identity</p>
         </div>
 
         <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 sm:p-8">
-          <OnboardingForm
-            userId={user.id}
-            initialName={profile?.full_name ?? user.user_metadata?.full_name ?? ""}
-            initialAvatar={profile?.avatar_url ?? user.user_metadata?.avatar_url ?? ""}
-          />
+          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent)} />
         </div>
 
         <p className="text-center text-[#475569] text-xs mt-6">

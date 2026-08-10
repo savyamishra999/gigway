@@ -1,0 +1,20 @@
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { WORK_MODES } from "@/lib/identity"
+
+export default async function PublicProfile({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params
+  const supabase = await createClient()
+  const { data: profile } = await supabase.from("profiles").select("id, full_name, username, avatar_url, bio, location, skills, is_verified").eq("username", username.toLowerCase()).maybeSingle()
+  // Personal identities win collisions, preserving every existing /@username URL.
+  if (!profile) {
+    const { data: organization } = await supabase.from("organizations").select("*").eq("username", username.toLowerCase()).maybeSingle()
+    if (!organization) notFound()
+    const { data: members } = await supabase.from("organization_members").select("member_role, profiles(full_name, username, avatar_url)").eq("organization_id", organization.id).eq("status", "active")
+    return <main className="min-h-screen bg-[#0A0A0F] py-10 px-4"><section className="max-w-2xl mx-auto bg-[#12121A] border border-[#1E1E2E] rounded-2xl overflow-hidden">{organization.cover_url && <img src={organization.cover_url} alt="" className="w-full h-36 object-cover" />}<div className="p-6"><div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#4F46E5] flex items-center justify-center text-2xl font-bold text-white">{organization.logo_url ? <img src={organization.logo_url} alt="" className="w-full h-full object-cover" /> : organization.name[0]}</div><div><h1 className="text-2xl font-bold text-white">{organization.name}</h1><p className="text-[#94A3B8]">@{organization.username}</p></div></div>{organization.tagline && <p className="mt-5 text-[#CBD5E1]">{organization.tagline}</p>}{organization.description && <p className="mt-3 text-sm text-[#94A3B8] leading-relaxed">{organization.description}</p>}<div className="flex flex-wrap gap-3 text-xs text-[#94A3B8] mt-5">{organization.website && <a className="text-[#818CF8]" href={organization.website} target="_blank">Website</a>}{organization.industry && <span>{organization.industry}</span>}{organization.location && <span>{organization.location}</span>}{organization.company_size && <span>{organization.company_size}</span>}</div>{members && members.length > 0 && <div className="mt-6 border-t border-[#1E1E2E] pt-4"><h2 className="text-sm font-bold text-white mb-3">Team</h2>{members.map((member: any) => member.profiles && <p key={member.profiles.username} className="text-sm text-[#CBD5E1]">{member.profiles.full_name || `@${member.profiles.username}`} <span className="text-xs text-[#6B7280] capitalize">· {member.member_role}</span></p>)}</div>}</div></section></main>
+  }
+  const { data: intents } = await supabase.from("profile_intents").select("intent").eq("profile_id", profile.id)
+  const modes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent)).filter(Boolean)
+  return <main className="min-h-screen bg-[#0A0A0F] py-10 px-4"><section className="max-w-2xl mx-auto bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6"><div className="flex gap-4 items-center"><div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#4F46E5] flex items-center justify-center text-2xl font-bold text-white">{profile.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : profile.full_name?.[0]?.toUpperCase() || "?"}</div><div><h1 className="text-2xl font-bold text-white">{profile.full_name || "GigWay member"}</h1><p className="text-[#94A3B8]">@{profile.username}</p></div></div>{profile.location && <p className="text-sm text-[#94A3B8] mt-5">{profile.location}</p>}{profile.bio && <p className="text-sm text-[#CBD5E1] mt-3 leading-relaxed">{profile.bio}</p>}{modes.length > 0 && <div className="flex flex-wrap gap-2 mt-5">{modes.map(mode => mode && <span key={mode.value} className={`text-xs ${mode.color}`}>{mode.label}</span>)}</div>}<Link href="/login" className="inline-block mt-7 text-sm text-[#818CF8] hover:text-white">Join GigWay</Link></section></main>
+}

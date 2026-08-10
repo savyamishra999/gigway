@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import ProfileCompletion from "@/components/profile/ProfileCompletion"
 import SkillsList from "@/components/profile/SkillsList"
+import { WORK_MODES } from "@/lib/identity"
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -22,6 +23,12 @@ export default async function ProfilePage() {
     .select("*, reviewer:reviewer_id(full_name)")
     .eq("reviewee_id", user.id)
     .order("created_at", { ascending: false })
+
+  const [{ data: intents }, { data: memberships }] = await Promise.all([
+    supabase.from("profile_intents").select("intent").eq("profile_id", user.id),
+    supabase.from("organization_members").select("member_role, organizations(name, username)").eq("profile_id", user.id).eq("status", "active"),
+  ])
+  const workModes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent)).filter(Boolean)
 
   const rawRoles     = (profile?.user_roles as string[] | null) ?? []
   const fwType       = profile?.find_work_type as string | null
@@ -106,6 +113,7 @@ export default async function ProfilePage() {
                     <h1 className="text-xl sm:text-2xl font-black text-white leading-tight">
                       {profile?.full_name || "Your Name"}
                     </h1>
+                    {profile?.username && <span className="text-sm font-medium text-[#94A3B8]">@{profile.username}</span>}
                     {isVerified && <CheckCircle2 className="h-5 w-5 text-[#4F46E5] flex-shrink-0" />}
                   </div>
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#4F46E5]/15 text-[#818CF8] border border-[#4F46E5]/25">
@@ -144,6 +152,12 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {profile?.account_type === "company" && profile?.hire_talent_type === "company" && profile?.company_website && (!memberships || memberships.length === 0) && <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-2xl p-4 sm:p-6"><h2 className="text-white font-bold text-sm sm:text-base">You appear to represent a company</h2><p className="text-sm text-[#CBD5E1] mt-1">Website: {profile.company_website}</p><p className="text-xs text-[#94A3B8] mt-2">Confirm a company name and username to create a separate organization identity.</p><Link href="/organizations/new" className="inline-block mt-3 text-sm font-semibold text-[#FCD34D]">Create Company Profile</Link></div>}
+
+        {workModes.length > 0 && <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6"><h2 className="text-white font-bold text-sm sm:text-base mb-3">Work Modes</h2><div className="flex flex-wrap gap-2">{workModes.map(mode => mode && <span key={mode.value} className={`px-3 py-1 rounded-full bg-[#1E1E2E] border border-[#334155] text-xs font-semibold ${mode.color}`}>{mode.label}</span>)}</div></div>}
+
+        <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6"><div className="flex items-center justify-between mb-3"><h2 className="text-white font-bold text-sm sm:text-base">My Organizations</h2><Link href="/organizations/new" className="text-xs text-[#818CF8] hover:text-white">Create Organization</Link></div>{memberships && memberships.length > 0 ? <div className="space-y-2">{memberships.map((membership: any) => membership.organizations && <div key={membership.organizations.username} className="flex items-center justify-between"><div><p className="text-sm font-semibold text-white">{membership.organizations.name}</p><p className="text-xs text-[#94A3B8]">@{membership.organizations.username}</p></div><div className="text-right"><span className="block text-xs capitalize text-[#94A3B8]">{membership.member_role}</span>{["owner", "admin"].includes(membership.member_role) && <Link href={`/organizations/${membership.organizations.username}/edit`} className="text-xs text-[#818CF8]">Manage</Link>}</div></div>)}</div> : <p className="text-sm text-[#6B7280]">Create an organization to manage a company identity.</p>}</div>
 
         {/* Completion */}
         <ProfileCompletion pct={completionPct} missing={missingItems} />

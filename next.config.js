@@ -11,6 +11,11 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     return config
   },
+  // "@" is reserved for parallel-route slots in app/, so /@username profile
+  // links are served from app/u/[username] and rewritten here instead.
+  async rewrites() {
+    return [{ source: "/@:username", destination: "/u/:username" }]
+  },
 }
 
 module.exports = withPWA(nextConfig)

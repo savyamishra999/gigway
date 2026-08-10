@@ -16,11 +16,11 @@ export default async function PostLoginPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("profile_completed, user_roles")
+    .select("profile_completed, username")
     .eq("id", user.id)
     .maybeSingle()
 
-  const onboardingDone = profile?.profile_completed === true && (profile?.user_roles ?? []).length > 0
+  const onboardingDone = profile?.profile_completed === true && !!profile?.username
   if (!onboardingDone) {
     redirect("/profile/complete")
   }

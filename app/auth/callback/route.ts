@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   // Check profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("profile_completed, user_roles")
+    .select("profile_completed, username")
     .eq("id", user.id)
     .single()
 
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
   }
 
   // profile exists — but if user_roles is empty, onboarding was never finished
-  const onboardingDone = profile.profile_completed && (profile.user_roles ?? []).length > 0
+  const onboardingDone = profile.profile_completed && !!profile.username
   if (!onboardingDone) {
     return NextResponse.redirect(`${origin}/profile/complete`)
   }
