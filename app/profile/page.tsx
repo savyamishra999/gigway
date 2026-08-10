@@ -25,10 +25,10 @@ export default async function ProfilePage() {
     .order("created_at", { ascending: false })
 
   const [{ data: intents }, { data: memberships }] = await Promise.all([
-    supabase.from("profile_intents").select("intent").eq("profile_id", user.id),
+    supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true),
     supabase.from("organization_members").select("member_role, organizations(name, username)").eq("profile_id", user.id).eq("status", "active"),
   ])
-  const workModes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent)).filter(Boolean)
+  const workModes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent_type)).filter(Boolean)
 
   const rawRoles     = (profile?.user_roles as string[] | null) ?? []
   const fwType       = profile?.find_work_type as string | null

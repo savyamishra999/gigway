@@ -18,7 +18,7 @@ export default async function ProfileCompletePage() {
   const onboardingDone = profile?.profile_completed === true && !!profile?.username
   if (onboardingDone) redirect("/dashboard")
 
-  const { data: intents } = await supabase.from("profile_intents").select("intent").eq("profile_id", user.id)
+  const { data: intents } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true)
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-start py-10 px-4">
@@ -34,7 +34,7 @@ export default async function ProfileCompletePage() {
         </div>
 
         <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 sm:p-8">
-          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent)} />
+          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} />
         </div>
 
         <p className="text-center text-[#475569] text-xs mt-6">
