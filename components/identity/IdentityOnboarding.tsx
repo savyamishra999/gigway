@@ -43,7 +43,7 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
     const data = await res.json().catch(() => ({}))
     setSaving(false)
     if (!res.ok) { setError(data.error || "Could not save your identity."); return }
-    router.push("/dashboard"); router.refresh()
+    router.push("/home"); router.refresh()
   }
 
   return <div className="space-y-7">

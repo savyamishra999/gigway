@@ -16,7 +16,7 @@ export default async function ProfileCompletePage() {
     .single()
 
   const onboardingDone = profile?.profile_completed === true && !!profile?.username
-  if (onboardingDone) redirect("/dashboard")
+  if (onboardingDone) redirect("/home")
 
   const { data: intents } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true)
 

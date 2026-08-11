@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, Loader2, ArrowRight, ChevronLeft, Zap, Shield, Star } from "lucide-react"
+import { Mail, Loader2, ArrowRight, ChevronLeft, Zap, Shield, Star, AlertCircle, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -29,7 +29,7 @@ export default function LoginPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true); setMsg(null)
-    const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" })
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" })
     if (error) { setMsg({ type: "error", text: error.message }); setLoading(false); return }
     window.location.href = "/auth/post-login"
     setLoading(false)
@@ -229,20 +229,23 @@ export default function LoginPage() {
 
           {/* Error / success message */}
           {msg && (
-            <div className={cn(
+            <div role="alert" className={cn(
               "mt-4 p-3.5 rounded-xl text-sm border flex items-start gap-2",
               msg.type === "success"
                 ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
                 : "bg-red-500/10 border-red-500/25 text-red-400"
             )}>
-              {msg.text}
+              {msg.type === "success"
+                ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                : <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />}
+              <span>{msg.text}</span>
             </div>
           )}
 
           {/* Bottom note */}
           <p className="text-center text-[#334155] text-xs mt-8 leading-relaxed">
             By continuing, you agree to GigWay&apos;s Terms of Service.<br />
-            You can set your role (Freelancer / Hirer / Both) after signing in.
+            Choose your username and what you&apos;re open to after signing in.
           </p>
         </div>
       </div>

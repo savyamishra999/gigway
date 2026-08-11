@@ -25,5 +25,5 @@ export default async function PostLoginPage() {
     redirect("/profile/complete")
   }
 
-  redirect("/dashboard")
+  redirect("/home")
 }

@@ -1,13 +1,18 @@
 import { createClient } from "@/lib/supabase/server"
 import Hero from "@/components/home/Hero"
 import TrustBar from "@/components/home/TrustBar"
-import AIToolsSection from "@/components/home/AIToolsSection"
 import HowItWorks from "@/components/home/HowItWorks"
+import ProfessionalIdentity from "@/components/home/ProfessionalIdentity"
+import FindWorkFindTalent from "@/components/home/FindWorkFindTalent"
+import JobsPreview from "@/components/home/JobsPreview"
 import FeaturedGigs from "@/components/home/FeaturedGigs"
-import FeaturedFreelancers from "@/components/home/FeaturedFreelancers"
 import LatestProjects from "@/components/home/LatestProjects"
+import FeaturedFreelancers from "@/components/home/FeaturedFreelancers"
+import OrganizationsPreview from "@/components/home/OrganizationsPreview"
+import AIToolsSection from "@/components/home/AIToolsSection"
 import WhyGigway from "@/components/home/WhyGigway"
 import HomePricing from "@/components/home/HomePricing"
+import FinalCTA from "@/components/home/FinalCTA"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -26,13 +31,18 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[#0A0A0F]">
       <Hero freelancerCount={freelancerCount ?? 0} gigCount={gigCount ?? 0} jobCount={jobCount ?? 0} />
       <TrustBar freelancerCount={freelancerCount ?? 0} />
-      <AIToolsSection />
-      <HomePricing />
       <HowItWorks />
+      <ProfessionalIdentity />
+      <FindWorkFindTalent />
+      <JobsPreview />
       <FeaturedGigs />
-      <FeaturedFreelancers />
       <LatestProjects />
+      <FeaturedFreelancers />
+      <OrganizationsPreview />
+      <AIToolsSection />
       <WhyGigway />
+      <HomePricing />
+      <FinalCTA />
     </main>
   )
 }
