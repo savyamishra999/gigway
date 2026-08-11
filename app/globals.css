@@ -39,6 +39,9 @@
     --gw-border-light: #2A2A3E;
     --gw-text: #F1F1F3;
     --gw-muted: #6B7280;
+    --gw-surface: #121218;
+    --gw-surface-raised: #191923;
+    --gw-radius: 1rem;
   }
 
   .dark {
@@ -70,6 +73,7 @@
   }
   body {
     @apply bg-[#0A0A0F] text-[#F1F1F3];
+    background-image: radial-gradient(circle at 50% -30%, rgba(99, 91, 240, .15), transparent 38%);
   }
 
   /* Smooth scrolling */
@@ -92,6 +96,8 @@
     background: #4F46E5;
   }
 }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
 @layer utilities {
   /* Gradient text */

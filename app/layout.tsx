@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
-import Navbar from '@/components/layout/Navbar'
+import ModernNavbar from '@/components/layout/ModernNavbar'
 import Footer from '@/components/layout/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -45,7 +45,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <Navbar />
+          <ModernNavbar />
           <main className="min-h-screen">
             {children}
           </main>
