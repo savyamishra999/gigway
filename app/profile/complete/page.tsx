@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import IdentityOnboarding from "@/components/identity/IdentityOnboarding"
+import { resolveRoles } from "@/lib/roles"
 
 export default async function ProfileCompletePage() {
   const supabase = await createClient()
@@ -11,11 +12,15 @@ export default async function ProfileCompletePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("profile_completed, username, full_name")
+    .select("profile_completed, username, full_name, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
     .single()
 
-  const onboardingDone = profile?.profile_completed === true && !!profile?.username
+  const roles = resolveRoles(profile)
+  // "Done" now also requires a configured role/work-intent — closes the gap where a
+  // user could finish identity setup (username + profile_completed) without ever
+  // getting a find_work/hire_talent role, which the legacy-gated pages depend on.
+  const onboardingDone = profile?.profile_completed === true && !!profile?.username && roles.isConfigured
   if (onboardingDone) redirect("/home")
 
   const { data: intents } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true)
@@ -34,7 +39,7 @@ export default async function ProfileCompletePage() {
         </div>
 
         <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 sm:p-8">
-          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} />
+          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} rolesConfigured={roles.isConfigured} />
         </div>
 
         <p className="text-center text-[#475569] text-xs mt-6">

@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+import { resolveRoles } from "@/lib/roles"
 
 const adminDb = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
   // Check profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("profile_completed, username")
+    .select("profile_completed, username, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
     .single()
 
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
   }
 
   // profile exists — but if user_roles is empty, onboarding was never finished
-  const onboardingDone = profile.profile_completed && !!profile.username
+  const onboardingDone = profile.profile_completed && !!profile.username && resolveRoles(profile).isConfigured
   if (!onboardingDone) {
     return NextResponse.redirect(`${origin}/profile/complete`)
   }

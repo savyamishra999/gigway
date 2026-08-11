@@ -9,6 +9,7 @@ import {
 import ProfileCompletion from "@/components/profile/ProfileCompletion"
 import SkillsList from "@/components/profile/SkillsList"
 import { WORK_MODES } from "@/lib/identity"
+import { resolveRoles } from "@/lib/roles"
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -31,11 +32,12 @@ export default async function ProfilePage() {
   const workModes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent_type)).filter(Boolean)
 
   const rawRoles     = (profile?.user_roles as string[] | null) ?? []
-  const fwType       = profile?.find_work_type as string | null
-  const htType       = profile?.hire_talent_type as string | null
-  const isFreelancer = rawRoles.includes("find_work") && fwType !== "job_seeker"
-  const isJobSeeker  = rawRoles.includes("find_work") && (fwType === "job_seeker" || fwType === "both")
-  const isHireTalent = rawRoles.includes("hire_talent")
+  const roles        = resolveRoles(profile)
+  const fwType       = roles.findWorkType
+  const htType       = roles.hireTalentType
+  const isFreelancer = roles.isFreelancer
+  const isJobSeeker  = roles.isJobSeeker
+  const isHireTalent = roles.isHireTalent
   const isVerified   = profile?.is_verified === true
   const avgRating    = profile?.avg_rating ?? 0
   const joinDate     = new Date(user.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })

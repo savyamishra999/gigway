@@ -1,22 +1,21 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect }     from "next/navigation"
 import VerifyClient, { type VerifyRole } from "./VerifyClient"
+import { resolveRoles, type RoleProfile } from "@/lib/roles"
 
-function getVerifyRole(profile: {
-  user_roles?:       string[] | null
-  find_work_type?:   string | null
-  hire_talent_type?: string | null
-  account_type?:     string | null
-} | null): VerifyRole {
-  if (!profile) return "freelancer"
-  const roles  = (profile.user_roles as string[] | null) ?? []
-  const isFW   = roles.includes("find_work") || roles.length === 0
-  const htType = profile.hire_talent_type
-  const fwType = profile.find_work_type
+// Reproduces the exact original priority order for already-configured profiles —
+// company > job_seeker > individual > freelancer — including the one quirk that's
+// specific to verify: "both" find_work_type maps to freelancer here, not job_seeker
+// (unlike showFreelancer/showJobSeeker elsewhere). Preserved on purpose: this is a
+// paid, real-KYC flow and must not change behavior for anyone already configured.
+function toVerifyRole(profile: RoleProfile): VerifyRole {
+  const rawRoles = (profile.user_roles as string[] | null) ?? []
+  const isFindWork = rawRoles.includes("find_work")
+  const { find_work_type: fwType, hire_talent_type: htType, account_type: accountType } = profile
 
-  if (profile.account_type === "company" || htType === "company") return "company"
-  if (isFW && fwType === "job_seeker") return "job_seeker"
-  if (!isFW && htType === "individual") return "individual"
+  if (accountType === "company" || htType === "company") return "company"
+  if (isFindWork && fwType === "job_seeker") return "job_seeker"
+  if (!isFindWork && htType === "individual") return "individual"
   return "freelancer"
 }
 
@@ -31,12 +30,16 @@ export default async function VerifyPage() {
     .eq("id", user.id)
     .single()
 
+  // Previously an unconfigured profile silently guessed "freelancer" for the
+  // document-type prompt on a paid, real-KYC flow. Route to setup instead.
+  if (!resolveRoles(profile).isConfigured) redirect("/profile/complete")
+
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-12 px-4">
       <VerifyClient
         status={profile?.verification_status ?? null}
         paidAt={profile?.verification_paid_at ?? null}
-        verifyRole={getVerifyRole(profile)}
+        verifyRole={toVerifyRole(profile ?? {})}
         userName={profile?.full_name ?? null}
       />
     </div>

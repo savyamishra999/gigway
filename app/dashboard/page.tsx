@@ -13,6 +13,7 @@ import DashboardSupportButton from "@/components/support/DashboardSupportButton"
 import BannerAd from "@/components/ads/BannerAd"
 import { fetchAd } from "@/lib/ads"
 import DashboardTabs from "@/components/dashboard/DashboardTabs"
+import { resolveRoles } from "@/lib/roles"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,11 @@ export default async function DashboardPage() {
   // Must have completed onboarding and have a role assigned
   if (!profile?.profile_completed || !profile?.username) redirect("/profile/complete")
 
+  const roles = resolveRoles(profile)
+  // Unconfigured roles must never silently render as "Hire Talent" (the old ternary
+  // default) — send the user to finish the role/work-intent step instead.
+  if (!roles.isConfigured) redirect("/profile/complete")
+
   const adminDb = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -96,13 +102,13 @@ export default async function DashboardPage() {
 
   // ── Role resolution ──────────────────────────────────────────────────────────
   const isFindWork   = rawRoles.includes("find_work")
-  const isHireTalent = rawRoles.includes("hire_talent")
+  const isHireTalent = roles.isHireTalent
   const isBoth       = isFindWork && isHireTalent
-  const fwType       = profile.find_work_type as string | null   // freelancer | job_seeker | both
-  const htType       = profile.hire_talent_type as string | null // individual | company
-  const isFreelancer = isFindWork && fwType !== "job_seeker"
-  const isJobSeeker  = isFindWork && (fwType === "job_seeker" || fwType === "both")
-  const isCompany    = isHireTalent && htType === "company"
+  const fwType       = roles.findWorkType   // freelancer | job_seeker | both
+  const htType       = roles.hireTalentType // individual | company
+  const isFreelancer = roles.isFreelancer
+  const isJobSeeker  = roles.isJobSeeker
+  const isCompany    = roles.isCompany
 
   const verificationStatus = profile.verification_status as string | null
 

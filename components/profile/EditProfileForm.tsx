@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { X, Plus, ExternalLink, Camera, Search, Globe, Lock, CheckCircle2 } from "lucide-react"
+import { resolveRoles } from "@/lib/roles"
 
 interface Profile {
   id: string
@@ -25,6 +26,7 @@ interface Profile {
   user_roles?: string[] | null
   find_work_type?: string | null
   hire_talent_type?: string | null
+  account_type?: string | null
   // freelancer
   job_function?: string | string[] | null
   skills?: string[] | null
@@ -114,12 +116,11 @@ function normalizeJobFunction(value: string | string[] | null | undefined): stri
 }
 
 export default function EditProfileForm({ profile, userId }: { profile: Profile | null; userId: string }) {
-  const rawRoles    = (profile?.user_roles as string[] | null) ?? []
-  const fwType      = profile?.find_work_type ?? null
-  const htType      = profile?.hire_talent_type ?? null
-  const showFreelancer = rawRoles.includes("find_work") && fwType !== "job_seeker"
-  const showJobSeeker  = rawRoles.includes("find_work") && (fwType === "job_seeker" || fwType === "both")
-  const showHireTalent = rawRoles.includes("hire_talent")
+  const roles = resolveRoles(profile)
+  const htType = roles.hireTalentType
+  const showFreelancer = roles.isFreelancer
+  const showJobSeeker  = roles.isJobSeeker
+  const showHireTalent = roles.isHireTalent
 
   const rawJobFns = normalizeJobFunction(profile?.job_function)
   const hasOther = rawJobFns.some(fn => !JOB_FUNCTIONS.slice(0, -1).includes(fn))
