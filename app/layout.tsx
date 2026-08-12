@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Manrope } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import ModernNavbar from '@/components/layout/ModernNavbar'
 import Footer from '@/components/layout/Footer'
 
-const inter = Inter({ subsets: ['latin'] })
+const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-manrope' })
 
 export const metadata: Metadata = {
   title: "GigWay — India's Zero Commission Freelance & Jobs Platform",
@@ -38,7 +38,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${manrope.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

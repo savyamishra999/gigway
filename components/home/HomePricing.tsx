@@ -1,156 +1,98 @@
-import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { CheckCircle2 } from "lucide-react"
 
 const PLANS = [
   {
-    key:      "find_work",
-    emoji:    "⚡",
-    badge:    "Most Popular",
-    label:    "Find Work",
-    who:      "Freelancers & Job Seekers",
-    price:    "₹49",
-    period:   "/month",
-    color:    "border-[#4F46E5]/50",
-    glow:     "shadow-[0_0_30px_rgba(79,70,229,0.12)]",
-    badgeBg:  "bg-[#4F46E5]",
-    btnClass: "from-[#4F46E5] to-[#6366F1]",
-    perks: [
-      "Profile visible in search results",
-      "Apply to unlimited jobs & projects",
-      "Gig stays listed & active",
-      "Instant job & project alerts",
-      "Priority application badge",
-    ],
+    key: "free",
+    label: "Free",
+    who: "Everyone",
+    price: "₹0",
+    period: "forever",
+    highlight: false,
+    perks: ["Create your professional profile", "Create unlimited gigs", "Message clients directly", "Basic profile listing"],
     href: "/login",
-    cta:  "Get Started →",
+    cta: "Join Free",
   },
   {
-    key:      "hire_talent",
-    emoji:    "🏢",
-    badge:    null,
-    label:    "Hire Talent",
-    who:      "Companies & Individuals",
-    price:    "₹199",
-    period:   "/month",
-    color:    "border-[#F59E0B]/40",
-    glow:     "",
-    badgeBg:  "",
-    btnClass: "from-[#F59E0B] to-[#F97316]",
-    perks: [
-      "Post unlimited jobs & projects",
-      "Browse full CV database",
-      "Direct message any freelancer",
-      "Verified Company / Hirer badge",
-      "Featured listing boost available",
-    ],
+    key: "pro",
+    label: "Pro",
+    who: "Freelancers & Job Seekers",
+    price: "₹49",
+    period: "/month",
+    highlight: true,
+    perks: ["Profile visible in search results", "Apply to unlimited jobs & projects", "Instant job & project alerts", "Priority application badge"],
     href: "/login",
-    cta:  "Start Hiring →",
-    btnTextDark: true,
+    cta: "Get Started",
   },
   {
-    key:      "verified",
-    emoji:    "✅",
-    badge:    null,
-    label:    "Verified Badge",
-    who:      "For Everyone",
-    price:    "₹299",
-    period:   " one-time",
-    color:    "border-[#10B981]/30",
-    glow:     "",
-    badgeBg:  "",
-    btnClass: "from-[#10B981] to-[#059669]",
-    perks: [
-      "Permanent ✅ verified checkmark",
-      "3× more client / employer trust",
-      "Priority placement in search",
-      "Never expires — pay once",
-    ],
-    href: "/verify",
-    cta:  "Get Verified →",
+    key: "business",
+    label: "Business",
+    who: "Companies & Individuals Hiring",
+    price: "₹199",
+    period: "/month",
+    highlight: false,
+    perks: ["Post unlimited jobs & projects", "Browse the full talent directory", "Direct message any professional", "Verified hirer badge"],
+    href: "/login",
+    cta: "Start Hiring",
+  },
+  {
+    key: "verified",
+    label: "Verified",
+    who: "For Everyone",
+    price: "₹299",
+    period: "one-time",
+    highlight: false,
+    perks: ["Permanent verified checkmark", "Priority placement in search", "Never expires — pay once"],
+    href: "/pricing",
+    cta: "Get Verified",
   },
 ]
 
-export default async function HomePricing() {
-  const supabase = await createClient()
-
-  const { count: boostedCount } = await supabase
-    .from("profiles")
-    .select("*", { count: "exact", head: true })
-    .eq("is_boosted", true)
-    .gt("boost_expires_at", new Date().toISOString())
-
+export default function HomePricing() {
   return (
-    <section className="py-24 bg-[#0A0A0F] border-t border-[#1E1E2E]">
-      <div className="container mx-auto px-4 max-w-6xl">
-
-        {/* Heading */}
+    <section className="bg-white py-20 sm:py-28">
+      <div className="container mx-auto px-4 max-w-7xl">
         <div className="text-center mb-14">
-          <p className="text-[#818CF8] font-bold text-sm uppercase tracking-widest mb-3">Transparent Pricing</p>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">
-            Grow faster — whatever your goal
-          </h2>
-          <p className="text-[#6B7280] max-w-md mx-auto text-sm leading-relaxed">
-            Freelancer, job seeker, or employer — one plan unlocks everything you need. Your basic account is always free.
+          <p className="text-brand-indigo font-bold text-body-sm uppercase tracking-widest mb-3">Pricing</p>
+          <h2 className="text-h2 font-extrabold text-brand-midnight mb-4">Free to join. 0% GigWay platform commission.</h2>
+          <p className="text-body-lg text-brand-slate max-w-lg mx-auto">
+            Basic access is always free. Paid plans add visibility and tools — GigWay never takes a cut of what you earn.
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
           {PLANS.map(plan => (
-            <div
-              key={plan.key}
-              className={`relative bg-[#12121A] border-2 rounded-2xl p-7 ${plan.color} ${plan.glow}`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className={`${plan.badgeBg} text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-wider whitespace-nowrap`}>
-                    {plan.badge}
-                  </span>
-                </div>
+            <div key={plan.key}
+              className={`relative rounded-card p-6 flex flex-col h-full ${
+                plan.highlight ? "bg-brand-ivory border-2 border-brand-indigo shadow-elevated" : "bg-white border border-brand-borderLight shadow-soft"
+              }`}>
+              {plan.highlight && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-indigo text-white text-caption font-bold px-3 py-1 rounded-pill whitespace-nowrap">
+                  Most Popular
+                </span>
               )}
-
-              <div className="flex items-start justify-between mb-5">
-                <div>
-                  <span className="text-3xl">{plan.emoji}</span>
-                  <p className="text-white font-black text-xl mt-2">{plan.label}</p>
-                  <p className="text-[#6B7280] text-xs mt-0.5">{plan.who}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-black text-3xl">{plan.price}</p>
-                  <p className="text-[#6B7280] text-xs">{plan.period}</p>
-                </div>
+              <p className="text-brand-slate text-caption font-bold uppercase tracking-wider mb-1">{plan.label}</p>
+              <p className="text-brand-midnight text-body-sm mb-4">{plan.who}</p>
+              <div className="flex items-baseline gap-1 mb-5">
+                <span className="text-h2 font-extrabold text-brand-midnight">{plan.price}</span>
+                <span className="text-brand-slate text-body-sm">{plan.period}</span>
               </div>
-
-              <ul className="space-y-2.5 mb-7">
+              <ul className="space-y-2.5 mb-6 flex-1">
                 {plan.perks.map(perk => (
-                  <li key={perk} className="flex items-start gap-2.5 text-sm text-[#CBD5E1]">
-                    <CheckCircle2 className="h-4 w-4 text-[#4ADE80] mt-0.5 flex-shrink-0" />
+                  <li key={perk} className="flex items-start gap-2 text-body-sm text-brand-midnight">
+                    <CheckCircle2 className="h-4 w-4 text-brand-success mt-0.5 flex-shrink-0" />
                     {perk}
                   </li>
                 ))}
               </ul>
-
-              <Link
-                href={plan.href}
-                className={`flex items-center justify-center w-full py-3 rounded-xl bg-gradient-to-r ${plan.btnClass} font-bold text-sm hover:opacity-90 transition-opacity ${plan.btnTextDark ? "text-black" : "text-white"}`}
-              >
+              <Link href={plan.href}
+                className={`flex items-center justify-center w-full py-2.5 rounded-xl font-semibold text-body-sm transition-colors ${
+                  plan.highlight ? "bg-brand-indigo text-white hover:bg-brand-indigoDark" : "border border-brand-borderLight text-brand-midnight hover:bg-brand-ivory"
+                }`}>
                 {plan.cta}
               </Link>
             </div>
           ))}
-        </div>
-
-        {/* Bottom note */}
-        <div className="text-center mt-8 space-y-1">
-          <p className="text-[#475569] text-xs">
-            Basic account is always free. Paid plans unlock visibility &amp; advanced features.
-          </p>
-          {(boostedCount ?? 0) > 0 && (
-            <p className="text-[#6B7280] text-xs">
-              ⭐ {boostedCount} professionals currently on a paid plan
-            </p>
-          )}
         </div>
       </div>
     </section>

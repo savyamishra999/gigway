@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -9,7 +10,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
         outline:
@@ -19,6 +20,8 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
+        opportunity:
+          "bg-brand-coral text-white hover:bg-brand-coralDark active:bg-brand-coralDark shadow-sm",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -43,10 +46,14 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    loading?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
 
@@ -55,9 +62,18 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      aria-busy={loading || undefined}
+      disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {asChild ? children : (
+        <>
+          {loading && <Loader2 className="animate-spin" />}
+          {children}
+        </>
+      )}
+    </Comp>
   )
 }
 
