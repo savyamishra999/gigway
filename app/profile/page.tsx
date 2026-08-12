@@ -3,13 +3,14 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import {
   MapPin, Star, CheckCircle2, Edit, ExternalLink,
-  Briefcase, IndianRupee, Clock, Link2, FileText,
-  Search, Building2,
+  Briefcase, IndianRupee, Link2, FileText,
+  Building2,
 } from "lucide-react"
 import ProfileCompletion from "@/components/profile/ProfileCompletion"
 import SkillsList from "@/components/profile/SkillsList"
 import { WORK_MODES } from "@/lib/identity"
 import { resolveRoles } from "@/lib/roles"
+import { intentMeta } from "@/lib/workIntents"
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -29,26 +30,24 @@ export default async function ProfilePage() {
     supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true),
     supabase.from("organization_members").select("member_role, organizations(name, username)").eq("profile_id", user.id).eq("status", "active"),
   ])
-  const workModes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent_type)).filter(Boolean)
+  const activeModes = (intents ?? []).map(x => x.intent_type)
+  const workModes = activeModes.map(m => WORK_MODES.find(mode => mode.value === m)).filter(Boolean)
 
-  const rawRoles     = (profile?.user_roles as string[] | null) ?? []
   const roles        = resolveRoles(profile)
-  const fwType       = roles.findWorkType
   const htType       = roles.hireTalentType
-  const isFreelancer = roles.isFreelancer
-  const isJobSeeker  = roles.isJobSeeker
-  const isHireTalent = roles.isHireTalent
+  // Same union as the editor: legacy-configured users see their section even
+  // without ever touching the modern Work Intents layer.
+  const isFreelancer = activeModes.includes("offering_services") || roles.isFreelancer
+  const isJobSeeker   = activeModes.includes("looking_for_work") || roles.isJobSeeker
+  const isHireTalent  = activeModes.includes("hiring_talent") || roles.isHireTalent
   const isVerified   = profile?.is_verified === true
   const avgRating    = profile?.avg_rating ?? 0
   const joinDate     = new Date(user.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
 
-  const roleLabel = fwType === "both"
-    ? "Freelancer + Job Seeker"
-    : fwType === "job_seeker" ? "Job Seeker"
-    : fwType === "freelancer" ? "Freelancer"
-    : htType === "company" ? "Company"
-    : htType === "individual" ? "Individual Hirer"
-    : "Member"
+  const primaryOrg = (memberships ?? []).find((m: any) => m.organizations)
+  const founderLine = primaryOrg
+    ? `${(primaryOrg.member_role as string).charAt(0).toUpperCase()}${(primaryOrg.member_role as string).slice(1)} at ${(primaryOrg.organizations as any).name}`
+    : null
 
   const initial = profile?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "?"
 
@@ -56,34 +55,23 @@ export default async function ProfilePage() {
   const completionItems: { label: string; done: boolean }[] = [
     { label: "Full name",    done: !!profile?.full_name },
     { label: "Profile photo",done: !!profile?.avatar_url },
+    { label: "Tagline",      done: !!profile?.tagline },
     { label: "Bio",          done: !!profile?.bio },
     { label: "Location",     done: !!profile?.location },
-    { label: "Phone",        done: !!profile?.phone },
+    { label: "Skills",       done: !!(profile?.skills && (profile.skills as string[]).length > 0) },
+    { label: "Portfolio",    done: !!(profile?.portfolio_links && (profile.portfolio_links as string[]).length > 0) },
   ]
   if (isFreelancer) {
-    completionItems.push(
-      { label: "Skills",        done: !!(profile?.skills && (profile.skills as string[]).length > 0) },
-      { label: "Job function",  done: !!(profile?.job_function && (Array.isArray(profile.job_function) ? profile.job_function : [profile.job_function]).length > 0) },
-      { label: "Portfolio link",done: !!(profile?.portfolio_links && (profile.portfolio_links as string[]).length > 0) },
-      { label: "Hourly rate",   done: !!profile?.hourly_rate },
-    )
+    completionItems.push({ label: "Hourly rate", done: !!profile?.hourly_rate })
   }
   if (isJobSeeker) {
     completionItems.push(
       { label: "Experience years",   done: !!profile?.experience_years },
-      { label: "Expected salary",    done: !!profile?.expected_salary },
-      { label: "Preferred job type", done: !!(profile?.preferred_job_type && (profile.preferred_job_type as string[]).length > 0) },
-      { label: "LinkedIn profile",   done: !!profile?.linkedin_url },
       { label: "CV / Resume",        done: !!profile?.cv_url },
     )
   }
   if (isHireTalent) {
-    completionItems.push(
-      { label: "Company name", done: !!profile?.company_name },
-      { label: "Industry",     done: !!profile?.industry },
-      { label: "Company size", done: !!profile?.company_size },
-      { label: "Website",      done: !!profile?.company_website },
-    )
+    completionItems.push({ label: "Company name", done: !!profile?.company_name || (memberships?.length ?? 0) > 0 })
   }
   const done  = completionItems.filter(i => i.done).length
   const total = completionItems.length
@@ -91,6 +79,8 @@ export default async function ProfilePage() {
   const missingItems  = completionItems.filter(i => !i.done).map(i => i.label)
 
   const skills = (profile?.skills as string[] | null) ?? []
+  const jobFunctions = profile?.job_function ? (Array.isArray(profile.job_function) ? profile.job_function : [profile.job_function]) : []
+  const portfolioLinks = (profile?.portfolio_links as string[] | null) ?? []
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-6 sm:py-10">
@@ -118,12 +108,8 @@ export default async function ProfilePage() {
                     {profile?.username && <span className="text-sm font-medium text-[#94A3B8]">@{profile.username}</span>}
                     {isVerified && <CheckCircle2 className="h-5 w-5 text-[#4F46E5] flex-shrink-0" />}
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#4F46E5]/15 text-[#818CF8] border border-[#4F46E5]/25">
-                    {isHireTalent && !rawRoles.includes("find_work")
-                      ? <Building2 className="h-3 w-3" />
-                      : <Search className="h-3 w-3" />}
-                    {roleLabel}
-                  </span>
+                  {profile?.tagline && <p className="text-[#CBD5E1] text-sm">{profile.tagline}</p>}
+                  {founderLine && <p className="text-[#818CF8] text-xs font-medium mt-0.5">{founderLine}</p>}
                 </div>
 
                 {/* Edit — icon only on mobile, text on sm+ */}
@@ -157,8 +143,26 @@ export default async function ProfilePage() {
 
         {profile?.account_type === "company" && profile?.hire_talent_type === "company" && profile?.company_website && (!memberships || memberships.length === 0) && <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-2xl p-4 sm:p-6"><h2 className="text-white font-bold text-sm sm:text-base">You appear to represent a company</h2><p className="text-sm text-[#CBD5E1] mt-1">Website: {profile.company_website}</p><p className="text-xs text-[#94A3B8] mt-2">Confirm a company name and username to create a separate organization identity.</p><Link href="/organizations/new" className="inline-block mt-3 text-sm font-semibold text-[#FCD34D]">Create Company Profile</Link></div>}
 
-        {workModes.length > 0 && <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6"><h2 className="text-white font-bold text-sm sm:text-base mb-3">Work Modes</h2><div className="flex flex-wrap gap-2">{workModes.map(mode => mode && <span key={mode.value} className={`px-3 py-1 rounded-full bg-[#1E1E2E] border border-[#334155] text-xs font-semibold ${mode.color}`}>{mode.label}</span>)}</div></div>}
+        {/* What I'm Open To */}
+        {workModes.length > 0 && (
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+            <h2 className="text-white font-bold text-sm sm:text-base mb-3">Open To</h2>
+            <div className="flex flex-wrap gap-2">
+              {workModes.map(mode => {
+                if (!mode) return null
+                const meta = intentMeta(mode.value)
+                return (
+                  <span key={mode.value} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${meta.badgeClass}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                    {meta.label}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
+        {/* My Organizations */}
         <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6"><div className="flex items-center justify-between mb-3"><h2 className="text-white font-bold text-sm sm:text-base">My Organizations</h2><Link href="/organizations/new" className="text-xs text-[#818CF8] hover:text-white">Create Organization</Link></div>{memberships && memberships.length > 0 ? <div className="space-y-2">{memberships.map((membership: any) => membership.organizations && <div key={membership.organizations.username} className="flex items-center justify-between"><div><p className="text-sm font-semibold text-white">{membership.organizations.name}</p><p className="text-xs text-[#94A3B8]">@{membership.organizations.username}</p></div><div className="text-right"><span className="block text-xs capitalize text-[#94A3B8]">{membership.member_role}</span>{["owner", "admin"].includes(membership.member_role) && <Link href={`/organizations/${membership.organizations.username}/edit`} className="text-xs text-[#818CF8]">Manage</Link>}</div></div>)}</div> : <p className="text-sm text-[#6B7280]">Create an organization to manage a company identity.</p>}</div>
 
         {/* Completion */}
@@ -172,62 +176,56 @@ export default async function ProfilePage() {
           </div>
         )}
 
-        {/* ── FREELANCER SECTION ── */}
-        {isFreelancer && (
-          <>
-            {/* Skills */}
-            {skills.length > 0 && (
-              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
-                <h2 className="text-white font-bold text-sm sm:text-base mb-3">
-                  Skills
-                  <span className="ml-2 text-[#6B7280] text-xs font-normal">({skills.length})</span>
-                </h2>
-                <SkillsList skills={skills} />
-              </div>
-            )}
+        {/* Skills — stable core, not tied to a specific intent */}
+        {skills.length > 0 && (
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+            <h2 className="text-white font-bold text-sm sm:text-base mb-3">
+              Skills
+              <span className="ml-2 text-[#6B7280] text-xs font-normal">({skills.length})</span>
+            </h2>
+            <SkillsList skills={skills} />
+          </div>
+        )}
 
-            {/* Job Functions */}
-            {profile?.job_function && (Array.isArray(profile.job_function) ? profile.job_function : [profile.job_function]).length > 0 && (
-              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
-                <h2 className="text-white font-bold text-sm sm:text-base mb-3 flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-[#818CF8]" /> What I Do
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {(Array.isArray(profile.job_function) ? profile.job_function : [profile.job_function]).map((fn: string) => (
-                    <span key={fn}
-                      className="px-3 py-1 rounded-full bg-[#1E1E2E] border border-[#334155] text-[#CBD5E1] text-xs font-medium">
-                      {fn}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Job Functions — stable core */}
+        {jobFunctions.length > 0 && (
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+            <h2 className="text-white font-bold text-sm sm:text-base mb-3 flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-[#818CF8]" /> What I Do
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {jobFunctions.map((fn: string) => (
+                <span key={fn} className="px-3 py-1 rounded-full bg-[#1E1E2E] border border-[#334155] text-[#CBD5E1] text-xs font-medium">
+                  {fn}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Portfolio Links */}
-            {profile?.portfolio_links && (profile.portfolio_links as string[]).length > 0 && (
-              <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
-                <h2 className="text-white font-bold text-sm sm:text-base mb-3 flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-[#818CF8]" /> Portfolio
-                </h2>
-                <div className="space-y-2">
-                  {(profile.portfolio_links as string[]).map(link => (
-                    <a key={link} href={link} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[#818CF8] hover:text-white text-sm transition-colors">
-                      <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate text-xs sm:text-sm">{link}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+        {/* Portfolio — stable core */}
+        {portfolioLinks.length > 0 && (
+          <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6">
+            <h2 className="text-white font-bold text-sm sm:text-base mb-3 flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-[#818CF8]" /> Portfolio
+            </h2>
+            <div className="space-y-2">
+              {portfolioLinks.map(link => (
+                <a key={link} href={link} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-[#818CF8] hover:text-white text-sm transition-colors">
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate text-xs sm:text-sm">{link}</span>
+                </a>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* ── JOB SEEKER SECTION ── */}
-        {isJobSeeker && (
+        {isJobSeeker && (profile?.experience_years || profile?.expected_salary || (profile?.preferred_job_type as string[] | null)?.length || profile?.experience_description || profile?.linkedin_url || profile?.cv_url) && (
           <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6 space-y-4">
             <h2 className="text-white font-bold text-sm sm:text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#378ADD]" /> Job Seeker Info
+              <FileText className="h-4 w-4 text-[#378ADD]" /> Career
             </h2>
 
             <div className="grid grid-cols-2 gap-3">
@@ -283,8 +281,8 @@ export default async function ProfilePage() {
           </div>
         )}
 
-        {/* ── HIRE TALENT SECTION ── */}
-        {isHireTalent && (
+        {/* ── HIRE TALENT SECTION — individual/no-organization only ── */}
+        {isHireTalent && (memberships?.length ?? 0) === 0 && (profile?.company_name || profile?.industry || profile?.company_size || profile?.company_website) && (
           <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-4 sm:p-6 space-y-3">
             <h2 className="text-white font-bold text-sm sm:text-base flex items-center gap-2">
               <Building2 className="h-4 w-4 text-[#F59E0B]" />
