@@ -20,6 +20,7 @@ interface ProposalFormProps {
 const MAX_COVER_LETTER = 500
 
 export default function ProposalForm({ projectId, userId, onSuccess, projectTitle, projectDescription }: ProposalFormProps) {
+  const [showForm, setShowForm] = useState(false)
   const [coverLetter, setCoverLetter] = useState("")
   const [bidAmount, setBidAmount] = useState("")
   const [estimatedDays, setEstimatedDays] = useState("")
@@ -131,19 +132,35 @@ export default function ProposalForm({ projectId, userId, onSuccess, projectTitl
     onSuccess?.()
   }
 
+  if (!showForm) {
+    return (
+      <div className="bg-white border border-brand-borderLight rounded-card p-6 text-center shadow-soft">
+        <h3 className="text-brand-midnight font-bold text-lg mb-2">Interested in this project?</h3>
+        <p className="text-brand-slate text-sm mb-5">{projectTitle}</p>
+        <Button
+          onClick={() => setShowForm(true)}
+          className="bg-brand-indigo hover:bg-brand-indigoDark text-white font-bold px-10 py-5 text-base shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]"
+        >
+          Submit Proposal
+        </Button>
+      </div>
+    )
+  }
+
   return (
-    <Card className="bg-white/5 border-white/10">
-      <CardHeader className="border-b border-white/10 pb-3">
-        <CardTitle className="text-white text-lg">Submit a Proposal</CardTitle>
+    <Card className="bg-white border-brand-borderLight shadow-soft">
+      <CardHeader className="border-b border-brand-borderLight pb-3">
+        <CardTitle className="text-brand-midnight text-lg">Submit a Proposal</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           {message && (
             <div
+              role="alert"
               className={`p-3 rounded-lg border text-sm font-medium ${
                 message.type === "success"
-                  ? "bg-green-500/10 border-green-500/30 text-green-400"
-                  : "bg-red-500/10 border-red-500/30 text-red-400"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-red-50 border-red-200 text-red-700"
               }`}
             >
               {message.text}
@@ -152,18 +169,18 @@ export default function ProposalForm({ projectId, userId, onSuccess, projectTitl
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-gray-300">Cover Letter *</Label>
+              <Label className="text-brand-midnight">Cover Letter *</Label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={generateWithAI}
                   disabled={generating}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#818CF8] hover:text-[#A5B4FC] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-brand-indigo hover:text-brand-indigoDark disabled:opacity-50 transition-colors"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   {generating ? "Generating..." : "Generate with AI ✨"}
                 </button>
-                <span className={`text-xs ${coverLetter.length > MAX_COVER_LETTER ? "text-red-400" : "text-gray-500"}`}>
+                <span className={`text-xs ${coverLetter.length > MAX_COVER_LETTER ? "text-red-500" : "text-brand-slate"}`}>
                   {coverLetter.length}/{MAX_COVER_LETTER}
                 </span>
               </div>
@@ -176,15 +193,15 @@ export default function ProposalForm({ projectId, userId, onSuccess, projectTitl
               placeholder="Explain why you're the best fit for this project..."
               rows={5}
               required
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+              className="bg-white border-brand-borderLight text-brand-midnight placeholder:text-brand-slate/70 focus:border-brand-indigo"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-gray-300">Bid Amount (₹) *</Label>
+              <Label className="text-brand-midnight">Bid Amount (₹) *</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-slate font-medium">₹</span>
                 <Input
                   type="number"
                   min="1"
@@ -192,12 +209,12 @@ export default function ProposalForm({ projectId, userId, onSuccess, projectTitl
                   onChange={e => setBidAmount(e.target.value)}
                   placeholder="25000"
                   required
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700] pl-8"
+                  className="bg-white border-brand-borderLight text-brand-midnight placeholder:text-brand-slate/70 focus:border-brand-indigo pl-8"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-300">Estimated Days *</Label>
+              <Label className="text-brand-midnight">Estimated Days *</Label>
               <Input
                 type="number"
                 min="1"
@@ -205,20 +222,30 @@ export default function ProposalForm({ projectId, userId, onSuccess, projectTitl
                 onChange={e => setEstimatedDays(e.target.value)}
                 placeholder="e.g. 14"
                 required
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+                className="bg-white border-brand-borderLight text-brand-midnight placeholder:text-brand-slate/70 focus:border-brand-indigo"
               />
             </div>
           </div>
 
-          <p className="text-xs text-gray-500">Submitting uses 1 connect from your balance.</p>
+          <p className="text-xs text-brand-slate">Submitting uses 1 connect from your balance.</p>
 
-          <Button
-            type="submit"
-            disabled={loading || coverLetter.length > MAX_COVER_LETTER}
-            className="w-full bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold py-5"
-          >
-            {loading ? "Submitting..." : "Submit Proposal (1 Connect)"}
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              type="submit"
+              disabled={loading || coverLetter.length > MAX_COVER_LETTER}
+              className="flex-1 bg-brand-indigo hover:bg-brand-indigoDark text-white font-semibold py-5 shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]"
+            >
+              {loading ? "Submitting..." : "Submit Proposal (1 Connect)"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowForm(false)}
+              className="border-brand-borderLight text-brand-slate hover:bg-brand-ivory"
+            >
+              Cancel
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
