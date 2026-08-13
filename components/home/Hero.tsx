@@ -22,9 +22,8 @@ export default function Hero() {
 
             <h1 className="text-h1 sm:text-display font-extrabold text-brand-midnight mb-6">
               Your Work. Your Network.{" "}
-              <span className="bg-gradient-to-r from-brand-indigo to-brand-coral bg-clip-text text-transparent">
-                Your Next Opportunity.
-              </span>
+              <span className="text-brand-indigo">Your Next</span>{" "}
+              <span className="text-brand-coral">Opportunity.</span>
             </h1>
 
             <p className="text-body-lg text-brand-slate mb-8 max-w-lg">

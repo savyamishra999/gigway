@@ -70,19 +70,27 @@ export default function ModernNavbar() {
             {links.map(({ href, label }) => (
               <Link key={href} href={resolveHref(href)}
                 className={`rounded-lg px-3 py-2 text-body-sm font-semibold transition-colors ${
-                  active(href) ? "bg-brand-indigo/10 text-brand-indigo" : "text-brand-slate hover:text-brand-midnight"
+                  active(href) ? "bg-brand-indigo/10 text-brand-indigoDark" : "text-brand-slate hover:text-brand-midnight"
                 }`}>
                 {label}
               </Link>
             ))}
           </nav>
 
-          <Link href="/explore"
-            className="hidden md:flex ml-auto max-w-sm flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-200 transition-colors">
-            <Search className="h-4 w-4" /> Search people, work and opportunities
+          <Link href="/explore" aria-label="Search"
+            className="group hidden md:flex ml-auto max-w-xl flex-1 items-center gap-3 rounded-pill border-2 border-brand-indigo/20 bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.04),0_10px_26px_-8px_rgba(79,70,229,.22),0_6px_18px_-10px_rgba(255,107,53,.15)] transition-all duration-200 hover:border-brand-indigo/35 hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.08),0_12px_30px_-6px_rgba(79,70,229,.3),0_8px_20px_-8px_rgba(255,107,53,.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-indigo focus-visible:ring-offset-2">
+            <Search className="h-4 w-4 text-brand-indigo flex-shrink-0" />
+            <span className="truncate text-body-sm font-medium text-brand-slate">Search people, skills, jobs, projects, or services...</span>
+            <span className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-indigo/10 text-brand-indigo transition-colors group-hover:bg-brand-indigo group-hover:text-white">
+              <Search className="h-3.5 w-3.5" />
+            </span>
           </Link>
 
           <div className="ml-auto flex items-center gap-1 md:ml-0">
+            <Link href="/explore" aria-label="Search"
+              className="flex md:hidden rounded-full p-2.5 text-brand-indigo bg-brand-indigo/10 hover:bg-brand-indigo/15">
+              <Search className="h-5 w-5" />
+            </Link>
             {user ? (
               <>
                 <Link aria-label="Create" href="/create" className="hidden sm:flex rounded-lg p-2.5 text-brand-coral hover:bg-brand-coral/10">
@@ -104,7 +112,7 @@ export default function ModernNavbar() {
                 <Link href="/login" className="hidden sm:block rounded-xl px-4 py-2 text-body-sm font-semibold text-brand-slate hover:text-brand-midnight">
                   Log in
                 </Link>
-                <Link href="/login" className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white hover:bg-brand-indigoDark transition-colors">
+                <Link href="/login" className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
                   Join GigWay
                 </Link>
               </div>
