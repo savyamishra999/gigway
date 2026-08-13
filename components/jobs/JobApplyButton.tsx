@@ -45,12 +45,12 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
 
   if (!showForm) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-        <h3 className="text-white font-semibold text-lg mb-2">Interested in this role?</h3>
-        <p className="text-gray-400 text-sm mb-5">{jobTitle}</p>
+      <div className="bg-white border border-brand-borderLight rounded-card p-6 text-center shadow-soft">
+        <h3 className="text-brand-midnight font-bold text-lg mb-2">Interested in this role?</h3>
+        <p className="text-brand-slate text-sm mb-5">{jobTitle}</p>
         <Button
           onClick={() => setShowForm(true)}
-          className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-bold px-10 py-5 text-base"
+          className="bg-brand-indigo hover:bg-brand-indigoDark text-white font-bold px-10 py-5 text-base shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]"
         >
           Apply Now
         </Button>
@@ -59,18 +59,19 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
   }
 
   return (
-    <Card className="bg-white/5 border-white/10">
-      <CardHeader className="border-b border-white/10 pb-3">
-        <CardTitle className="text-white text-lg">Submit Application</CardTitle>
+    <Card className="bg-white border-brand-borderLight shadow-soft">
+      <CardHeader className="border-b border-brand-borderLight pb-3">
+        <CardTitle className="text-brand-midnight text-lg">Submit Application</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleApply} className="space-y-4">
           {message && (
             <div
+              role="alert"
               className={`p-3 rounded-lg border text-sm ${
                 message.type === "success"
-                  ? "bg-green-500/10 border-green-500/30 text-green-400"
-                  : "bg-red-500/10 border-red-500/30 text-red-400"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-red-50 border-red-200 text-red-700"
               }`}
             >
               {message.text}
@@ -78,13 +79,13 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
           )}
 
           <div className="space-y-2">
-            <Label className="text-gray-300">Cover Letter (optional)</Label>
+            <Label className="text-brand-midnight">Cover Letter (optional)</Label>
             <Textarea
               value={coverLetter}
               onChange={e => setCoverLetter(e.target.value)}
               placeholder="Tell the employer why you're a great fit for this role..."
               rows={5}
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#FFD700]"
+              className="bg-white border-brand-borderLight text-brand-midnight placeholder:text-brand-slate/70 focus:border-brand-indigo"
             />
           </div>
 
@@ -92,7 +93,7 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-bold py-5"
+              className="flex-1 bg-brand-indigo hover:bg-brand-indigoDark text-white font-bold py-5 shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]"
             >
               {loading ? "Submitting..." : "Submit Application"}
             </Button>
@@ -100,7 +101,7 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
               type="button"
               variant="outline"
               onClick={() => setShowForm(false)}
-              className="border-white/20 text-gray-300 hover:bg-white/10"
+              className="border-brand-borderLight text-brand-slate hover:bg-brand-ivory"
             >
               Cancel
             </Button>

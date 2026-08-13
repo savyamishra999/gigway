@@ -6,11 +6,11 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Job Listings in India | GigWay",
-  description: "Find full-time, part-time, remote and contract job opportunities across India. Zero commission on GigWay.",
+  title: "Jobs | GigWay",
+  description: "Find full-time, part-time, remote and contract job opportunities. Zero commission on GigWay.",
   openGraph: {
-    title: "Job Listings in India | GigWay",
-    description: "India's freelance job board — full-time, remote, contract. Zero commission.",
+    title: "Jobs | GigWay",
+    description: "GigWay's global job board — full-time, remote, contract. Zero commission.",
     type: "website",
   },
 }
@@ -23,7 +23,7 @@ export default async function JobsPage() {
     { data: { user } },
   ] = await Promise.all([
     supabase.from("jobs")
-      .select("id, title, company_name, location, job_type, salary_min, salary_max, skills_required, created_at, is_featured, featured_until")
+      .select("id, title, company_name, location, job_type, salary_min, salary_max, skills_required, experience_required, created_at, is_featured, featured_until, client_id, profiles:client_id(is_verified)")
       .eq("status", "active")
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
@@ -57,22 +57,21 @@ export default async function JobsPage() {
 
   const ad = await fetchAd("jobs", roles, fwType, htType)
 
-  const heading    = isJobSeeker ? "Find Your Dream Job" : isCompany ? "Jobs Board" : "Job Listings"
   const subheading = isJobSeeker
-    ? "Browse thousands of job opportunities across India — apply in one click"
+    ? "Browse opportunities matched to your skills — apply in one click"
     : isCompany
     ? "Browse all active listings or post a new job for qualified candidates"
-    : "Find full-time, part-time, and remote opportunities across India"
+    : "Full-time, part-time, remote and contract roles from companies around the world"
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
-      {/* Hero header */}
-      <div className="bg-gradient-to-b from-[#12121A] to-[#0A0A0F] border-b border-[#1E1E2E] py-10">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="flex items-start justify-between gap-4">
+    <div className="min-h-screen bg-brand-ivory">
+      {/* Header */}
+      <div className="bg-white border-b border-brand-borderLight py-10 sm:py-14">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-3xl font-black text-white">{heading}</h1>
-              <p className="text-[#6B7280] text-sm mt-1 max-w-xl">{subheading}</p>
+              <h1 className="text-h1 font-extrabold text-brand-midnight">Find your next opportunity</h1>
+              <p className="text-brand-slate text-body-sm sm:text-body-lg mt-2 max-w-xl">{subheading}</p>
             </div>
 
             {/* Company: Post Job + Boost CTA */}
@@ -80,31 +79,23 @@ export default async function JobsPage() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <Link
                   href="/dashboard/jobs/boost"
-                  className="border border-[#F59E0B]/40 text-[#F59E0B] font-semibold px-4 py-2 rounded-lg transition-all text-sm hover:bg-[#F59E0B]/10"
+                  className="border border-brand-coral/40 text-brand-coral font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm hover:bg-brand-coral/5"
                 >
-                  ⚡ Boost Listing
+                  Boost Listing
                 </Link>
                 <Link
                   href="/jobs/new"
-                  className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] hover:opacity-90 text-white font-semibold px-5 py-2 rounded-lg transition-opacity text-sm shadow-lg shadow-[#4F46E5]/20"
+                  className="bg-brand-indigo hover:bg-brand-indigoDark text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]"
                 >
                   + Post Job
                 </Link>
               </div>
             )}
           </div>
-
-          {/* Job seeker: featured companies strip */}
-          {isJobSeeker && (
-            <div className="mt-6 flex items-center gap-2 text-xs text-[#6B7280]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] inline-block animate-pulse" />
-              New jobs added daily — featured listings are highlighted
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {ad && <BannerAd ad={ad} className="mb-6" />}
         <JobsClient
           initialJobs={initialJobs ?? []}

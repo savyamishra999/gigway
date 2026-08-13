@@ -2,8 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, Calendar, Building2, DollarSign, Pencil } from "lucide-react"
+import { MapPin, Clock, Calendar, Building2, IndianRupee, Pencil, Briefcase, CheckCircle2, Users } from "lucide-react"
 import JobApplyButton from "@/components/jobs/JobApplyButton"
 import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
@@ -19,28 +18,20 @@ export async function generateMetadata(
     .eq("id", id)
     .single()
 
-  if (!job) return { title: "Job Not Found | GigWAY" }
+  if (!job) return { title: "Job Not Found | GigWay" }
 
   const salary = job.salary_min && job.salary_max
     ? `₹${job.salary_min.toLocaleString()} – ₹${job.salary_max.toLocaleString()}`
     : ""
 
   return {
-    title: `${job.title} at ${job.company_name || "Company"} | GigWAY Jobs`,
+    title: `${job.title} at ${job.company_name || "Company"} | GigWay Jobs`,
     description: `${job.job_type} position${job.location ? ` in ${job.location}` : ""}${salary ? `. Salary: ${salary}` : ""}. ${job.description?.slice(0, 100) ?? ""}`,
     openGraph: {
-      title: `${job.title} | GigWAY`,
+      title: `${job.title} | GigWay`,
       description: job.description?.slice(0, 200),
     },
   }
-}
-
-const JOB_TYPE_COLORS: Record<string, string> = {
-  "full-time": "bg-green-500/20 text-green-400 border-green-500/30",
-  "part-time": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "internship": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "remote": "bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30",
-  "contract": "bg-orange-500/20 text-orange-400 border-orange-500/30",
 }
 
 function timeAgo(dateStr: string) {
@@ -81,46 +72,51 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
     .eq("job_id", id)
 
   const isOwner = user?.id === job.client_id
+  const poster = job.profiles as { id?: string; full_name?: string | null; company?: string | null; avatar_url?: string | null; is_verified?: boolean | null } | null
+  const companyDisplay = job.company_name || poster?.company || poster?.full_name || "Company"
+  const salary = job.salary_min && job.salary_max
+    ? `₹${job.salary_min.toLocaleString()} – ₹${job.salary_max.toLocaleString()}`
+    : job.salary_min
+    ? `From ₹${job.salary_min.toLocaleString()}`
+    : job.salary_max
+    ? `Up to ₹${job.salary_max.toLocaleString()}`
+    : null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] py-10">
+    <div className="min-h-screen bg-brand-ivory py-8 sm:py-12">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-5">
             {/* Job Header */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-14 h-14 rounded-xl bg-[#FFD700]/20 flex items-center justify-center text-[#FFD700] font-bold text-2xl flex-shrink-0">
-                  {(job.company_name || (job.profiles as { full_name?: string } | null)?.full_name || "C")[0].toUpperCase()}
+                <div className="w-14 h-14 rounded-xl bg-brand-indigo/10 flex items-center justify-center text-brand-indigo font-bold text-2xl flex-shrink-0">
+                  {companyDisplay[0]?.toUpperCase() || "C"}
                 </div>
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-white mb-1">{job.title}</h1>
-                  <p className="text-gray-400">
-                    {job.company_name || (job.profiles as { company?: string; full_name?: string } | null)?.company || (job.profiles as { full_name?: string } | null)?.full_name}
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-h2 font-extrabold text-brand-midnight mb-1">{job.title}</h1>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-brand-slate">{companyDisplay}</p>
+                    {poster?.is_verified && <CheckCircle2 className="h-4 w-4 text-brand-indigo flex-shrink-0" />}
+                  </div>
                 </div>
                 {job.job_type && (
-                  <Badge className={`border capitalize flex-shrink-0 ${JOB_TYPE_COLORS[job.job_type] || "bg-white/5 text-gray-400 border-white/10"}`}>
+                  <span className="flex-shrink-0 capitalize text-caption font-semibold px-3 py-1.5 rounded-pill bg-brand-indigo/10 text-brand-indigo border border-brand-indigo/20">
                     {job.job_type}
-                  </Badge>
+                  </span>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-brand-slate">
                 {job.location && (
                   <span className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" /> {job.location}
                   </span>
                 )}
-                {(job.salary_min || job.salary_max) && (
-                  <span className="flex items-center gap-1.5 text-[#FFD700] font-semibold">
-                    <DollarSign className="h-4 w-4" />
-                    {job.salary_min && job.salary_max
-                      ? `₹${job.salary_min.toLocaleString()} – ₹${job.salary_max.toLocaleString()}`
-                      : job.salary_min
-                      ? `From ₹${job.salary_min.toLocaleString()}`
-                      : `Up to ₹${job.salary_max!.toLocaleString()}`}
+                {salary && (
+                  <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                    <IndianRupee className="h-4 w-4" /> {salary}
                   </span>
                 )}
                 <span className="flex items-center gap-1.5">
@@ -131,30 +127,29 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
                     <Calendar className="h-4 w-4" /> Deadline: {new Date(job.deadline).toLocaleDateString()}
                   </span>
                 )}
-                <span className="text-gray-500">{applicantCount || 0} applicants</span>
+                <span className="flex items-center gap-1.5 text-brand-slate/80">
+                  <Users className="h-4 w-4" /> {applicantCount || 0} applicant{applicantCount === 1 ? "" : "s"}
+                </span>
               </div>
             </div>
 
             {/* Description */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h2 className="text-white font-semibold text-lg mb-4">Job Description</h2>
-              <div className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
+            <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
+              <h2 className="text-brand-midnight font-bold text-h3 mb-4">Job Description</h2>
+              <div className="text-brand-slate leading-relaxed whitespace-pre-wrap text-sm">
                 {job.description}
               </div>
             </div>
 
             {/* Skills */}
             {job.skills_required && job.skills_required.length > 0 && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <h2 className="text-white font-semibold text-lg mb-4">Required Skills</h2>
+              <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
+                <h2 className="text-brand-midnight font-bold text-h3 mb-4">Required Skills</h2>
                 <div className="flex flex-wrap gap-2">
                   {job.skills_required.map((skill: string) => (
-                    <Badge
-                      key={skill}
-                      className="bg-[#FFD700]/15 text-[#FFD700] border-[#FFD700]/30 px-3 py-1"
-                    >
+                    <span key={skill} className="px-3 py-1.5 rounded-pill bg-brand-indigo/10 text-brand-indigo border border-brand-indigo/20 text-sm font-medium">
                       {skill}
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               </div>
@@ -162,19 +157,21 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
 
             {/* Experience */}
             {job.experience_required && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <h2 className="text-white font-semibold text-lg mb-2">Experience Required</h2>
-                <p className="text-gray-300 text-sm">{job.experience_required}</p>
+              <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
+                <h2 className="text-brand-midnight font-bold text-h3 mb-2 flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-brand-indigo" /> Experience Required
+                </h2>
+                <p className="text-brand-slate text-sm">{job.experience_required}</p>
               </div>
             )}
 
             {/* Apply Section */}
             <div>
               {!user && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-                  <p className="text-gray-400 mb-4">Sign in to apply for this job</p>
+                <div className="bg-white border border-brand-borderLight rounded-card p-6 text-center shadow-soft">
+                  <p className="text-brand-slate mb-4">Sign in to apply for this job</p>
                   <Link href="/login">
-                    <Button className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-bold">
+                    <Button className="bg-brand-indigo hover:bg-brand-indigoDark text-white font-bold">
                       Sign In to Apply
                     </Button>
                   </Link>
@@ -182,8 +179,8 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
               )}
 
               {user && hasApplied && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 text-center">
-                  <p className="text-green-400 font-semibold">You have already applied for this job.</p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-card p-6 text-center">
+                  <p className="text-emerald-700 font-semibold">You have already applied for this job.</p>
                 </div>
               )}
 
@@ -192,11 +189,11 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
               )}
 
               {user && isOwner && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                  <p className="text-gray-400 mb-4">You posted this job. {applicantCount || 0} applicants so far.</p>
+                <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
+                  <p className="text-brand-slate mb-4">You posted this job. {applicantCount || 0} applicant{applicantCount === 1 ? "" : "s"} so far.</p>
                   <div className="flex gap-3">
                     <Link href={`/jobs/${id}/edit`}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/20 text-[#818CF8] hover:bg-[#4F46E5]/10 text-sm font-semibold transition-all">
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-brand-borderLight text-brand-indigo hover:bg-brand-indigo/5 text-sm font-semibold transition-colors">
                       <Pencil className="h-4 w-4" /> Edit Job
                     </Link>
                     <DeleteButton table="jobs" id={id} redirectTo="/jobs" label="Delete" />
@@ -209,45 +206,46 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
           {/* Sidebar */}
           <div className="space-y-4">
             {/* About Company */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-[#FFD700]" /> About the Company
+            <div className="bg-white border border-brand-borderLight rounded-card p-5 shadow-soft">
+              <h2 className="text-brand-midnight font-bold mb-4 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-brand-indigo" /> About the Company
               </h2>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#FFD700]/20 flex items-center justify-center text-[#FFD700] font-bold">
-                  {(job.company_name || (job.profiles as { full_name?: string } | null)?.full_name || "C")[0].toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-brand-indigo/10 flex items-center justify-center text-brand-indigo font-bold flex-shrink-0">
+                  {companyDisplay[0]?.toUpperCase() || "C"}
                 </div>
-                <p className="text-white font-medium text-sm">
-                  {job.company_name || (job.profiles as { company?: string; full_name?: string } | null)?.company || (job.profiles as { full_name?: string } | null)?.full_name || "Company"}
-                </p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-brand-midnight font-medium text-sm truncate">{companyDisplay}</p>
+                  {poster?.is_verified && <CheckCircle2 className="h-3.5 w-3.5 text-brand-indigo flex-shrink-0" />}
+                </div>
               </div>
             </div>
 
             {/* Job Details */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
-              <h2 className="text-white font-semibold mb-4">Job Details</h2>
+            <div className="bg-white border border-brand-borderLight rounded-card p-5 shadow-soft space-y-3">
+              <h2 className="text-brand-midnight font-bold mb-1">Job Details</h2>
               {job.job_type && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Type</span>
-                  <span className="text-white capitalize">{job.job_type}</span>
+                  <span className="text-brand-slate">Type</span>
+                  <span className="text-brand-midnight capitalize font-medium">{job.job_type}</span>
                 </div>
               )}
               {job.category && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Category</span>
-                  <span className="text-white capitalize">{job.category}</span>
+                  <span className="text-brand-slate">Category</span>
+                  <span className="text-brand-midnight capitalize font-medium">{job.category}</span>
                 </div>
               )}
               {job.location && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Location</span>
-                  <span className="text-white">{job.location}</span>
+                  <span className="text-brand-slate">Location</span>
+                  <span className="text-brand-midnight font-medium">{job.location}</span>
                 </div>
               )}
               {job.deadline && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Apply by</span>
-                  <span className="text-white">{new Date(job.deadline).toLocaleDateString()}</span>
+                  <span className="text-brand-slate">Apply by</span>
+                  <span className="text-brand-midnight font-medium">{new Date(job.deadline).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
