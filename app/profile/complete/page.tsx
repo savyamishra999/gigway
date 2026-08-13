@@ -29,7 +29,7 @@ export default async function ProfileCompletePage() {
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-start py-10 px-4">
       <div className="w-full max-w-2xl">
         <div className="flex justify-center mb-8">
-          <Image src="/logo.png" width={140} height={37} alt="GigWay" priority
+          <Image src="/logo.png" width={168} height={56} alt="GigWay" priority
             className="object-contain" style={{ maxHeight:"37px", width:"auto" }} />
         </div>
 

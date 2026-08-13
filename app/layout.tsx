@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     title: "GigWay — India's Zero Commission Platform",
     description: "Freelance gigs lo. Full-time jobs dhundho. Poori kamaai rakho.",
     type: "website",
-    images: [{ url: '/logo.png', width: 400, height: 100, alt: 'GigWay' }],
+    images: [{ url: '/logo.png', width: 400, height: 133, alt: 'GigWay' }],
   },
   manifest: '/manifest.json',
 }

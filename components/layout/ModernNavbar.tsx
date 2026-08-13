@@ -63,7 +63,7 @@ export default function ModernNavbar() {
       <header className="sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
           <Link href="/" className="shrink-0">
-            <Image src="/logo.png" alt="GigWay" width={122} height={34} className="h-auto w-auto" />
+            <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-10 w-auto" />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
