@@ -1,9 +1,33 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, Loader2, ArrowRight, ChevronLeft, Zap, Shield, Star, AlertCircle, CheckCircle2 } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { Mail, Loader2, ArrowRight, ChevronLeft, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Briefcase, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+
+const VALUE_POINTS = [
+  { icon: Sparkles,  text: "One professional identity — freelance, full-time, or hiring" },
+  { icon: Briefcase, text: "Real opportunities across jobs, projects, and services" },
+  { icon: Users,     text: "0% platform commission, always" },
+]
+
+// Supabase auth errors can be technical/implementation-specific — never show
+// error.message directly, map to a short, friendly message instead.
+function friendlyAuthError(raw: string): string {
+  const msg = raw.toLowerCase()
+  if (msg.includes("token") || msg.includes("otp") || msg.includes("code")) {
+    if (msg.includes("expired") || msg.includes("invalid")) return "That code is incorrect or has expired. Please try again or resend."
+  }
+  if (msg.includes("rate limit") || msg.includes("security purposes") || msg.includes("too many")) {
+    return "You're trying too often — please wait a moment and try again."
+  }
+  if (msg.includes("network") || msg.includes("fetch")) {
+    return "Connection issue. Please check your internet and try again."
+  }
+  return "Something went wrong. Please try again."
+}
 
 export default function LoginPage() {
   const [email, setEmail]   = useState("")
@@ -21,7 +45,7 @@ export default function LoginPage() {
       email,
       options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
-    if (error) { setMsg({ type: "error", text: error.message }) }
+    if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }) }
     else        { setStep("otp") }
     setLoading(false)
   }
@@ -30,7 +54,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true); setMsg(null)
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" })
-    if (error) { setMsg({ type: "error", text: error.message }); setLoading(false); return }
+    if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }); setLoading(false); return }
     window.location.href = "/auth/post-login"
     setLoading(false)
   }
@@ -41,100 +65,74 @@ export default function LoginPage() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
-    if (error) { setMsg({ type: "error", text: error.message }); setLoading(false) }
+    if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }); setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
 
-      {/* ── Left panel (hero) — hidden on mobile ── */}
-      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden bg-[#0D0D18] flex-col justify-between p-12">
-        {/* Gradient orbs */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#4F46E5]/20 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-[#F97316]/10 blur-3xl pointer-events-none" />
+      {/* ── Left panel — hidden on mobile ── */}
+      <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-brand-ivory flex-col justify-between p-12">
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-indigo/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-brand-coral/8 blur-3xl pointer-events-none" />
 
-        {/* Logo */}
-        <div>
-          <span className="text-3xl font-black tracking-tight bg-gradient-to-r from-[#818CF8] via-[#A78BFA] to-[#F97316] bg-clip-text text-transparent">
-            gigWAY
-          </span>
-        </div>
+        <Link href="/" className="relative z-10">
+          <Image src="/logo.png" alt="GigWay" width={140} height={47} className="h-10 w-auto" priority />
+        </Link>
 
-        {/* Hero text */}
         <div className="relative z-10 space-y-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#4F46E5]/15 border border-[#4F46E5]/30 text-[#818CF8] text-xs font-semibold mb-5">
-              <Zap className="h-3 w-3 fill-current" /> India&apos;s Zero-Commission Platform
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill bg-white border border-brand-indigo/20 text-brand-indigo text-caption font-semibold mb-5 shadow-soft">
+              The Professional Platform for Work, Talent &amp; Opportunity
             </div>
-            <h1 className="text-5xl font-black text-white leading-tight mb-4">
-              Your career,<br />
-              <span className="bg-gradient-to-r from-[#818CF8] to-[#F97316] bg-clip-text text-transparent">
-                your terms.
-              </span>
+            <h1 className="text-h1 font-extrabold text-brand-midnight leading-tight mb-4">
+              Your career,{" "}
+              <span className="text-brand-indigo">your terms.</span>
             </h1>
-            <p className="text-[#6B7280] text-lg leading-relaxed max-w-md">
-              Freelance, find jobs, or hire talent — all on one platform. Zero commission. Full freedom.
+            <p className="text-brand-slate text-body-lg leading-relaxed max-w-md">
+              Build your professional identity, discover opportunities, and connect with the world.
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Freelancers", value: "10K+" },
-              { label: "Jobs & Hiring", value: "1.5K+" },
-              { label: "Projects Posted", value: "2K+" },
-              { label: "Commission", value: "0%" },
-            ].map(s => (
-              <div key={s.label} className="bg-white/5 border border-white/8 rounded-xl p-4 text-center">
-                <p className="text-2xl font-black text-white">{s.value}</p>
-                <p className="text-[#6B7280] text-xs mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Testimonial */}
-          <div className="bg-white/5 border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center gap-0.5 mb-2">
-              {[1,2,3,4,5].map(i => <Star key={i} className="h-3.5 w-3.5 fill-[#F97316] text-[#F97316]" />)}
-            </div>
-            <p className="text-[#CBD5E1] text-sm leading-relaxed">
-              &quot;GigWay helped me get my first 3 clients within a week. No middleman, no commission cuts. Pure income.&quot;
-            </p>
-            <div className="flex items-center gap-2 mt-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white text-xs font-bold">R</div>
-              <div>
-                <p className="text-white text-xs font-semibold">Rahul Mehta</p>
-                <p className="text-[#6B7280] text-xs">Full Stack Developer, Pune</p>
-              </div>
-            </div>
+          <div className="space-y-3.5">
+            {VALUE_POINTS.map(point => {
+              const Icon = point.icon
+              return (
+                <div key={point.text} className="flex items-center gap-3 bg-white border border-brand-borderLight rounded-2xl px-4 py-3.5 shadow-soft">
+                  <div className="w-9 h-9 rounded-xl bg-brand-indigo/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="h-4 w-4 text-brand-indigo" />
+                  </div>
+                  <p className="text-brand-midnight text-body-sm font-medium">{point.text}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        <p className="text-[#334155] text-xs relative z-10">© 2025 GigWay · Made in India</p>
+        <p className="text-brand-slate/60 text-caption relative z-10">© {new Date().getFullYear()} GigWay</p>
       </div>
 
       {/* ── Right panel (form) ── */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10">
-        {/* Mobile logo */}
-        <div className="lg:hidden mb-8 text-center">
-          <span className="text-3xl font-black bg-gradient-to-r from-[#818CF8] to-[#F97316] bg-clip-text text-transparent">
-            gigWAY
-          </span>
-          <p className="text-[#6B7280] text-sm mt-1">India&apos;s Zero-Commission Career Platform</p>
-        </div>
-
         <div className="w-full max-w-md">
+
+          {/* Logo — mobile only (desktop shows it in the left panel) */}
+          <div className="lg:hidden mb-8 flex justify-center">
+            <Link href="/">
+              <Image src="/logo.png" alt="GigWay" width={140} height={47} className="h-9 w-auto" priority />
+            </Link>
+          </div>
 
           {step === "entry" ? (
             <>
-              <div className="mb-8">
-                <h2 className="text-2xl font-black text-white mb-1">Welcome back</h2>
-                <p className="text-[#6B7280] text-sm">Sign in or create your account in seconds</p>
+              <div className="mb-7">
+                <h2 className="text-h2 font-extrabold text-brand-midnight mb-1.5">Welcome back</h2>
+                <p className="text-brand-slate text-body-sm">Continue building your professional identity and discover your next opportunity.</p>
               </div>
 
               {/* Google */}
               <button onClick={handleGoogle} disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-semibold px-5 py-3.5 rounded-xl transition-colors mb-4 text-sm disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-brand-borderLight text-brand-midnight font-semibold px-5 py-3.5 rounded-xl transition-colors mb-4 text-sm disabled:opacity-60 disabled:pointer-events-none">
                 <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -146,15 +144,15 @@ export default function LoginPage() {
 
               {/* Divider */}
               <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 h-px bg-[#1E1E2E]" />
-                <span className="text-[#4B5563] text-xs font-medium">or sign in with email</span>
-                <div className="flex-1 h-px bg-[#1E1E2E]" />
+                <div className="flex-1 h-px bg-brand-borderLight" />
+                <span className="text-brand-slate text-caption font-medium">or continue with email</span>
+                <div className="flex-1 h-px bg-brand-borderLight" />
               </div>
 
               {/* Email OTP form */}
               <form onSubmit={handleSendOtp} className="space-y-3">
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4B5563]" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-slate" />
                   <input
                     type="email"
                     placeholder="Enter your email address"
@@ -162,12 +160,12 @@ export default function LoginPage() {
                     onChange={e => setEmail(e.target.value)}
                     required
                     disabled={loading}
-                    className="w-full bg-[#12121A] border border-[#1E1E2E] focus:border-[#4F46E5] rounded-xl pl-10 pr-4 py-3.5 text-[#F8FAFC] text-sm placeholder:text-[#4B5563] outline-none transition-colors"
+                    className="w-full bg-white border border-brand-borderLight focus:border-brand-indigo rounded-xl pl-10 pr-4 py-3.5 text-brand-midnight text-sm placeholder:text-brand-slate/70 outline-none transition-colors focus:ring-4 focus:ring-brand-indigo/10"
                   />
                 </div>
 
                 <button type="submit" disabled={loading || !email.trim()}
-                  className="w-full flex items-center justify-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-5 py-3.5 rounded-xl transition-colors text-sm disabled:opacity-50">
+                  className="w-full flex items-center justify-center gap-2 bg-brand-indigo hover:bg-brand-indigoDark text-white font-semibold px-5 py-3.5 rounded-xl transition-all text-sm shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none">
                   {loading
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending code...</>
                     : <><span>Send login code</span><ArrowRight className="h-4 w-4" /></>
@@ -175,9 +173,9 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {/* Trust badge */}
-              <div className="flex items-center justify-center gap-1.5 mt-5 text-[#4B5563] text-xs">
-                <Shield className="h-3.5 w-3.5" />
+              {/* Trust line */}
+              <div className="flex items-center justify-center gap-1.5 mt-5 text-brand-slate text-caption">
+                <ShieldCheck className="h-3.5 w-3.5" />
                 <span>Secure OTP · No password needed · Free forever</span>
               </div>
             </>
@@ -185,15 +183,15 @@ export default function LoginPage() {
             <>
               {/* OTP step */}
               <button onClick={() => { setStep("entry"); setOtp(""); setMsg(null) }}
-                className="flex items-center gap-1.5 text-[#6B7280] hover:text-white text-sm mb-8 transition-colors">
+                className="flex items-center gap-1.5 text-brand-slate hover:text-brand-midnight text-sm mb-8 transition-colors">
                 <ChevronLeft className="h-4 w-4" /> Back
               </button>
 
-              <div className="mb-8">
-                <h2 className="text-2xl font-black text-white mb-1">Check your inbox</h2>
-                <p className="text-[#6B7280] text-sm">
+              <div className="mb-7">
+                <h2 className="text-h2 font-extrabold text-brand-midnight mb-1.5">Check your inbox</h2>
+                <p className="text-brand-slate text-body-sm">
                   We sent a 6-digit code to{" "}
-                  <span className="text-[#818CF8] font-semibold">{email}</span>
+                  <span className="text-brand-indigo font-semibold">{email}</span>
                 </p>
               </div>
 
@@ -206,21 +204,21 @@ export default function LoginPage() {
                   onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   required
                   disabled={loading}
-                  className="w-full bg-[#12121A] border border-[#1E1E2E] focus:border-[#4F46E5] rounded-xl px-4 py-4 text-[#F8FAFC] text-2xl font-mono tracking-[0.5em] text-center outline-none transition-colors placeholder:text-[#2A2A3E] placeholder:tracking-[0.5em]"
+                  className="w-full bg-white border border-brand-borderLight focus:border-brand-indigo rounded-xl px-4 py-4 text-brand-midnight text-2xl font-mono tracking-[0.5em] text-center outline-none transition-colors focus:ring-4 focus:ring-brand-indigo/10 placeholder:text-slate-300 placeholder:tracking-[0.5em]"
                   maxLength={6}
                   autoFocus
                 />
 
                 <button type="submit" disabled={loading || otp.length < 6}
-                  className="w-full flex items-center justify-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-5 py-3.5 rounded-xl transition-colors text-sm disabled:opacity-50">
+                  className="w-full flex items-center justify-center gap-2 bg-brand-indigo hover:bg-brand-indigoDark text-white font-semibold px-5 py-3.5 rounded-xl transition-all text-sm shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none">
                   {loading
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying...</>
-                    : <><span>Verify & Continue</span><ArrowRight className="h-4 w-4" /></>
+                    : <><span>Verify &amp; Continue</span><ArrowRight className="h-4 w-4" /></>
                   }
                 </button>
 
                 <button type="button" onClick={handleSendOtp} disabled={loading}
-                  className="w-full text-[#6B7280] hover:text-[#818CF8] text-xs py-2 transition-colors">
+                  className="w-full text-brand-slate hover:text-brand-indigo text-xs py-2 transition-colors disabled:opacity-50 disabled:pointer-events-none">
                   Didn&apos;t receive it? Resend code
                 </button>
               </form>
@@ -232,8 +230,8 @@ export default function LoginPage() {
             <div role="alert" className={cn(
               "mt-4 p-3.5 rounded-xl text-sm border flex items-start gap-2",
               msg.type === "success"
-                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                : "bg-red-500/10 border-red-500/25 text-red-400"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-red-50 border-red-200 text-red-700"
             )}>
               {msg.type === "success"
                 ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -243,10 +241,19 @@ export default function LoginPage() {
           )}
 
           {/* Bottom note */}
-          <p className="text-center text-[#334155] text-xs mt-8 leading-relaxed">
+          <p className="text-center text-brand-slate/70 text-caption mt-8 leading-relaxed">
             By continuing, you agree to GigWay&apos;s Terms of Service.<br />
             Choose your username and what you&apos;re open to after signing in.
           </p>
+
+          {/* Lightweight footer */}
+          <div className="flex items-center justify-center gap-4 mt-6 text-caption">
+            <Link href="/privacy" className="text-brand-slate hover:text-brand-indigo transition-colors">Privacy</Link>
+            <span className="text-brand-borderLight">·</span>
+            <Link href="/terms" className="text-brand-slate hover:text-brand-indigo transition-colors">Terms</Link>
+            <span className="text-brand-borderLight">·</span>
+            <Link href="/contact" className="text-brand-slate hover:text-brand-indigo transition-colors">Contact</Link>
+          </div>
         </div>
       </div>
     </div>
