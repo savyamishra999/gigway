@@ -77,14 +77,13 @@ export default function ModernNavbar() {
             ))}
           </nav>
 
-          <Link href="/explore" aria-label="Search"
-            className="group hidden md:flex ml-auto max-w-xl flex-1 items-center gap-3 rounded-pill border-2 border-brand-indigo/20 bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.04),0_10px_26px_-8px_rgba(79,70,229,.22),0_6px_18px_-10px_rgba(255,107,53,.15)] transition-all duration-200 hover:border-brand-indigo/35 hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.08),0_12px_30px_-6px_rgba(79,70,229,.3),0_8px_20px_-8px_rgba(255,107,53,.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-indigo focus-visible:ring-offset-2">
+          <form onSubmit={(e) => { e.preventDefault(); const value = new FormData(e.currentTarget).get("q")?.toString().trim(); router.push(`/explore${value ? `?q=${encodeURIComponent(value)}` : ""}`) }} className="group hidden md:flex ml-auto max-w-xl flex-1 items-center gap-3 rounded-pill border-2 border-brand-indigo/20 bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.04),0_10px_26px_-8px_rgba(79,70,229,.22),0_6px_18px_-10px_rgba(255,107,53,.15)] transition-all duration-200 hover:border-brand-indigo/35">
             <Search className="h-4 w-4 text-brand-indigo flex-shrink-0" />
-            <span className="truncate text-body-sm font-medium text-brand-slate">Search people, skills, jobs, projects, or services...</span>
-            <span className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-indigo/10 text-brand-indigo transition-colors group-hover:bg-brand-indigo group-hover:text-white">
+            <input name="q" className="min-w-0 flex-1 bg-transparent text-body-sm font-medium text-brand-midnight outline-none placeholder:text-brand-slate" placeholder="Search people, skills, jobs, projects, or services..." />
+            <button aria-label="Submit search" className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-indigo/10 text-brand-indigo transition-colors group-hover:bg-brand-indigo group-hover:text-white">
               <Search className="h-3.5 w-3.5" />
-            </span>
-          </Link>
+            </button>
+          </form>
 
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <Link href="/explore" aria-label="Search"
