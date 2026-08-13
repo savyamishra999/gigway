@@ -6,11 +6,11 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Browse Gigs | GigWay — India's Freelance Marketplace",
-  description: "Find top freelance gigs in India for design, development, writing, marketing, and more. Zero commission on GigWay.",
+  title: "Browse Services | GigWay",
+  description: "Find services from professionals across design, technology, marketing, writing and more. Zero commission on GigWay.",
   openGraph: {
-    title: "Browse Gigs | GigWay",
-    description: "India's best freelance gig marketplace. No commission, instant hire.",
+    title: "Browse Services | GigWay",
+    description: "GigWay's global services marketplace — zero commission, book instantly.",
     type: "website",
   },
 }
@@ -23,7 +23,7 @@ export default async function GigsPage() {
     { data: { user } },
   ] = await Promise.all([
     supabase.from("gigs")
-      .select("id, title, price, delivery_days, category, tags, rating, orders_count, image_url, freelancer_id, owner_id, created_at, is_featured, featured_until")
+      .select("id, title, price, delivery_days, category, tags, rating, orders_count, image_url, freelancer_id, owner_id, created_at, is_featured, featured_until, profiles:freelancer_id(full_name, username, avg_rating, is_verified)")
       .eq("status", "active")
       .order("is_featured", { ascending: false })
       .order("orders_count",  { ascending: false })
@@ -50,26 +50,31 @@ export default async function GigsPage() {
   const ad = await fetchAd("gigs", gigRoles, gigFwType, null)
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
-      <div className="bg-gradient-to-b from-[#12121A] to-[#0A0A0F] border-b border-[#1E1E2E] py-10">
+    <div className="min-h-screen bg-brand-ivory">
+      {/* Header */}
+      <div className="bg-white border-b border-brand-borderLight py-10 sm:py-14">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-3xl font-black text-white">Browse Gigs</h1>
-              <p className="text-[#6B7280] text-sm mt-1">Find top freelance services across India — zero commission</p>
+              <h1 className="text-h1 font-extrabold text-brand-midnight">Find the right service for your next idea</h1>
+              <p className="text-brand-slate text-body-sm sm:text-body-lg mt-2 max-w-xl">
+                Discover services from professionals across design, technology, marketing, writing and more.
+              </p>
             </div>
             {canCreateGig && (
               <Link href="/gigs/new"
-                className="bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-lg shadow-[#4F46E5]/20 hover:opacity-90 transition-opacity"
+                className="flex-shrink-0 bg-brand-indigo hover:bg-brand-indigoDark text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]"
               >
-                + Create Gig
+                + Create a Service
               </Link>
             )}
           </div>
-
-          {ad && <BannerAd ad={ad} className="mb-6" />}
-          <GigsClient initialGigs={initialGigs ?? []} />
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {ad && <BannerAd ad={ad} className="mb-6" />}
+        <GigsClient initialGigs={initialGigs ?? []} />
       </div>
     </div>
   )

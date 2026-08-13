@@ -16,7 +16,7 @@ export default async function NewGigPage() {
   if (!profile?.profile_completed) redirect("/onboarding")
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] py-10">
+    <div className="min-h-screen bg-brand-ivory py-10">
       <div className="container mx-auto px-4 max-w-2xl">
         <GigForm userId={user.id} />
       </div>
