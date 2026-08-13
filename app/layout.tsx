@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Manrope } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
@@ -7,21 +7,26 @@ import Footer from '@/components/layout/Footer'
 
 const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-manrope' })
 
+// Icons are resolved via the App Router file convention (app/icon.png,
+// app/apple-icon.png, app/favicon.ico) — deliberately not duplicated here via
+// metadata.icons, since having both point to different assets is what caused
+// the browser tab to show a stale/default icon.
 export const metadata: Metadata = {
-  title: "GigWay — India's Zero Commission Freelance & Jobs Platform",
-  description: "Find freelancers, post projects, browse jobs and gigs — zero commission. India's first hybrid freelance + jobs platform. Hire top talent or find your dream gig today.",
+  metadataBase: new URL('https://www.gigway.in'),
+  title: 'GigWay — Your Work. Your Network. Your Next Opportunity.',
+  description: 'The Professional Platform for Work, Talent & Opportunity.',
   keywords: "freelance india, jobs india, hire freelancer, zero commission, freelancer platform india, internship india, gig work india",
-  icons: {
-    icon: '/favicon.png',
-    apple: '/icon.png',
-  },
   openGraph: {
-    title: "GigWay — India's Zero Commission Platform",
-    description: "Freelance gigs lo. Full-time jobs dhundho. Poori kamaai rakho.",
+    title: 'GigWay — Your Work. Your Network. Your Next Opportunity.',
+    description: 'The Professional Platform for Work, Talent & Opportunity.',
     type: "website",
     images: [{ url: '/logo.png', width: 400, height: 133, alt: 'GigWay' }],
   },
   manifest: '/manifest.json',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#4F46E5',
 }
 
 export default function RootLayout({

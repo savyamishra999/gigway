@@ -1,11 +1,11 @@
 {
-  "name": "Freelance Baap",
-  "short_name": "Baap",
-  "description": "India ka sabse bharosemand freelance platform",
+  "name": "GigWay — Your Work. Your Network. Your Next Opportunity.",
+  "short_name": "GigWay",
+  "description": "The Professional Platform for Work, Talent & Opportunity.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#F8FAFC",
+  "theme_color": "#4F46E5",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
