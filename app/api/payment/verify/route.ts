@@ -11,9 +11,11 @@ export async function POST(req: NextRequest) {
   if (![razorpay_payment_id, razorpay_order_id, razorpay_signature].every(Boolean)) return NextResponse.json({ error: "Missing payment details" }, { status: 400 })
   const secret = process.env.RAZORPAY_KEY_SECRET; const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID
   if (!secret || !keyId) return NextResponse.json({ error: "Payment gateway not configured" }, { status: 500 })
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) return NextResponse.json({ error: "Payment verification storage is not configured" }, { status: 503 })
   const signature = crypto.createHmac("sha256", secret).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex")
   if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(razorpay_signature))) return NextResponse.json({ error: "Invalid payment signature" }, { status: 400 })
-  const admin = serviceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const admin = serviceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
   const { data: pending } = await admin.from("payment_orders").select("user_id,product_key,amount_paise,currency,status,razorpay_payment_id").eq("razorpay_order_id", razorpay_order_id).maybeSingle()
   if (!pending || pending.user_id !== user.id) return NextResponse.json({ error: "Payment order not found" }, { status: 404 })
   if (pending.razorpay_payment_id && pending.razorpay_payment_id !== razorpay_payment_id) return NextResponse.json({ error: "Order already linked to another payment" }, { status: 409 })
