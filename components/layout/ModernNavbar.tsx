@@ -13,6 +13,7 @@ const links = [
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/projects", label: "Projects", icon: Compass },
   { href: "/gigs", label: "Gigs", icon: Package },
+  { href: "/subscribe", label: "Pricing", icon: Package },
 ]
 
 const MOBILE_TABS = [
@@ -24,6 +25,7 @@ const MOBILE_TABS = [
 ]
 
 const MENU_ITEMS = [
+  { href: "/subscribe", label: "GigWay Pro", icon: Package },
   { href: "/profile", label: "View Profile", icon: UserRound },
   { href: "/profile/edit", label: "Edit Profile", icon: UserRound },
   { href: "/profile", label: "My Organizations", icon: Building2 },

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Product } from "./catalog"
 
-export type UserEntitlements = { pro: boolean; business: boolean; verified: boolean; verificationPaid: boolean; tier: "free" | "pro" | "business" }
+export type UserEntitlements = { pro: boolean; business: boolean; verified: boolean; verificationPaid: boolean; tier: "free" | "pro" | "business"; expiresAt: string | null }
 export async function getUserEntitlements(db: SupabaseClient, userId: string): Promise<UserEntitlements> {
   const now = new Date().toISOString()
   const [{ data }, { data: profile }] = await Promise.all([
@@ -10,7 +10,9 @@ export async function getUserEntitlements(db: SupabaseClient, userId: string): P
   ])
   const active = (data || []).filter(e => e.tier === "verified" || (!!e.expires_at && e.expires_at > now))
   const business = active.some(e => e.tier === "business"); const pro = business || active.some(e => e.tier === "pro")
-  return { pro, business, verified: !!(profile?.is_verified || profile?.verification_status === "verified"), verificationPaid: active.some(e => e.tier === "verified"), tier: business ? "business" : pro ? "pro" : "free" }
+  const tier = business ? "business" : pro ? "pro" : "free"
+  const expiresAt = active.filter(e => e.tier === tier && e.expires_at).map(e => e.expires_at as string).sort().at(-1) || null
+  return { pro, business, verified: !!(profile?.is_verified || profile?.verification_status === "verified"), verificationPaid: active.some(e => e.tier === "verified"), tier, expiresAt }
 }
 export async function provisionProduct(db: SupabaseClient, args: { userId: string; product: Product; paymentId: string; orderId: string }) {
   const { data: already } = await db.from("entitlements").select("id").eq("razorpay_payment_id", args.paymentId).maybeSingle()

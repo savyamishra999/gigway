@@ -7,3 +7,9 @@ export const PRODUCTS: Record<Product["key"], Product> = {
   verified: { key: "verified", tier: "verified", amountPaise: 29900, durationDays: null, kind: "verification", label: "GigWay Verified" },
 }
 export function getProduct(key: unknown): Product | null { return typeof key === "string" && key in PRODUCTS ? PRODUCTS[key as Product["key"]] : null }
+export const RATE_CARD = {
+  free: ["Professional profile and discovery", "2 job applications/month", "1 project proposal/month", "1 active service, 2 portfolio items, 3 saved opportunities", "1 active job and 1 active project"],
+  pro: ["50 job applications/month", "30 project proposals/month", "Up to 10 active services", "Up to 20 portfolio items", "Unlimited saved opportunities"],
+  business: ["Up to 10 active jobs", "Up to 10 active projects", "Hiring-focused access"],
+} as const
+export const displayPrice = (product: Product) => `₹${(product.amountPaise / 100).toLocaleString("en-IN")}`
