@@ -1,0 +1,3 @@
+import Link from "next/link"
+import { LockKeyhole } from "lucide-react"
+export default function UpgradeLock({ title, detail }: { title: string; detail: string }) { return <div className="rounded-card border border-brand-indigo/20 bg-brand-indigo/[.04] p-5 text-center"><LockKeyhole className="mx-auto h-5 w-5 text-brand-indigo" /><h3 className="mt-2 font-extrabold text-brand-midnight">{title}</h3><p className="mt-1 text-body-sm text-brand-slate">{detail}</p><Link href="/subscribe" className="mt-4 inline-block rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-bold text-white">Upgrade to Pro — ₹149</Link></div> }

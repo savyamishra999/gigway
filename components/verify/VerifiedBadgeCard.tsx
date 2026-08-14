@@ -76,7 +76,7 @@ export default function VerifiedBadgeCard({ verificationStatus, isVerified }: Ve
       const res = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "verified_badge" }),
+        body: JSON.stringify({ product_key: "verified" }),
       })
       const text = await res.text()
       orderData = text ? JSON.parse(text) : {}
@@ -109,7 +109,6 @@ export default function VerifiedBadgeCard({ verificationStatus, isVerified }: Ve
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              plan_type: "verified_badge",
             }),
           })
           const data = await verifyRes.json()

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { getUsageLimit, limitResponse } from "@/lib/billing/limits"
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You have already applied to this project" }, { status: 409 })
   }
 
+  // Plan limit is checked before any connect can be deducted.
+  const usage = await getUsageLimit(supabase, user.id, "proposals")
+  if (!usage.allowed) return NextResponse.json(limitResponse(usage), { status: 403 })
   // Check connects balance
   const { data: profile } = await supabase
     .from("profiles")

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
+import { getProduct } from "@/lib/billing/catalog"
+import { provisionProduct } from "@/lib/billing/entitlements"
 
 // Use service-role client — webhook has no user session
 const supabase = createClient(
@@ -20,18 +22,19 @@ export async function POST(req: NextRequest) {
   // Read raw body for signature verification
   const rawBody = await req.text()
   const signature = req.headers.get("x-razorpay-signature") ?? ""
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? ""
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET
 
   if (!secret) {
     // Webhook secret not configured — skip signature check in dev
-    console.warn("RAZORPAY_WEBHOOK_SECRET not set")
+    console.error("[razorpay-webhook] webhook secret is not configured")
+    return NextResponse.json({ error: "Webhook unavailable" }, { status: 503 })
   } else {
     const expected = crypto
       .createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex")
 
-    if (expected !== signature) {
+    if (!signature || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 })
     }
   }
@@ -54,11 +57,27 @@ export async function POST(req: NextRequest) {
     const paymentId = entity.id as string
     const orderId   = entity.order_id as string
     const notes     = (entity.notes as Record<string, string>) ?? {}
-    const planType  = notes.plan_type
+    const planType  = notes.plan_type ?? notes.product_key
     const userId    = notes.user_id
 
     if (!planType || !userId) {
       // No metadata attached — nothing to provision
+      return NextResponse.json({ ok: true })
+    }
+
+    // New prepaid products are tied to a server-recorded order. The signed
+    // webhook never trusts browser metadata for their price or entitlement.
+    const { data: paymentOrder } = await supabase
+      .from("payment_orders")
+      .select("user_id, product_key, amount_paise, currency")
+      .eq("razorpay_order_id", orderId)
+      .maybeSingle()
+    if (paymentOrder) {
+      const product = getProduct(paymentOrder.product_key)
+      if (!product || paymentOrder.user_id !== userId || paymentOrder.amount_paise !== product.amountPaise || paymentOrder.currency !== "INR") {
+        return NextResponse.json({ error: "Invalid prepaid order" }, { status: 400 })
+      }
+      await provisionProduct(supabase, { userId, product, paymentId, orderId })
       return NextResponse.json({ ok: true })
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
+import { getUsageLimit, limitResponse } from "@/lib/billing/limits"
 
 const adminDb = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,6 +28,16 @@ export async function POST(req: NextRequest) {
     expected_salary, preferred_job_type,
     company_name, company_size, company_website, industry, gst_number,
   } = body
+
+  const requestedPortfolio = Array.isArray(portfolio_links) ? portfolio_links : []
+  if (requestedPortfolio.length) {
+    // Onboarding can create the profile row, so use the service client while
+    // still resolving entitlement from server-side records only.
+    const usage = await getUsageLimit(adminDb, user.id, "portfolio")
+    if (requestedPortfolio.length > usage.limit) {
+      return NextResponse.json({ ...limitResponse(usage), feature: "portfolio", currentUsage: usage.used, requiredPlan: "pro" }, { status: 403 })
+    }
+  }
 
   if (!full_name?.trim()) {
     return NextResponse.json({ error: "Full name is required" }, { status: 400 })

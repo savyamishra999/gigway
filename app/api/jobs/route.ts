@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { getUsageLimit, limitResponse } from "@/lib/billing/limits"
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -52,6 +53,8 @@ export async function POST(request: Request) {
   if (!title || !description || !category) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
   }
+  const usage = await getUsageLimit(supabase, user.id, "jobs")
+  if (!usage.allowed) return NextResponse.json(limitResponse(usage), { status: 403 })
 
   const { data: job, error } = await supabase
     .from("jobs")

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -41,7 +40,6 @@ export default function ProjectForm({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const supabase = createClient()
 
   const addSkill = (skill: string) => {
     const trimmed = skill.trim()
@@ -60,28 +58,10 @@ export default function ProjectForm({ userId }: { userId: string }) {
     setLoading(true)
     setError("")
 
-    const { data, error: insertError } = await supabase
-      .from("projects")
-      .insert({
-        client_id: userId,
-        title,
-        description,
-        category,
-        project_type: projectType,
-        budget: parseFloat(budget),
-        deadline: deadline || null,
-        skills_required: skillsRequired,
-        status: "open",
-      })
-      .select("id")
-      .single()
-
-    setLoading(false)
-    if (insertError) {
-      setError("Error posting project: " + insertError.message)
-    } else {
-      router.push(`/projects/${data.id}`)
-    }
+    const response = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, category, project_type: projectType, budget, deadline, skills_required: skillsRequired }) })
+    const data = await response.json().catch(() => ({})); setLoading(false)
+    if (!response.ok) setError(data.error === "upgrade_required" ? "Your free project slot is already active. Upgrade to GigWay Business for more hiring capacity." : data.error || "Unable to post project.")
+    else router.push(`/projects/${data.project_id}`)
   }
 
   return (

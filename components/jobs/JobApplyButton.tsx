@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -19,7 +18,6 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
   const [coverLetter, setCoverLetter] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const supabase = createClient()
   const router = useRouter()
 
   const handleApply = async (e: React.FormEvent) => {
@@ -27,16 +25,10 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
     setLoading(true)
     setMessage(null)
 
-    const { error } = await supabase.from("job_applications").insert({
-      job_id: jobId,
-      applicant_id: userId,
-      cover_letter: coverLetter || null,
-      status: "pending",
-    })
-
-    setLoading(false)
-    if (error) {
-      setMessage({ type: "error", text: "Error applying: " + error.message })
+    const response = await fetch("/api/applications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: jobId, cover_letter: coverLetter }) })
+    const data = await response.json().catch(() => ({})); setLoading(false)
+    if (!response.ok) {
+      setMessage({ type: "error", text: data.error === "upgrade_required" ? "You've used your free applications this month. Unlock more opportunities with GigWay Pro." : data.error || "Unable to submit application." })
     } else {
       setMessage({ type: "success", text: "Application submitted successfully!" })
       router.refresh()

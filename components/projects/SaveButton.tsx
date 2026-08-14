@@ -32,15 +32,12 @@ export default function SaveButton({ projectId, userId }: { projectId: string; u
   const toggle = async () => {
     setLoading(true)
     if (saved && savedItemId) {
-      const { error } = await supabase.from("saved_items").delete().eq("id", savedItemId)
-      if (!error) { setSaved(false); setSavedItemId(null) }
+      const response = await fetch("/api/saved-items", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: savedItemId }) })
+      if (response.ok) { setSaved(false); setSavedItemId(null) }
     } else {
-      const { data, error } = await supabase
-        .from("saved_items")
-        .insert({ user_id: userId, item_type: "project", item_id: projectId })
-        .select("id")
-        .single()
-      if (!error && data) { setSaved(true); setSavedItemId(data.id) }
+      const response = await fetch("/api/saved-items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item_type: "project", item_id: projectId }) })
+      const data = await response.json().catch(() => ({}))
+      if (response.ok && data.id) { setSaved(true); setSavedItemId(data.id) }
     }
     setLoading(false)
   }

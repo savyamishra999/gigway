@@ -57,7 +57,7 @@ export default function RazorpayButton({ planType, label, className }: RazorpayB
       orderRes = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: planType }),
+        body: JSON.stringify({ product_key: planType }),
       })
       const text = await orderRes.text()
       orderData = text ? JSON.parse(text) : {}
@@ -96,7 +96,6 @@ export default function RazorpayButton({ planType, label, className }: RazorpayB
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              plan_type: planType,
             }),
           })
           const text = await verifyRes.text()
@@ -108,7 +107,7 @@ export default function RazorpayButton({ planType, label, className }: RazorpayB
         }
 
         if (verifyData.success) {
-          router.push("/dashboard?payment=success")
+          router.push("/payment/success")
           router.refresh()
         } else {
           setError("Payment verification failed. Contact support.")

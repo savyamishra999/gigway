@@ -183,7 +183,7 @@ export default function VerifyClient({ status, paidAt, verifyRole, userName }: P
       const orderRes = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "verification_yearly" }),
+        body: JSON.stringify({ product_key: "verified" }),
       })
       const order = await orderRes.json()
       if (!orderRes.ok) {
@@ -213,7 +213,6 @@ export default function VerifyClient({ status, paidAt, verifyRole, userName }: P
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id:   response.razorpay_order_id,
               razorpay_signature:  response.razorpay_signature,
-              plan_type:           "verification_yearly",
             }),
           })
           if (verify.ok) {

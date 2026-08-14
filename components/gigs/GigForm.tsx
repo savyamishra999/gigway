@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -36,7 +35,6 @@ export default function GigForm({ userId }: { userId: string }) {
   const [tags, setTags] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const supabase = createClient()
   const router = useRouter()
 
   const addTag = (t: string) => {
@@ -53,26 +51,10 @@ export default function GigForm({ userId }: { userId: string }) {
     if (!price || isNaN(Number(price)) || Number(price) <= 0) { setError("Enter a valid starting price"); return }
     setLoading(true); setError("")
 
-    const { data, error: insertError } = await supabase
-      .from("gigs")
-      .insert({
-        freelancer_id: userId,
-        owner_id: userId,
-        title,
-        description,
-        category: category.toLowerCase(),
-        price: parseFloat(price),
-        delivery_days: parseInt(deliveryDays),
-        image_url: imageUrl || null,
-        tags,
-        status: "active",
-      })
-      .select("id")
-      .single()
-
-    setLoading(false)
-    if (insertError) { setError("Error creating service: " + insertError.message); return }
-    router.push(`/gigs/${data.id}`)
+    const response = await fetch("/api/gigs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, category, price, delivery_days: deliveryDays, tags, image_url: imageUrl || null }) })
+    const data = await response.json().catch(() => ({})); setLoading(false)
+    if (!response.ok) { setError(data.error === "upgrade_required" ? "Your free service slot is already active. Upgrade to Pro for up to 10 active services." : data.error || "Unable to publish service."); return }
+    router.push(`/gigs/${data.gig_id}`)
   }
 
   return (
