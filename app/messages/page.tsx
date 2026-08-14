@@ -1,120 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
+import { MessageSquare, Search } from "lucide-react"
+
+type Conversation = { userId: string; lastMessage: string; lastTime: string; unread: number; profile: { full_name: string | null; username: string | null; avatar_url: string | null } | null }
+function timeAgo(date: string) { const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000); if (mins < 1) return "now"; if (mins < 60) return `${mins}m`; if (mins < 1440) return `${Math.floor(mins / 60)}h`; return `${Math.floor(mins / 1440)}d` }
 
 export default function MessagesPage() {
-  const [user, setUser] = useState<{ id: string } | null>(null)
-  const [conversations, setConversations] = useState<{
-    userId: string
-    lastMessage: string
-    lastTime: string
-    unread: number
-    profile: { full_name: string | null; avatar_url: string | null } | null
-  }[]>([])
-  const [loading, setLoading] = useState(true)
+  const [conversations, setConversations] = useState<Conversation[]>([]); const [loading, setLoading] = useState(true); const [search, setSearch] = useState("")
   const supabase = createClient()
-
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser) { setLoading(false); return }
-      setUser(authUser)
-
-      const { data, error } = await supabase
-        .from("messages")
-        .select("id, content, created_at, is_read, sender_id, receiver_id")
-        .or(`sender_id.eq.${authUser.id},receiver_id.eq.${authUser.id}`)
-        .order("created_at", { ascending: false })
-
-      console.log("Messages:", { data, error })
-
-      if (data) {
-        const convMap: Record<string, { userId: string; lastMessage: string; lastTime: string; unread: number }> = {}
-        data.forEach(msg => {
-          const otherId = msg.sender_id === authUser.id ? msg.receiver_id : msg.sender_id
-          if (!convMap[otherId]) {
-            convMap[otherId] = { userId: otherId, lastMessage: msg.content, lastTime: msg.created_at, unread: 0 }
-          }
-          if (msg.receiver_id === authUser.id && !msg.is_read) {
-            convMap[otherId].unread++
-          }
-        })
-
-        const convList = Object.values(convMap)
-        const withProfiles = await Promise.all(
-          convList.map(async (conv) => {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("full_name, avatar_url")
-              .eq("id", conv.userId)
-              .single()
-            return { ...conv, profile: profile ?? null }
-          })
-        )
-        setConversations(withProfiles)
-      }
-      setLoading(false)
-    }
-    init()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
-        <p className="text-[#94A3B8]">Loading messages...</p>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center gap-4">
-        <p className="text-[#94A3B8] text-lg">Please login to view messages</p>
-        <Link href="/login" className="bg-[#6366F1] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-[#4F46E5] transition-colors">
-          Login
-        </Link>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0F172A] py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-[#F8FAFC] text-2xl font-bold mb-6">Messages</h1>
-
-        {conversations.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-[#94A3B8] text-lg mb-2">No conversations yet</p>
-            <p className="text-[#475569] text-sm">Start a conversation from a freelancer profile</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {conversations.map(conv => (
-              <Link key={conv.userId} href={`/messages/${conv.userId}`} className="no-underline">
-                <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 flex items-center gap-3 hover:border-[#6366F1]/40 transition-colors cursor-pointer">
-                  <div className="w-11 h-11 rounded-full bg-[#4F46E5] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 overflow-hidden">
-                    {conv.profile?.avatar_url
-                      ? <img src={conv.profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                      : (conv.profile?.full_name?.[0] ?? "?").toUpperCase()
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#F8FAFC] font-semibold mb-0.5">{conv.profile?.full_name ?? "Unknown User"}</p>
-                    <p className="text-[#94A3B8] text-sm truncate">{conv.lastMessage}</p>
-                  </div>
-                  {conv.unread > 0 && (
-                    <span className="bg-[#6366F1] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {conv.unread > 9 ? "9+" : conv.unread}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
+  useEffect(() => { const load = async () => { const { data: { user } } = await supabase.auth.getUser(); if (!user) { setLoading(false); return }
+    const { data } = await supabase.from("messages").select("content,created_at,is_read,sender_id,receiver_id").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order("created_at", { ascending: false })
+    const map: Record<string, Omit<Conversation, "profile">> = {}; (data || []).forEach(m => { const id = m.sender_id === user.id ? m.receiver_id : m.sender_id; if (!map[id]) map[id] = { userId: id, lastMessage: m.content, lastTime: m.created_at, unread: 0 }; if (m.receiver_id === user.id && !m.is_read) map[id].unread++ })
+    const list = await Promise.all(Object.values(map).map(async c => { const { data: profile } = await supabase.from("profiles").select("full_name,username,avatar_url").eq("id", c.userId).maybeSingle(); return { ...c, profile } })); setConversations(list); setLoading(false) }; load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const visible = useMemo(() => conversations.filter(c => `${c.profile?.full_name || ""} ${c.profile?.username || ""} ${c.lastMessage}`.toLowerCase().includes(search.toLowerCase())), [conversations, search])
+  return <div className="min-h-screen bg-brand-ivory py-6 sm:py-10"><div className="mx-auto max-w-5xl px-4"><div className="mb-5 flex items-end justify-between"><div><p className="text-caption font-bold tracking-[.16em] text-brand-coral">COMMUNICATION</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight">Messages</h1><p className="mt-1 text-body-sm text-brand-slate">Professional conversations in one place.</p></div></div><section className="overflow-hidden rounded-card border border-brand-borderLight bg-white shadow-soft"><div className="border-b border-brand-borderLight p-4"><label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-slate" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search conversations" className="w-full rounded-xl border border-brand-borderLight bg-brand-ivory py-2.5 pl-10 pr-3 text-body-sm outline-none focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/10" /></label></div>{loading ? <div className="p-8 text-body-sm text-brand-slate">Loading conversations…</div> : visible.length === 0 ? <div className="px-6 py-20 text-center"><MessageSquare className="mx-auto mb-4 h-10 w-10 text-brand-slate/35" /><h2 className="font-bold text-brand-midnight">No conversations yet.</h2><p className="mt-2 text-body-sm text-brand-slate">Your conversations with professionals and organizations will appear here.</p></div> : <div>{visible.map(c => <Link key={c.userId} href={`/messages/${c.userId}`} className={`flex items-center gap-3 border-b border-brand-borderLight px-4 py-4 last:border-0 transition hover:bg-brand-ivory ${c.unread ? "bg-brand-indigo/[.035]" : ""}`}><div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo">{c.profile?.avatar_url ? <img src={c.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : c.profile?.full_name?.[0]?.toUpperCase() || "G"}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><p className={`truncate text-body-sm ${c.unread ? "font-extrabold text-brand-midnight" : "font-semibold text-brand-midnight"}`}>{c.profile?.full_name || "GigWay member"}</p><span className="text-caption text-brand-slate">{timeAgo(c.lastTime)}</span></div>{c.profile?.username && <p className="text-caption text-brand-slate">@{c.profile.username}</p>}<p className={`mt-1 truncate text-body-sm ${c.unread ? "font-semibold text-brand-midnight" : "text-brand-slate"}`}>{c.lastMessage}</p></div>{c.unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-indigo px-1 text-[10px] font-bold text-white">{c.unread > 9 ? "9+" : c.unread}</span>}</Link>)}</div>}</section></div></div>
 }
