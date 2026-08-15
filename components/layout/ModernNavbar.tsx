@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, UserRound, X } from "lucide-react"
+import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 const links = [
@@ -25,6 +25,7 @@ const MOBILE_TABS = [
 ]
 
 const MENU_ITEMS = [
+  { href: "/ai-tools", label: "Professional Tools", icon: Sparkles },
   { href: "/subscribe", label: "GigWay Pro", icon: Package },
   { href: "/profile", label: "View Profile", icon: UserRound },
   { href: "/profile/edit", label: "Edit Profile", icon: UserRound },
