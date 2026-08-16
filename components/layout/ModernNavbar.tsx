@@ -41,6 +41,7 @@ export default function ModernNavbar() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [profile, setProfile] = useState<{ full_name?: string | null; username?: string | null; avatar_url?: string | null } | null>(null)
   const [open, setOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -59,7 +60,17 @@ export default function ModernNavbar() {
   const avatar = profile?.avatar_url
     ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
     : <span>{initial}</span>
-  const logout = async () => { await supabase.auth.signOut(); router.push("/"); router.refresh() }
+  const logout = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    setOpen(false)
+    try {
+      await supabase.auth.signOut({ scope: "local" })
+    } catch {
+      // Still navigate away: stale UI is worse than leaving the user stuck.
+    }
+    window.location.replace("/")
+  }
 
   return (
     <>
@@ -144,8 +155,8 @@ export default function ModernNavbar() {
                     {item.label}
                   </Link>
                 ))}
-                <button onClick={logout} className="w-full rounded-lg px-3 py-2 text-left text-body-sm text-brand-coral hover:bg-brand-coral/5">
-                  Sign out
+                <button onClick={logout} disabled={signingOut} className="w-full rounded-lg px-3 py-2 text-left text-body-sm text-brand-coral hover:bg-brand-coral/5 disabled:opacity-60">
+                  {signingOut ? "Signing out…" : "Sign out"}
                 </button>
               </div>
             ) : (
