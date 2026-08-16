@@ -3,13 +3,13 @@ import { ArrowRight, Briefcase, CheckCircle2, MapPin, Star } from "lucide-react"
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-brand-ivory">
+    <section className="relative max-w-full overflow-hidden bg-brand-ivory">
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -right-40 w-[560px] h-[560px] rounded-full bg-brand-indigo/8 blur-[110px]" />
         <div className="absolute -bottom-40 -left-40 w-[480px] h-[480px] rounded-full bg-brand-coral/8 blur-[110px]" />
       </div>
 
-      <div className="container mx-auto max-w-7xl px-4 py-20 sm:py-28 relative z-10">
+      <div className="container relative z-10 mx-auto max-w-7xl px-4 py-14 sm:py-28">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left: Copy */}
           <div>
@@ -20,7 +20,7 @@ export default function Hero() {
               </span>
             </div>
 
-            <h1 className="text-h1 sm:text-display font-extrabold text-brand-midnight mb-6">
+            <h1 className="text-h2 leading-tight sm:text-display font-extrabold text-brand-midnight mb-6">
               Your Work. Your Network.{" "}
               <span className="text-brand-indigo">Your Next</span>{" "}
               <span className="text-brand-coral">Opportunity.</span>
