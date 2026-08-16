@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { getUserEntitlements } from "./entitlements"
-export type LimitKey = "applications" | "proposals" | "gigs" | "portfolio" | "saved" | "jobs" | "projects" | "resume_analyses"
+export type LimitKey = "applications" | "proposals" | "gigs" | "portfolio" | "saved" | "jobs" | "projects" | "resume_analyses" | "opportunity_matches"
 const LIMITS: Record<LimitKey, { free: number; pro?: number; business?: number; monthly?: boolean }> = {
-  applications: { free: 2, pro: 50, monthly: true }, proposals: { free: 1, pro: 30, monthly: true }, gigs: { free: 1, pro: 10 }, portfolio: { free: 2, pro: 20 }, saved: { free: 3, pro: Infinity }, jobs: { free: 1, business: 10 }, projects: { free: 1, business: 10 }, resume_analyses: { free: 1, pro: 10, monthly: true },
+  applications: { free: 2, pro: 50, monthly: true }, proposals: { free: 1, pro: 30, monthly: true }, gigs: { free: 1, pro: 10 }, portfolio: { free: 2, pro: 20 }, saved: { free: 3, pro: Infinity }, jobs: { free: 1, business: 10 }, projects: { free: 1, business: 10 }, resume_analyses: { free: 1, pro: 10, monthly: true }, opportunity_matches: { free: 1, pro: 10, monthly: true },
 }
 const monthStart = () => new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString()
 export async function getUsageLimit(db: SupabaseClient, userId: string, key: LimitKey) {
@@ -17,6 +17,7 @@ export async function getUsageLimit(db: SupabaseClient, userId: string, key: Lim
   if (key === "projects") { const { count } = await db.from("projects").select("id", { count: "exact", head: true }).eq("client_id", userId).eq("status", "open"); used = count || 0 }
   if (key === "portfolio") { const { data } = await db.from("profiles").select("portfolio_links").eq("id", userId).maybeSingle(); used = (data?.portfolio_links as string[] | null)?.length || 0 }
   if (key === "resume_analyses") { const { count } = await db.from("resume_analyses").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStart()); used = count || 0 }
+  if (key === "opportunity_matches") { const { count } = await db.from("opportunity_matches").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStart()); used = count || 0 }
   return { key, used, limit, remaining: limit === Infinity ? Infinity : Math.max(0, limit - used), allowed: used < limit, tier: entitlements.tier }
 }
 export function limitResponse(usage: Awaited<ReturnType<typeof getUsageLimit>>) { return { error: "upgrade_required", message: `You've used ${usage.used} of ${usage.limit === Infinity ? "unlimited" : usage.limit} available ${usage.key}.`, usage } }
