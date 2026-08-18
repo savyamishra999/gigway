@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { getUserEntitlements } from "./entitlements"
-export type LimitKey = "applications" | "proposals" | "gigs" | "portfolio" | "saved" | "jobs" | "projects" | "resume_analyses" | "opportunity_matches" | "profile_intelligence" | "job_description_analyses" | "career_gap_analyses"
+export type LimitKey = "applications" | "proposals" | "gigs" | "portfolio" | "saved" | "jobs" | "projects" | "resume_analyses" | "opportunity_matches" | "profile_intelligence" | "job_description_analyses" | "career_gap_analyses" | "smart_applications"
 const LIMITS: Record<LimitKey, { free: number; pro?: number; business?: number; monthly?: boolean }> = {
-  applications: { free: 2, pro: 50, monthly: true }, proposals: { free: 1, pro: 30, monthly: true }, gigs: { free: 1, pro: 10 }, portfolio: { free: 2, pro: 20 }, saved: { free: 3, pro: Infinity }, jobs: { free: 1, business: 10 }, projects: { free: 1, business: 10 }, resume_analyses: { free: 1, pro: 10, monthly: true }, opportunity_matches: { free: 1, pro: 10, monthly: true }, profile_intelligence: { free: 1, pro: 10, monthly: true }, job_description_analyses: { free: 1, pro: 10, monthly: true }, career_gap_analyses: { free: 1, pro: 10, monthly: true },
+  applications: { free: 2, pro: 50, monthly: true }, proposals: { free: 1, pro: 30, monthly: true }, gigs: { free: 1, pro: 10 }, portfolio: { free: 2, pro: 20 }, saved: { free: 3, pro: Infinity }, jobs: { free: 1, business: 10 }, projects: { free: 1, business: 10 }, resume_analyses: { free: 1, pro: 10, monthly: true }, opportunity_matches: { free: 1, pro: 10, monthly: true }, profile_intelligence: { free: 1, pro: 10, monthly: true }, job_description_analyses: { free: 1, pro: 10, monthly: true }, career_gap_analyses: { free: 1, pro: 10, monthly: true }, smart_applications: { free: 1, pro: 10, monthly: true },
 }
 const monthStart = () => new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString()
 export async function getUsageLimit(db: SupabaseClient, userId: string, key: LimitKey) {
@@ -21,6 +21,7 @@ export async function getUsageLimit(db: SupabaseClient, userId: string, key: Lim
   if (key === "profile_intelligence") { const { count } = await db.from("profile_intelligence_analyses").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStart()); used = count || 0 }
   if (key === "job_description_analyses") { const { count } = await db.from("job_description_analyses").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStart()); used = count || 0 }
   if (key === "career_gap_analyses") { const { count } = await db.from("career_gap_analyses").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStart()); used = count || 0 }
+  if (key === "smart_applications") { const { count } = await db.from("smart_applications").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthStart()); used = count || 0 }
   return { key, used, limit, remaining: limit === Infinity ? Infinity : Math.max(0, limit - used), allowed: used < limit, tier: entitlements.tier }
 }
 export function limitResponse(usage: Awaited<ReturnType<typeof getUsageLimit>>) { return { error: "upgrade_required", message: `You've used ${usage.used} of ${usage.limit === Infinity ? "unlimited" : usage.limit} available ${usage.key}.`, usage } }
