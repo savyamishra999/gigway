@@ -67,7 +67,7 @@ export async function safePost(post:SocialPost, viewerId?:string|null) {
   const author = profileRes.data ? { type:"profile", id:profileRes.data.id, name:profileRes.data.full_name, username:profileRes.data.username, avatar:profileRes.data.avatar_url, tagline:profileRes.data.tagline, verified:profileRes.data.is_verified } : orgRes.data ? { type:"organization", id:orgRes.data.id, name:orgRes.data.name, username:orgRes.data.username, avatar:orgRes.data.logo_url, tagline:orgRes.data.tagline, verified:orgRes.data.is_verified } : null
   const media=await Promise.all((mediaRes.data||[]).map(async item=>{const {data}=await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(item.storage_path,300);return data?.signedUrl?{id:item.id,type:item.media_type,url:data.signedUrl,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}:null}))
   const follow=viewerId&&!canManage?(post.author_profile_id?await db.from("profile_follows").select("followed_profile_id").eq("follower_user_id",viewerId).eq("followed_profile_id",post.author_profile_id).maybeSingle():post.author_organization_id?await db.from("organization_follows").select("organization_id").eq("follower_user_id",viewerId).eq("organization_id",post.author_organization_id).maybeSingle():{data:null}):{data:null}
-  return { id:post.id, body:post.body, postType:post.post_type, visibility:post.visibility, createdAt:post.created_at, editedAt:post.edited_at, author, media:media.filter(Boolean), likeCount:likeRes.count||0, commentCount:commentRes.count||0, isLikedByMe:!!likedRes.data, isSavedByMe:!!savedRes.data, canEdit:canManage, canDelete:canManage, canManageVisibility:canManage, canFollow:!!viewerId&&!canManage&&!!author, isFollowing:!!follow.data }
+  return { id:post.id, body:post.body, postType:post.post_type, visibility:post.visibility, createdAt:post.created_at, editedAt:post.edited_at, author, media:media.filter(Boolean), likeCount:likeRes.count||0, commentCount:commentRes.count||0, isLikedByMe:!!likedRes.data, isSavedByMe:!!savedRes.data, canEdit:canManage, canDelete:canManage, canManageVisibility:canManage, canFollow:!!viewerId&&!canManage&&!!author, isFollowing:!!follow.data, canReport:!!viewerId&&!canManage }
 }
 
 export function plainText(value:unknown, max:number, min=1) {
@@ -96,8 +96,8 @@ export function validMediaMetadata(fileName:unknown,mimeType:unknown,size:unknow
 }
 
 export async function canManagePost(post:{author_user_id:string;author_organization_id:string|null},userId:string) {
-  if(post.author_user_id!==userId)return false
-  return !post.author_organization_id || (await canPostAsOrganization(userId,post.author_organization_id)).allowed
+  if(post.author_organization_id)return (await canPostAsOrganization(userId,post.author_organization_id)).allowed
+  return post.author_user_id===userId
 }
 
 export async function updatePostType(postId:string) {
