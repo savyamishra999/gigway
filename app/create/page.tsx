@@ -1,7 +1,8 @@
 import Link from "next/link"
-import { BriefcaseBusiness, FilePlus2, Layers3, PackagePlus } from "lucide-react"
+import { BriefcaseBusiness, FilePlus2, Layers3, PackagePlus, Send } from "lucide-react"
 
 const choices = [
+  { href: "/social/create", label: "Create a post", description: "Share an update with your professional network.", icon: Send, color: "text-orange-300 bg-orange-400/10" },
   { href: "/gigs/new", label: "Create a service", description: "Offer a skill people can hire you for.", icon: PackagePlus, color: "text-violet-300 bg-violet-400/10" },
   { href: "/projects/new", label: "Post a project", description: "Get proposals for work you need done.", icon: Layers3, color: "text-orange-300 bg-orange-400/10" },
   { href: "/jobs/new", label: "Post a job", description: "Share a role with the GigWay network.", icon: BriefcaseBusiness, color: "text-sky-300 bg-sky-400/10" },

@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { socialDb } from "@/lib/social/server"
+import CreatePostComposer from "@/components/social/CreatePostComposer"
+
+export default async function CreateSocialPostPage(){const session=await createClient();const{data:{user}}=await session.auth.getUser();if(!user)redirect("/login?next=/social/create");const db=socialDb();const[{data:profile},{data:memberships}]=await Promise.all([db.from("profiles").select("id,full_name,avatar_url").eq("id",user.id).maybeSingle(),db.from("organization_members").select("organization_id,member_role").eq("profile_id",user.id).eq("status","active").in("member_role",["owner","admin"])]);if(!profile)redirect("/profile/complete");const ids=(memberships||[]).map(m=>m.organization_id);const{data:orgs}=ids.length?await db.from("organizations").select("id,name,logo_url").in("id",ids):{data:[]};return <main className="min-h-screen bg-brand-ivory px-4 py-6 pb-24 sm:py-10"><div className="mx-auto max-w-2xl"><CreatePostComposer profile={{name:profile.full_name||"My profile",avatar:profile.avatar_url}} organizations={(orgs||[]).map(o=>({id:o.id,name:o.name,avatar:o.logo_url}))}/></div></main>}

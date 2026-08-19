@@ -4,12 +4,12 @@ import { canViewPost, plainText, requireSocialUser, resolveProfile, safePost, so
 const PAGE_SIZE=15
 export async function POST(req:NextRequest){
   const user=await requireSocialUser(); if(!user)return NextResponse.json({error:"Unauthorized"},{status:401})
-  const b=await req.json().catch(()=>({})); const body=plainText(b.body,5000); const visibility=b.visibility==="followers"?"followers":b.visibility==="public"?"public":null
-  if(!body||!visibility)return NextResponse.json({error:"Enter a plain-text post of up to 5,000 characters."},{status:400})
+  const b=await req.json().catch(()=>({})); const body=typeof b.body==="string"?plainText(b.body,5000,0):null; const visibility=b.visibility==="followers"?"followers":b.visibility==="public"?"public":null; const draft=b.draft===true
+  if(body===null||!visibility||(!body&&!draft))return NextResponse.json({error:"Enter a plain-text post of up to 5,000 characters."},{status:400})
   const db=socialDb(); let author_profile_id:string|null=null,author_organization_id:string|null=null
   if(typeof b.organizationId==="string") { const p=await resolveProfile(user.id); const {data:m}=p?await db.from("organization_members").select("member_role").eq("organization_id",b.organizationId).eq("profile_id",p.id).eq("status","active").maybeSingle():{data:null}; if(!m||!["owner","admin"].includes(m.member_role))return NextResponse.json({error:"You are not authorized to post for this organization."},{status:403}); author_organization_id=b.organizationId }
   else { const p=await resolveProfile(user.id); if(!p)return NextResponse.json({error:"Complete your professional profile before posting."},{status:403}); author_profile_id=p.id }
-  const {data,error}=await db.from("posts").insert({author_user_id:user.id,author_profile_id,author_organization_id,post_type:"text",body,visibility,status:"published"}).select("id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at").single()
+  const {data,error}=await db.from("posts").insert({author_user_id:user.id,author_profile_id,author_organization_id,post_type:"text",body:body||null,visibility,status:draft?"hidden":"published"}).select("id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at").single()
   if(error||!data)return NextResponse.json({error:"We could not publish your post."},{status:503}); return NextResponse.json({post:await safePost(data,user.id)},{status:201})
 }
 export async function GET(req:NextRequest){
