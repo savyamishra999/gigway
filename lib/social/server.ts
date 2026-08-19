@@ -54,7 +54,7 @@ export async function resolvePostAccess(id:string, viewerId?:string|null) {
 
 export async function safePost(post:SocialPost, viewerId?:string|null) {
   const db = socialDb()
-  const [profileRes, orgRes, likeRes, commentRes, likedRes, savedRes, mediaRes, canManage] = await Promise.all([
+  const [profileRes, orgRes, likeRes, commentRes, likedRes, savedRes, mediaRes, canManage, repostRes, repostedRes] = await Promise.all([
     post.author_profile_id ? db.from("profiles").select("id,full_name,username,avatar_url,tagline,is_verified").eq("id",post.author_profile_id).maybeSingle() : Promise.resolve({data:null}),
     post.author_organization_id ? db.from("organizations").select("id,name,username,logo_url,tagline,is_verified").eq("id",post.author_organization_id).maybeSingle() : Promise.resolve({data:null}),
     db.from("post_likes").select("post_id",{count:"exact",head:true}).eq("post_id",post.id),
@@ -63,11 +63,13 @@ export async function safePost(post:SocialPost, viewerId?:string|null) {
     viewerId ? db.from("post_saves").select("post_id").eq("post_id",post.id).eq("user_id",viewerId).maybeSingle() : Promise.resolve({data:null}),
     db.from("post_media").select("id,media_type,storage_path,mime_type,file_name,width,height,duration_seconds,sort_order").eq("post_id",post.id).order("sort_order"),
     viewerId ? canManagePost(post,viewerId) : Promise.resolve(false),
+    db.from("post_reposts").select("post_id",{count:"exact",head:true}).eq("post_id",post.id),
+    viewerId ? db.from("post_reposts").select("post_id").eq("post_id",post.id).eq("user_id",viewerId).maybeSingle() : Promise.resolve({data:null}),
   ])
   const author = profileRes.data ? { type:"profile", id:profileRes.data.id, name:profileRes.data.full_name, username:profileRes.data.username, avatar:profileRes.data.avatar_url, tagline:profileRes.data.tagline, verified:profileRes.data.is_verified } : orgRes.data ? { type:"organization", id:orgRes.data.id, name:orgRes.data.name, username:orgRes.data.username, avatar:orgRes.data.logo_url, tagline:orgRes.data.tagline, verified:orgRes.data.is_verified } : null
   const media=await Promise.all((mediaRes.data||[]).map(async item=>{const {data}=await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(item.storage_path,300);return data?.signedUrl?{id:item.id,type:item.media_type,url:data.signedUrl,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}:null}))
   const follow=viewerId&&!canManage?(post.author_profile_id?await db.from("profile_follows").select("followed_profile_id").eq("follower_user_id",viewerId).eq("followed_profile_id",post.author_profile_id).maybeSingle():post.author_organization_id?await db.from("organization_follows").select("organization_id").eq("follower_user_id",viewerId).eq("organization_id",post.author_organization_id).maybeSingle():{data:null}):{data:null}
-  return { id:post.id, body:post.body, postType:post.post_type, visibility:post.visibility, createdAt:post.created_at, editedAt:post.edited_at, author, media:media.filter(Boolean), likeCount:likeRes.count||0, commentCount:commentRes.count||0, isLikedByMe:!!likedRes.data, isSavedByMe:!!savedRes.data, canEdit:canManage, canDelete:canManage, canManageVisibility:canManage, canFollow:!!viewerId&&!canManage&&!!author, isFollowing:!!follow.data, canReport:!!viewerId&&!canManage }
+  return { id:post.id, body:post.body, postType:post.post_type, visibility:post.visibility, createdAt:post.created_at, editedAt:post.edited_at, author, media:media.filter(Boolean), likeCount:likeRes.count||0, commentCount:commentRes.count||0, repostCount:repostRes.count||0, isRepostedByMe:!!repostedRes.data, canRepost:!!viewerId&&!canManage, isLikedByMe:!!likedRes.data, isSavedByMe:!!savedRes.data, canEdit:canManage, canDelete:canManage, canManageVisibility:canManage, canFollow:!!viewerId&&!canManage&&!!author, isFollowing:!!follow.data, canReport:!!viewerId&&!canManage }
 }
 
 export function plainText(value:unknown, max:number, min=1) {
