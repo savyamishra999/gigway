@@ -1,2 +1,16 @@
-import{notFound,redirect}from"next/navigation";import{createClient}from"@/lib/supabase/server";import{resolvePostAccess,safePost}from"@/lib/social/server";
-export default async function PostDetail({params}:{params:Promise<{id:string}>}){const{id}=await params;const db=await createClient();const{data:{user}}=await db.auth.getUser();if(!user)redirect(`/login?next=/social/posts/${id}`);const post=await resolvePostAccess(id,user.id);if(!post)notFound();const value=await safePost(post,user.id);return <main className="min-h-screen bg-brand-ivory px-4 py-8 pb-24"><article className="mx-auto max-w-2xl rounded-2xl border border-brand-borderLight bg-white p-5 shadow-soft"><p className="font-bold text-brand-midnight">{value.author?.name||"GigWay member"}</p><p className="text-caption text-brand-slate">{value.author?.username?`@${value.author.username}`:""}</p><p className="mt-4 whitespace-pre-wrap text-body-sm text-brand-midnight">{value.body}</p><p className="mt-5 text-caption text-brand-slate">Replies are available from the Home post action.</p></article></main>}
+import { notFound, redirect } from "next/navigation";
+import PostDetailContent from "@/components/social/PostDetailContent";
+import type { Post } from "@/components/social/SocialHomeFeed";
+import { createClient } from "@/lib/supabase/server";
+import { resolvePostAccess, safePost } from "@/lib/social/server";
+
+export default async function PostDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const db = await createClient();
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) redirect(`/login?next=/social/posts/${id}`);
+  const post = await resolvePostAccess(id, user.id);
+  if (!post) notFound();
+  const value = await safePost(post, user.id);
+  return <PostDetailContent post={value as Post} viewerId={user.id} />;
+}

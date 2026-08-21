@@ -4,6 +4,9 @@ import { Briefcase, Building2, CheckCircle2, ExternalLink, IndianRupee, Link2, M
 import { createClient } from "@/lib/supabase/server"
 import { WORK_MODES } from "@/lib/identity"
 import { intentMeta } from "@/lib/workIntents"
+import ProfileConnectionActions from "@/components/connections/ProfileConnectionActions"
+import { resolveConnectionState } from "@/lib/connections/server"
+import { socialDb } from "@/lib/social/server"
 
 function portfolioTitle(url: string) {
   try {
@@ -39,6 +42,11 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
       ? `${(primaryOrg.member_role as string).charAt(0).toUpperCase()}${(primaryOrg.member_role as string).slice(1)} at ${(primaryOrg.organizations as any).name}`
       : null
     const isSelf = viewer?.id === profile.id
+    const [connectionState, follow] = viewer && !isSelf ? await Promise.all([
+      resolveConnectionState(viewer.id, profile.id),
+      socialDb().from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewer.id).eq("followed_profile_id", profile.id).maybeSingle(),
+    ]) : ["none" as const, { data: null }]
+    const { count: connectionCount } = await socialDb().from("professional_connections").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_user_id.eq.${profile.id},recipient_user_id.eq.${profile.id}`)
 
     return (
       <main className="min-h-screen bg-[#0A0A0F] pb-24">
@@ -63,13 +71,10 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
                     {profile.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{profile.location}</span>}
                     {isFreelancer && profile.hourly_rate && <span className="flex items-center gap-1 text-[#B9B3FF] font-semibold"><IndianRupee className="h-3.5 w-3.5" />{profile.hourly_rate}/hr</span>}
                   </div>
+                  <p className="mt-2 text-sm text-[#9EA6B8]">{connectionCount || 0} {connectionCount === 1 ? "Connection" : "Connections"}</p>
                 </div>
               </div>
-              {!isSelf && viewer && (
-                <Link href={`/messages/${profile.id}`} className="flex items-center justify-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7d6ffc]">
-                  <MessageSquare className="h-4 w-4" /> Message
-                </Link>
-              )}
+              {!isSelf && viewer && <div className="flex flex-wrap gap-2"><ProfileConnectionActions profileId={profile.id} initialState={connectionState} initialFollowing={!!follow.data}/><Link href={`/messages/${profile.id}`} className="flex items-center justify-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7d6ffc]"><MessageSquare className="h-4 w-4" /> Message</Link></div>}
             </div>
 
             {modes.length > 0 && (
