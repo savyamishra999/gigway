@@ -1,0 +1,5 @@
+export type ActiveMention={start:number;end:number;query:string}
+export function findActiveMention(text:string,cursor:number):ActiveMention|null{const before=text.slice(0,cursor),match=before.match(/(?:^|\s)@([a-zA-Z0-9_]{0,32})$/);if(!match)return null;const query=match[1],start=cursor-query.length-1;return{start,end:cursor,query}}
+export function replaceActiveMention(text:string,cursor:number,username:string){const active=findActiveMention(text,cursor);if(!active)return{text,cursor};const value=`@${username} `;return{text:text.slice(0,active.start)+value+text.slice(active.end),cursor:active.start+value.length}}
+export type MentionToken={text:string;username?:string}
+export function tokenizePostText(text:string,resolved:string[]):MentionToken[]{const valid=new Set(resolved.map(x=>x.toLowerCase()));return text.split(/(@[a-zA-Z0-9_]{1,32})/g).filter(Boolean).map(text=>{const username=text.startsWith("@")?text.slice(1).toLowerCase():"";return username&&valid.has(username)?{text,username}:{text}})}

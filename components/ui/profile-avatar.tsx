@@ -1,0 +1,3 @@
+import {UserRound} from "lucide-react"
+export function initials(name?:string|null){return (name||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()}
+export function ProfileAvatar({src,name,className="h-10 w-10"}:{src?:string|null;name?:string|null;className?:string}){const text=initials(name);return <div className={`${className} flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo`}>{src?<img src={src} alt="" className="h-full w-full object-cover"/>:text||<UserRound className="h-1/2 w-1/2"/>}</div>}
