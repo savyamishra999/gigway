@@ -2,11 +2,14 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 
 export type SocialPost = { id:string; author_user_id:string; author_profile_id:string|null; author_organization_id:string|null; body:string|null; post_type:string; visibility:string; status:string; created_at:string; edited_at:string|null }
+export class SocialFeedStageError extends Error { constructor(public stage:string,public code:string|undefined,message:string){super(message)} }
+function requireSocialResult(stage:string,result:unknown){const error=result&&typeof result==="object"&&"error" in result?(result as {error?:{code?:string;message?:string}|null}).error:null;if(error)throw new SocialFeedStageError(stage,error.code,error.message||"Supabase query failed")}
 
 export function socialDb() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Social server configuration is unavailable")
+  if (!url) throw new SocialFeedStageError("social_db","missing_env","NEXT_PUBLIC_SUPABASE_URL")
+  if (!key) throw new SocialFeedStageError("social_db","missing_env","SUPABASE_SERVICE_ROLE_KEY")
   return createServiceClient(url, key)
 }
 
@@ -67,10 +70,11 @@ export async function safePost(post:SocialPost, viewerId?:string|null) {
     db.from("post_reposts").select("post_id",{count:"exact",head:true}).eq("post_id",post.id),
     viewerId ? db.from("post_reposts").select("post_id").eq("post_id",post.id).eq("user_id",viewerId).maybeSingle() : Promise.resolve({data:null}),
   ])
+  for(const [stage,result] of [["profile_author",profileRes],["organization_author",orgRes],["likes",likeRes],["comments",commentRes],["liked_state",likedRes],["saves",savedRes],["media",mediaRes],["reposts",repostRes],["reposted_state",repostedRes]] as const)requireSocialResult(stage,result)
   const author = profileRes.data ? { type:"profile", id:profileRes.data.id, name:profileRes.data.full_name, username:profileRes.data.username, avatar:profileRes.data.avatar_url, tagline:profileRes.data.tagline, verified:profileRes.data.is_verified } : orgRes.data ? { type:"organization", id:orgRes.data.id, name:orgRes.data.name, username:orgRes.data.username, avatar:orgRes.data.logo_url, tagline:orgRes.data.tagline, verified:orgRes.data.is_verified } : null
-  const media=await Promise.all((mediaRes.data||[]).map(async item=>{const {data}=await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(item.storage_path,300);return data?.signedUrl?{id:item.id,type:item.media_type,url:data.signedUrl,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}:null}))
+  const media=await Promise.all((mediaRes.data||[]).map(async item=>{const result=await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(item.storage_path,300);requireSocialResult("signed_url",result);return result.data?.signedUrl?{id:item.id,type:item.media_type,url:result.data.signedUrl,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}:null}))
   const follow=viewerId&&!canManage?(post.author_profile_id?await db.from("profile_follows").select("followed_profile_id").eq("follower_user_id",viewerId).eq("followed_profile_id",post.author_profile_id).maybeSingle():post.author_organization_id?await db.from("organization_follows").select("organization_id").eq("follower_user_id",viewerId).eq("organization_id",post.author_organization_id).maybeSingle():{data:null}):{data:null}
-  const mentions=mentionNames.length?(await db.from("profiles").select("username").in("username",mentionNames).eq("profile_completed",true)).data||[]:[]
+  const mentionResult=mentionNames.length?await db.from("profiles").select("username").in("username",mentionNames).eq("profile_completed",true):{data:[]};requireSocialResult("mentions",mentionResult);const mentions=mentionResult.data||[]
   return {id:post.id,body:post.body,postType:post.post_type,visibility:post.visibility,createdAt:post.created_at,editedAt:post.edited_at,author,media:media.filter(Boolean),likeCount:likeRes.count||0,commentCount:commentRes.count||0,repostCount:repostRes.count||0,isRepostedByMe:!!repostedRes.data,canRepost:!!viewerId&&!canManage,isLikedByMe:!!likedRes.data,isSavedByMe:!!savedRes.data,canEdit:canManage,canDelete:canManage,canManageVisibility:canManage,canFollow:!!viewerId&&!canManage&&!!author,isFollowing:!!follow.data,canReport:!!viewerId&&!canManage,mentions:mentions.map(x=>x.username)}
 }
 
