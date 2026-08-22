@@ -16,6 +16,7 @@ export async function POST(req:NextRequest){
   return NextResponse.json({post:await safePost(data,user.id)},{status:201})
 }
 export async function GET(req:NextRequest){
+  try {
   const viewer=await requireSocialUser(); const feed=req.nextUrl.searchParams.get("feed")||"discover"; if(feed!=="discover"&&feed!=="following")return NextResponse.json({error:"Invalid feed."},{status:400})
   const cursor=req.nextUrl.searchParams.get("cursor"); const db=socialDb(); const fields="id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at"
   if(feed==="discover"){
@@ -34,4 +35,8 @@ export async function GET(req:NextRequest){
   const repostRows=repostsRes.data||[],postIds=[...new Set(repostRows.map(r=>r.post_id))];const repostPosts=postIds.length?(await db.from("posts").select(fields).in("id",postIds).eq("status","published")).data||[]:[];const byPost=new Map(repostPosts.map(p=>[p.id,p]));const actors=new Map((actorsRes.data||[]).map(a=>[a.id,a]))
   const activities:any[]=[];for(const post of originalsRes.data||[]){if(await canViewPost(post,viewer.id))activities.push({type:"post",key:`post:${post.id}`,time:post.created_at,post})}for(const repost of repostRows){const post=byPost.get(repost.post_id),actor=actors.get(repost.user_id);if(post&&actor&&await canViewPost(post,viewer.id))activities.push({type:"repost",key:`repost:${repost.post_id}:${repost.user_id}`,time:repost.created_at,post,actor})}
   const remaining=activities.filter(x=>!cursorTime||x.time<cursorTime||(x.time===cursorTime&&x.key<(cursorKey||""))).sort((a,b)=>b.time.localeCompare(a.time)||b.key.localeCompare(a.key));const page=remaining.slice(0,PAGE_SIZE);const items=await Promise.all(page.map(async x=>x.type==="post"?await safePost(x.post,viewer.id):{type:"repost",repostedAt:x.time,repostActor:{id:x.actor.id,name:x.actor.full_name,username:x.actor.username,avatar:x.actor.avatar_url,href:x.actor.username?`/u/${x.actor.username}`:`/freelancers/${x.actor.id}`},originalPost:await safePost(x.post,viewer.id)}));const last=page.at(-1);return NextResponse.json({items,nextCursor:remaining.length>PAGE_SIZE&&last?Buffer.from(JSON.stringify({time:last.time,key:last.key})).toString("base64url"):null})
+  } catch (error) {
+    console.error("Social feed load failed", error)
+    return NextResponse.json({error:"Social feed is temporarily unavailable. Please try again."},{status:503})
+  }
 }
