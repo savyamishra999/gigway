@@ -103,6 +103,14 @@ export function validMediaMetadata(fileName:unknown,mimeType:unknown,size:unknow
   return rule
 }
 
+export function validMediaDimensions(width:unknown,height:unknown,durationSeconds:unknown,type:MediaType) {
+  const validDimension=(value:unknown)=>typeof value==="number"&&Number.isSafeInteger(value)&&value>0&&value<=16384
+  const validDuration=(value:unknown)=>typeof value==="number"&&Number.isSafeInteger(value)&&value>0&&value<=86400
+  if (width===undefined&&height===undefined&&durationSeconds===undefined) return {}
+  if (!validDimension(width)||!validDimension(height)||(type==="video"&&!validDuration(durationSeconds))||(type!=="video"&&durationSeconds!==undefined)) return null
+  return {width,height,duration_seconds:type==="video"?durationSeconds:null}
+}
+
 export async function canManagePost(post:{author_user_id:string;author_organization_id:string|null},userId:string) {
   if(post.author_organization_id)return (await canPostAsOrganization(userId,post.author_organization_id)).allowed
   return post.author_user_id===userId

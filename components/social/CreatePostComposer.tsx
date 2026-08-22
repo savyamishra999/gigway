@@ -6,6 +6,7 @@ import { FileText, ImagePlus, Loader2, Video, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MentionPicker from "@/components/social/MentionPicker";
 import { findActiveMention, replaceActiveMention } from "@/lib/social/mentions";
+import type { VideoMetadata } from "@/lib/social/video";
 type Author = {
     id?: string;
     name: string;
@@ -20,6 +21,24 @@ const limits: Record<MediaKind, number> = { image: 10 * 1024 * 1024, video: 100 
 const allow: Record<MediaKind, string[]> = { image: ["image/jpeg", "image/png", "image/webp"], video: ["video/mp4", "video/webm"], document: ["application/pdf"] };
 const kindOf = (f: File): MediaKind | null => f.type.startsWith("image/") ? "image" : f.type.startsWith("video/") ? "video" : f.type === "application/pdf" ? "document" : null;
 const size = (n: number) => `${(n / 1024 / 1024).toFixed(n > 1024 * 1024 ? 1 : 0)} MB`;
+const readMediaMetadata = (file: File): Promise<VideoMetadata> => new Promise((resolve) => {
+    const kind = kindOf(file);
+    if (kind !== "image" && kind !== "video") return resolve({});
+    const url = URL.createObjectURL(file);
+    const cleanup = () => URL.revokeObjectURL(url);
+    const finish = (metadata: VideoMetadata) => { cleanup(); resolve(metadata); };
+    if (kind === "video") {
+        const video = document.createElement("video");
+        video.onloadedmetadata = () => finish({ width: video.videoWidth, height: video.videoHeight, durationSeconds: Number.isFinite(video.duration) ? Math.round(video.duration) : undefined });
+        video.onerror = () => finish({});
+        video.src = url;
+        return;
+    }
+    const image = new Image();
+    image.onload = () => finish({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => finish({});
+    image.src = url;
+});
 export default function CreatePostComposer({ profile, organizations }: Props) {
     const router = useRouter(), input = useRef<HTMLInputElement>(null), textarea = useRef<HTMLTextAreaElement>(null), mentionPicker = useRef<HTMLDivElement>(null), [body, setBody] = useState(""), [cursor, setCursor] = useState(0), [mentionClosed, setMentionClosed] = useState(false), [visibility, setVisibility] = useState("public"), [author, setAuthor] = useState("personal"), [files, setFiles] = useState<File[]>([]), [error, setError] = useState(""), [state, setState] = useState<"idle" | "uploading" | "publishing" | "posted">("idle");
     const busy = state !== "idle";
@@ -79,7 +98,8 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             const upload = await createClient().storage.from("post-media").uploadToSignedUrl(i.path, i.token, file, { contentType: file.type });
             if (upload.error)
                 throw Error("Upload failed. Your text is still saved in this draft.");
-            const finish = await fetch(`/api/social/posts/${postId}/media/finalize`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: i.path, fileName: file.name, mimeType: file.type, fileSize: file.size }) });
+            const metadata = await readMediaMetadata(file);
+            const finish = await fetch(`/api/social/posts/${postId}/media/finalize`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: i.path, fileName: file.name, mimeType: file.type, fileSize: file.size, ...metadata }) });
             const f = await finish.json();
             if (!finish.ok)
                 throw Error(f.error || "Could not attach uploaded media.");

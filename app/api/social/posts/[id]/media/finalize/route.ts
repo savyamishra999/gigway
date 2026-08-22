@@ -1,2 +1,41 @@
-import{NextRequest,NextResponse}from"next/server";import{canManagePost,POST_MEDIA_BUCKET,requireSocialUser,socialDb,updatePostType,validMediaMetadata}from"@/lib/social/server";
-export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){const u=await requireSocialUser();if(!u)return NextResponse.json({error:"Unauthorized"},{status:401});const{id}=await params;const b=await req.json().catch(()=>({}));const fileSize=b.fileSize??b.size;const rule=validMediaMetadata(b.fileName,b.mimeType,fileSize);if(!rule||typeof b.path!=="string")return NextResponse.json({error:"Invalid media finalization request."},{status:400});const db=socialDb();const{data:post}=await db.from("posts").select("id,author_user_id,author_organization_id,status").eq("id",id).maybeSingle();if(!post||!["published","hidden"].includes(post.status))return NextResponse.json({error:"Post not found."},{status:404});if(!await canManagePost(post,u.id))return NextResponse.json({error:"You cannot attach media to this post."},{status:403});const expected=post.author_organization_id?`organizations/${post.author_organization_id}/${id}/`:`users/${u.id}/${id}/`;if(!b.path.startsWith(expected)||!b.path.endsWith(`.${rule.extension}`))return NextResponse.json({error:"Invalid storage path."},{status:400});const objectName=b.path.slice(expected.length);const{data:objects}=await db.storage.from(POST_MEDIA_BUCKET).list(expected,{search:objectName});const object=objects?.find(x=>x.name===objectName);const objectSize=Number(object?.metadata?.size),objectMime=object?.metadata?.mimetype;if(!object||objectSize!==fileSize||objectMime!==b.mimeType)return NextResponse.json({error:"Uploaded file could not be verified."},{status:400});const{data:existing}=await db.from("post_media").select("id,media_type,storage_path").eq("post_id",id);if((existing||[]).some(x=>x.storage_path===b.path))return NextResponse.json({error:"This media is already attached."},{status:409});const current=(existing||[]).map(x=>x.media_type);if(current.length>=5||current.length&&(!current.every(x=>x==="image")||rule.type!=="image")){await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);return NextResponse.json({error:"This attachment no longer fits the post media limit."},{status:400})}const{data,error}=await db.from("post_media").insert({post_id:id,media_type:rule.type,storage_path:b.path,mime_type:b.mimeType,file_name:b.fileName.trim().slice(0,255),file_size_bytes:fileSize,sort_order:current.length}).select("id,media_type,file_name,mime_type,width,height,duration_seconds").single();if(error||!data){await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);return NextResponse.json({error:"Could not attach uploaded media."},{status:503})}const postType=await updatePostType(id);const{data:url}=await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(b.path,300);return NextResponse.json({media:{id:data.id,type:data.media_type,url:url?.signedUrl,fileName:data.file_name,mimeType:data.mime_type,width:data.width,height:data.height,durationSeconds:data.duration_seconds},postType},{status:201})}
+import { NextRequest, NextResponse } from "next/server";
+import { canManagePost, POST_MEDIA_BUCKET, requireSocialUser, socialDb, updatePostType, validMediaDimensions, validMediaMetadata } from "@/lib/social/server";
+
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const u = await requireSocialUser();
+  if (!u) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const b = await req.json().catch(() => ({}));
+  const fileSize = b.fileSize ?? b.size;
+  const rule = validMediaMetadata(b.fileName, b.mimeType, fileSize);
+  const dimensions = rule && validMediaDimensions(b.width, b.height, b.durationSeconds, rule.type);
+  if (!rule || !dimensions || typeof b.path !== "string") return NextResponse.json({ error: "Invalid media finalization request." }, { status: 400 });
+
+  const db = socialDb();
+  const { data: post } = await db.from("posts").select("id,author_user_id,author_organization_id,status").eq("id", id).maybeSingle();
+  if (!post || !["published", "hidden"].includes(post.status)) return NextResponse.json({ error: "Post not found." }, { status: 404 });
+  if (!(await canManagePost(post, u.id))) return NextResponse.json({ error: "You cannot attach media to this post." }, { status: 403 });
+  const expected = post.author_organization_id ? `organizations/${post.author_organization_id}/${id}/` : `users/${u.id}/${id}/`;
+  if (!b.path.startsWith(expected) || !b.path.endsWith(`.${rule.extension}`)) return NextResponse.json({ error: "Invalid storage path." }, { status: 400 });
+
+  const objectName = b.path.slice(expected.length);
+  const { data: objects } = await db.storage.from(POST_MEDIA_BUCKET).list(expected, { search: objectName });
+  const object = objects?.find((x) => x.name === objectName);
+  if (!object || Number(object.metadata?.size) !== fileSize || object.metadata?.mimetype !== b.mimeType) return NextResponse.json({ error: "Uploaded file could not be verified." }, { status: 400 });
+  const { data: existing } = await db.from("post_media").select("id,media_type,storage_path").eq("post_id", id);
+  if ((existing || []).some((x) => x.storage_path === b.path)) return NextResponse.json({ error: "This media is already attached." }, { status: 409 });
+  const current = (existing || []).map((x) => x.media_type);
+  if (current.length >= 5 || (current.length && (!current.every((x) => x === "image") || rule.type !== "image"))) {
+    await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);
+    return NextResponse.json({ error: "This attachment no longer fits the post media limit." }, { status: 400 });
+  }
+
+  const { data, error } = await db.from("post_media").insert({ post_id: id, media_type: rule.type, storage_path: b.path, mime_type: b.mimeType, file_name: b.fileName.trim().slice(0, 255), file_size_bytes: fileSize, ...dimensions, sort_order: current.length }).select("id,media_type,file_name,mime_type,width,height,duration_seconds").single();
+  if (error || !data) {
+    await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);
+    return NextResponse.json({ error: "Could not attach uploaded media." }, { status: 503 });
+  }
+  const postType = await updatePostType(id);
+  const { data: url } = await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(b.path, 300);
+  return NextResponse.json({ media: { id: data.id, type: data.media_type, url: url?.signedUrl, fileName: data.file_name, mimeType: data.mime_type, width: data.width, height: data.height, durationSeconds: data.duration_seconds }, postType }, { status: 201 });
+}
