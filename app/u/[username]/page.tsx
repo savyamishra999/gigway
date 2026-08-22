@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { WORK_MODES } from "@/lib/identity"
 import { intentMeta } from "@/lib/workIntents"
 import ProfileConnectionActions from "@/components/connections/ProfileConnectionActions"
-import { resolveConnectionState } from "@/lib/connections/server"
+import { connectionRow, resolveConnectionState } from "@/lib/connections/server"
 import { socialDb } from "@/lib/social/server"
 
 function portfolioTitle(url: string) {
@@ -47,6 +47,7 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
       socialDb().from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewer.id).eq("followed_profile_id", profile.id).maybeSingle(),
     ]) : ["none" as const, { data: null }]
     const { count: connectionCount } = await socialDb().from("professional_connections").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_user_id.eq.${profile.id},recipient_user_id.eq.${profile.id}`)
+    const connection = viewer && !isSelf ? await connectionRow(viewer.id, profile.id) : null
 
     return (
       <main className="min-h-screen bg-[#0A0A0F] pb-24">
@@ -74,7 +75,7 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
                   <p className="mt-2 text-sm text-[#9EA6B8]">{connectionCount || 0} {connectionCount === 1 ? "Connection" : "Connections"}</p>
                 </div>
               </div>
-              {!isSelf && viewer && <div className="flex flex-wrap gap-2"><ProfileConnectionActions profileId={profile.id} initialState={connectionState} initialFollowing={!!follow.data}/><Link href={`/messages/${profile.id}`} className="flex items-center justify-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7d6ffc]"><MessageSquare className="h-4 w-4" /> Message</Link></div>}
+              {!isSelf && viewer && <div className="flex flex-wrap gap-2"><ProfileConnectionActions profileId={profile.id} connectionId={connection?.id} initialState={connectionState} initialFollowing={!!follow.data}/><Link href={`/messages/${profile.id}`} className="flex items-center justify-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7d6ffc]"><MessageSquare className="h-4 w-4" /> Message</Link></div>}
             </div>
 
             {modes.length > 0 && (
