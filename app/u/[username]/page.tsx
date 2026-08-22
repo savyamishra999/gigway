@@ -7,6 +7,7 @@ import { intentMeta } from "@/lib/workIntents"
 import ProfileConnectionActions from "@/components/connections/ProfileConnectionActions"
 import { connectionRow, resolveConnectionState } from "@/lib/connections/server"
 import { socialDb } from "@/lib/social/server"
+import ProfileSocialFeed from "@/components/social/ProfileSocialFeed"
 
 function portfolioTitle(url: string) {
   try {
@@ -46,7 +47,7 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
       resolveConnectionState(viewer.id, profile.id),
       socialDb().from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewer.id).eq("followed_profile_id", profile.id).maybeSingle(),
     ]) : ["none" as const, { data: null }]
-    const { count: connectionCount } = await socialDb().from("professional_connections").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_user_id.eq.${profile.id},recipient_user_id.eq.${profile.id}`)
+    const [{ count: connectionCount },{ count: followerCount },{ count: followingCount }]=await Promise.all([socialDb().from("professional_connections").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_user_id.eq.${profile.id},recipient_user_id.eq.${profile.id}`),socialDb().from("profile_follows").select("followed_profile_id",{count:"exact",head:true}).eq("followed_profile_id",profile.id),socialDb().from("profile_follows").select("followed_profile_id",{count:"exact",head:true}).eq("follower_user_id",profile.id)])
     const connection = viewer && !isSelf ? await connectionRow(viewer.id, profile.id) : null
 
     return (
@@ -72,7 +73,7 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
                     {profile.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{profile.location}</span>}
                     {isFreelancer && profile.hourly_rate && <span className="flex items-center gap-1 text-[#B9B3FF] font-semibold"><IndianRupee className="h-3.5 w-3.5" />{profile.hourly_rate}/hr</span>}
                   </div>
-                  <p className="mt-2 text-sm text-[#9EA6B8]">{connectionCount || 0} {connectionCount === 1 ? "Connection" : "Connections"}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><span>{followerCount||0} Followers</span><span>{followingCount||0} Following</span><Link href="/network" className="hover:text-[#B9B3FF]">{connectionCount||0} Connections</Link></div>
                 </div>
               </div>
               {!isSelf && viewer && <div className="flex flex-wrap gap-2"><ProfileConnectionActions profileId={profile.id} connectionId={connection?.id} initialState={connectionState} initialFollowing={!!follow.data}/><Link href={`/messages/${profile.id}`} className="flex items-center justify-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7d6ffc]"><MessageSquare className="h-4 w-4" /> Message</Link></div>}
@@ -155,6 +156,7 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
                 </div>
               </div>
             )}
+            <ProfileSocialFeed profileId={profile.id} name={profile.full_name||"GigWay member"}/>
           </div>
         </section>
       </main>
