@@ -109,10 +109,12 @@ function Rail({
   title,
   items,
   href,
+  cta,
 }: {
   title: string;
   items: Item[];
   href: string;
+  cta: string;
 }) {
   if (!items.length) return null;
   return (
@@ -128,17 +130,20 @@ function Rail({
           <Link
             key={x.id}
             href={x.href}
-            className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 sm:w-60"
+            className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-indigo/35 hover:shadow-elevated sm:w-60"
           >
-            <p className="truncate font-bold text-brand-midnight">
-              {x.title || x.name}
-            </p>
-            <p className="mt-1 text-caption text-brand-slate">{x.subtitle}</p>
-            {x.cta && (
-              <p className="mt-4 text-caption font-bold text-brand-indigo">
-                {x.cta}
-              </p>
-            )}
+            <div className="flex min-w-0 items-start gap-3">
+              {x.image ? (
+                <img src={x.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover" />
+              ) : (
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{(x.title || x.name || "G")[0]}</span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate font-bold text-brand-midnight">{x.title || x.name}</p>
+                <p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{x.subtitle}</p>
+              </div>
+            </div>
+            <p className="mt-4 text-caption font-bold text-brand-indigo">{x.cta || cta}</p>
           </Link>
         ))}
       </div>
@@ -282,31 +287,27 @@ export function PostCard({
       setBusy(false);
     }
   };
+  const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
   return (
     <article className="relative min-w-0 max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft">
       <div className="flex gap-3">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-indigo/10 font-bold text-brand-indigo ${post.author?.type === "organization" ? "rounded-xl" : "rounded-full"}`}
-        >
-          {post.author?.avatar ? (
-            <img
-              src={post.author.avatar}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            post.author?.name?.[0] || "G"
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-bold text-brand-midnight">
-            {post.author?.name || "GigWay member"}
-          </p>
+        {authorHref ? (
+          <Link href={authorHref} aria-label={`View ${post.author?.name || "author"} profile`} className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-indigo/10 font-bold text-brand-indigo ${post.author?.type === "organization" ? "rounded-xl" : "rounded-full"}`}>
+            {post.author?.avatar ? <img src={post.author.avatar} alt="" className="h-full w-full object-cover" /> : post.author?.name?.[0] || "G"}
+          </Link>
+        ) : (
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-indigo/10 font-bold text-brand-indigo ${post.author?.type === "organization" ? "rounded-xl" : "rounded-full"}`}>
+            {post.author?.avatar ? <img src={post.author.avatar} alt="" className="h-full w-full object-cover" /> : post.author?.name?.[0] || "G"}
+          </div>
+        )}
+        <div className="relative min-w-0 flex-1">
+          {authorHref ? <Link href={authorHref} className="block truncate font-bold text-brand-midnight hover:text-brand-indigo">{post.author?.name || "GigWay member"}</Link> : <p className="truncate font-bold text-brand-midnight">{post.author?.name || "GigWay member"}</p>}
           <p className="truncate text-caption text-brand-slate">
             {post.author?.username ? `@${post.author.username} · ` : ""}
             {post.author?.tagline || "GigWay professional"} ·{" "}
             {new Date(post.createdAt).toLocaleDateString()}
           </p>
+          {authorHref && <Link href={authorHref} aria-label={`View @${post.author?.username} profile`} className="absolute inset-x-0 bottom-0 h-5" />}
         </div>
         {post.canManageVisibility && (
           <span className="text-caption text-brand-slate">
@@ -559,30 +560,34 @@ export default function SocialHomeFeed({
     load(true);
   }, [feed]);
   const rails = [
-    <Rail key="j" title="Jobs for You" href="/jobs" items={jobs} />,
+    <Rail key="j" title="Jobs for You" href="/jobs" items={jobs} cta="View job" />,
     <Rail
       key="p"
       title="Projects You May Like"
       href="/projects"
       items={projects}
+      cta="View project"
     />,
     <Rail
       key="u"
       title="Professionals to Follow"
       href="/explore?tab=people"
       items={people}
+      cta="View profile"
     />,
     <Rail
       key="o"
       title="Organizations to Follow"
       href="/explore?tab=organizations"
       items={organizations}
+      cta="View organization"
     />,
     <Rail
       key="t"
       title="Professional Tools"
       href="/ai-tools"
       items={PROFESSIONAL_TOOLS}
+      cta="Open tool"
     />,
   ];
   return (
@@ -628,15 +633,15 @@ export default function SocialHomeFeed({
               }
             >
               {repost && (
-                <p className="mb-2 flex items-center gap-1.5 text-caption font-semibold text-brand-slate">
+                <p className="mb-2 flex min-w-0 max-w-full items-center gap-1.5 text-caption font-semibold text-brand-slate">
                   <Repeat2 className="h-3.5 w-3.5" />
                   <Link
                     href={repost.repostActor.href}
-                    className="hover:text-brand-indigo"
+                    className="truncate hover:text-brand-indigo"
                   >
                     {repost.repostActor.name}
                   </Link>{" "}
-                  reposted
+                  <span className="shrink-0">reposted</span>
                 </p>
               )}
               <PostCard post={post} onRefresh={() => load(true)} />
@@ -663,7 +668,16 @@ export default function SocialHomeFeed({
         )}
         {!loading && !error && posts.length === 0 && (
           <div className="rounded-xl border border-brand-borderLight bg-white p-4 text-body-sm text-brand-slate">
-            No posts to show yet.
+            {feed === "following" ? (
+              <>
+                <p>Follow professionals and organizations to build your feed.</p>
+                <Link href="/explore" className="mt-3 inline-block font-bold text-brand-indigo">
+                  Explore professionals
+                </Link>
+              </>
+            ) : (
+              "No posts to show yet."
+            )}
           </div>
         )}
         {!loading && !error && cursor && (
