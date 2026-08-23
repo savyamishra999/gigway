@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canViewPost, plainText, requireSocialUser, resolveProfile, safePost, socialDb } from "@/lib/social/server";
+import { canViewPost, plainText, requireSocialUser, resolveProfile, safePost, socialDb, withReplyPreviews } from "@/lib/social/server";
 
 const PAGE_SIZE = 15;
 const FETCH_SIZE = PAGE_SIZE * 4 + 1;
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
       for (const post of data || []) if (await canViewPost(post, viewer?.id)) accessible.push(post);
       const page = accessible.slice(0, PAGE_SIZE);
       stage = "serialization";
-      return NextResponse.json({ items: await Promise.all(page.map((post) => safePost(post, viewer?.id))), nextCursor: accessible.length > PAGE_SIZE ? `${page.at(-1).created_at}|${page.at(-1).id}` : null });
+      return NextResponse.json({ items: await withReplyPreviews(await Promise.all(page.map((post) => safePost(post, viewer?.id)))), nextCursor: accessible.length > PAGE_SIZE ? `${page.at(-1).created_at}|${page.at(-1).id}` : null });
     }
 
     const cursor = readCursor(cursorValue);
@@ -170,9 +170,11 @@ export async function GET(req: NextRequest) {
       },
       originalPost: await safePost(activity.post, viewer.id),
     }));
+    const originals = await withReplyPreviews(items.map((item): any => "type" in item && item.type === "repost" ? item.originalPost : item));
+    const enrichedItems = items.map((item, index) => "type" in item && item.type === "repost" ? { ...item, originalPost: originals[index] } : originals[index]);
     const last = page.at(-1);
     const hasMore = deduped.length > PAGE_SIZE || (originalsRes.data || []).length === FETCH_SIZE || repostRows.length === FETCH_SIZE;
-    return NextResponse.json({ items, nextCursor: hasMore && last ? encodeCursor(last) : null });
+    return NextResponse.json({ items: enrichedItems, nextCursor: hasMore && last ? encodeCursor(last) : null });
   } catch (error) {
     logFeedFailure(stage, error);
     return NextResponse.json({ error: "feed_unavailable" }, { status: 503 });

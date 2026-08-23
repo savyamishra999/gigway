@@ -78,6 +78,23 @@ export async function safePost(post:SocialPost, viewerId?:string|null) {
   return {id:post.id,body:post.body,postType:post.post_type,visibility:post.visibility,createdAt:post.created_at,editedAt:post.edited_at,author,media:media.filter(Boolean),likeCount:likeRes.count||0,commentCount:commentRes.count||0,repostCount:repostRes.count||0,isRepostedByMe:!!repostedRes.data,canRepost:!!viewerId&&!canManage,isLikedByMe:!!likedRes.data,isSavedByMe:!!savedRes.data,canEdit:canManage,canDelete:canManage,canManageVisibility:canManage,canFollow:!!viewerId&&!canManage&&!!author,isFollowing:!!follow.data,canReport:!!viewerId&&!canManage,mentions:mentions.map(x=>x.username)}
 }
 
+/** Adds a deliberately small discussion sample to a page of already-safe posts.
+ * This is one comments query and one identity query for the whole page, never one
+ * browser request (or API call) per card. */
+export async function withReplyPreviews<T extends { id:string }>(posts:T[]) {
+  if (!posts.length) return posts.map(post => ({ ...post, replyPreview: [] as const }))
+  const db=socialDb(), ids=posts.map(post=>post.id)
+  const {data: comments,error}=await db.from("post_comments").select("id,post_id,user_id,body,created_at").in("post_id",ids).eq("status","published").is("parent_comment_id",null).order("created_at",{ascending:false})
+  requireSocialResult("reply_previews",{error})
+  const selected=new Map<string, typeof comments>()
+  for(const comment of comments||[]){const list=selected.get(comment.post_id)||[];if(list.length<2){list.push(comment);selected.set(comment.post_id,list)}}
+  const userIds=[...new Set((comments||[]).filter(comment=>(selected.get(comment.post_id)||[]).some(item=>item.id===comment.id)).map(comment=>comment.user_id))]
+  const {data: profiles,error: profileError}=userIds.length?await db.from("profiles").select("id,full_name,username,avatar_url,is_verified").in("id",userIds):{data:[],error:null}
+  requireSocialResult("reply_preview_authors",{error:profileError})
+  const authors=new Map((profiles||[]).map(profile=>[profile.id,profile]))
+  return posts.map(post=>({...post,replyPreview:(selected.get(post.id)||[]).reverse().map(comment=>{const author=authors.get(comment.user_id);return{id:comment.id,body:comment.body,createdAt:comment.created_at,author:author?{id:author.id,name:author.full_name,username:author.username,avatar:author.avatar_url,verified:author.is_verified}:null}})}))
+}
+
 export function plainText(value:unknown, max:number, min=1) {
   if (typeof value !== "string") return null
   const text=value.trim()

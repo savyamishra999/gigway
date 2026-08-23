@@ -68,6 +68,7 @@ export type Post = {
   isFollowing: boolean;
   canReport: boolean;
   mentions: string[];
+  replyPreview?: { id: string; body: string; createdAt: string; author: { id: string; name: string; username?: string | null; avatar?: string | null; verified?: boolean } | null }[];
 };
 export type FeedItem =
   | Post
@@ -288,6 +289,7 @@ export function PostCard({
     }
   };
   const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
+  const preview = post.replyPreview || [];
   return (
     <article className="relative min-w-0 max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft">
       <div className="flex gap-3">
@@ -512,6 +514,20 @@ export function PostCard({
             Post
           </button>
         </div>
+      )}
+      {preview.length > 0 && (
+        <section className="mt-4 border-t border-brand-borderLight pt-3" aria-label="Reply preview">
+          <div className="space-y-3">
+            {preview.map((reply) => {
+              const href = reply.author?.username ? `/u/${reply.author.username}` : null;
+              return <div key={reply.id} className="flex min-w-0 gap-2.5 text-body-sm">
+                {href ? <Link href={href} className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-brand-indigo/10" aria-label={`View ${reply.author?.name || "member"} profile`}>{reply.author?.avatar ? <img src={reply.author.avatar} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-[10px] font-bold text-brand-indigo">{reply.author?.name?.[0] || "G"}</span>}</Link> : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-indigo/10 text-[10px] font-bold text-brand-indigo">{reply.author?.name?.[0] || "G"}</span>}
+                <div className="min-w-0"><p className="truncate text-caption"><span className="font-bold text-brand-midnight">{reply.author?.name || "GigWay member"}</span>{reply.author?.username && <span className="ml-1 text-brand-indigo">@{reply.author.username}</span>}<span className="ml-1 text-brand-slate">· {new Date(reply.createdAt).toLocaleDateString()}</span></p><p className="line-clamp-2 whitespace-pre-wrap break-words leading-5 text-brand-slate">{reply.body}</p></div>
+              </div>;
+            })}
+          </div>
+          <Link href={`/social/posts/${post.id}`} className="mt-3 inline-block text-caption font-bold text-brand-indigo">View all {post.commentCount} {post.commentCount === 1 ? "reply" : "replies"}</Link>
+        </section>
       )}
       {notice && (
         <p className="mt-2 text-caption text-brand-indigo">{notice}</p>
