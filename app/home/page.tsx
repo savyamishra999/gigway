@@ -8,7 +8,7 @@ export default async function HomeHub(){
   if(!user)return <main className="min-h-screen bg-brand-ivory px-4 py-20 text-center"><h1 className="text-h1 font-extrabold text-brand-midnight">Your next opportunity starts here.</h1><Link href="/login" className="mt-6 inline-block rounded-xl bg-brand-indigo px-5 py-3 font-bold text-white">Join GigWay</Link></main>
   const[{data:profile},{data:jobs},{data:projects},{data:people},{data:organizations},{count:unread},{count:applications},{count:proposals}]=await Promise.all([
     supabase.from("profiles").select("full_name,skills").eq("id",user.id).maybeSingle(),
-    supabase.from("jobs").select("id,title,company_name,location,created_at").eq("status","active").order("created_at",{ascending:false}).limit(6),
+    supabase.from("jobs").select("id,title,company_name,location,created_at,organizations:organization_id(name,username,logo_url)").eq("status","active").order("created_at",{ascending:false}).limit(6),
     supabase.from("projects").select("id,title,budget,category,created_at").eq("status","open").order("created_at",{ascending:false}).limit(6),
     supabase.from("profiles").select("id,full_name,username,avatar_url,tagline,skills,is_verified").eq("profile_completed",true).neq("id",user.id).order("created_at",{ascending:false}).limit(6),
     supabase.from("organizations").select("id,name,username,logo_url,tagline,industry").order("created_at",{ascending:false}).limit(6),

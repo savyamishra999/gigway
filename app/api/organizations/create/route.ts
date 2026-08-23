@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const body = await request.json(); const name = String(body.name ?? "").trim(); const username = normalizeUsername(String(body.username ?? "")); const invalid = usernameError(username)
   if (!name) return NextResponse.json({ error: "Company name is required." }, { status: 400 }); if (invalid) return NextResponse.json({ error: invalid }, { status: 400 })
-  const organization: Record<string, unknown> = { name, username, created_by: user.id }
+  const entityType = body.entity_type === "company" || body.entity_type === "organization" ? body.entity_type : "organization"
+  const organization: Record<string, unknown> = { name, username, created_by: user.id, entity_type: entityType }
   for (const field of fields) if (body[field] !== undefined && body[field] !== "") organization[field] = field === "founded_year" ? Number(body[field]) : String(body[field]).trim()
   const { data: created, error: createError } = await adminDb.from("organizations").insert(organization).select("id, username").single()
   if (createError || !created) return NextResponse.json({ error: createError?.code === "23505" ? "That organization username is already taken." : createError?.message || "Could not create organization." }, { status: 409 })

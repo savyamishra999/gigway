@@ -23,7 +23,7 @@ const CATEGORIES = [
   "Writing", "Data Science", "Finance", "Sales", "HR", "Operations", "Other",
 ]
 
-export default function JobForm({ userId }: { userId: string }) {
+export default function JobForm({ userId, organizations = [] }: { userId: string; organizations?: { id: string; name: string; entity_type: "company" | "organization" }[] }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [companyName, setCompanyName] = useState("")
@@ -38,6 +38,7 @@ export default function JobForm({ userId }: { userId: string }) {
   const [skills, setSkills] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [organizationId, setOrganizationId] = useState("")
   const supabase = createClient()
   const router = useRouter()
 
@@ -55,33 +56,14 @@ export default function JobForm({ userId }: { userId: string }) {
     setLoading(true)
     setError("")
 
-    const { data, error: insertError } = await supabase
-      .from("jobs")
-      .insert({
-        poster_id: userId,
-        client_id: userId,
-        title,
-        description,
-        company_name: companyName || null,
-        location: location || null,
-        job_type: jobType,
-        salary_min: salaryMin ? parseInt(salaryMin) : null,
-        salary_max: salaryMax ? parseInt(salaryMax) : null,
-        skills_required: skills,
-        category,
-        experience_required: experienceRequired || null,
-        deadline: deadline || null,
-        status: "active",
-      })
-      .select("id")
-      .single()
-
+    const response = await fetch("/api/jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, description, company_name: companyName || null, location: location || null, job_type: jobType, salary_min: salaryMin ? parseInt(salaryMin) : null, salary_max: salaryMax ? parseInt(salaryMax) : null, skills_required: skills, category, experience_required: experienceRequired || null, deadline: deadline || null, organizationId: organizationId || undefined }) })
+    const result = await response.json().catch(() => ({}))
     setLoading(false)
-    if (insertError) {
-      setError("Error posting job: " + insertError.message)
+    if (!response.ok) {
+      setError(result.error || "Error posting job")
       return
     }
-    router.push(`/jobs/${data.id}`)
+    router.push(`/jobs/${result.job_id}`)
   }
 
   return (
@@ -96,6 +78,8 @@ export default function JobForm({ userId }: { userId: string }) {
               {error}
             </div>
           )}
+
+          {organizations.length > 0 && <div className="space-y-2"><Label className="text-gray-300">Post as</Label><Select value={organizationId || "personal"} onValueChange={value => setOrganizationId(value === "personal" ? "" : value)}><SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger><SelectContent className="bg-[#1a1a1a] border-white/10 text-white"><SelectItem value="personal">Personal account</SelectItem>{organizations.map(org => <SelectItem key={org.id} value={org.id}>{org.name} · {org.entity_type === "company" ? "Company" : "Organization"}</SelectItem>)}</SelectContent></Select></div>}
 
           <div className="space-y-2">
             <Label className="text-gray-300">Job Title *</Label>

@@ -577,10 +577,10 @@ export default function SocialHomeFeed({
     />,
     <Rail
       key="o"
-      title="Organizations to Follow"
+      title="Companies & Organizations to Follow"
       href="/explore?tab=organizations"
       items={organizations}
-      cta="View organization"
+      cta="View entity"
     />,
     <Rail
       key="t"

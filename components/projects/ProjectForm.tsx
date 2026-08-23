@@ -28,7 +28,7 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ]
 
-export default function ProjectForm({ userId }: { userId: string }) {
+export default function ProjectForm({ userId, organizations = [] }: { userId: string; organizations?: { id: string; name: string; entity_type: "company" | "organization" }[] }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [category, setCategory] = useState("")
@@ -39,6 +39,7 @@ export default function ProjectForm({ userId }: { userId: string }) {
   const [skillsRequired, setSkillsRequired] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [organizationId, setOrganizationId] = useState("")
   const router = useRouter()
 
   const addSkill = (skill: string) => {
@@ -58,7 +59,7 @@ export default function ProjectForm({ userId }: { userId: string }) {
     setLoading(true)
     setError("")
 
-    const response = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, category, project_type: projectType, budget, deadline, skills_required: skillsRequired }) })
+    const response = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, category, project_type: projectType, budget, deadline, skills_required: skillsRequired, organizationId: organizationId || undefined }) })
     const data = await response.json().catch(() => ({})); setLoading(false)
     if (!response.ok) setError(data.error === "upgrade_required" ? "Your free project slot is already active. Upgrade to GigWay Business for more hiring capacity." : data.error || "Unable to post project.")
     else router.push(`/projects/${data.project_id}`)
@@ -76,6 +77,7 @@ export default function ProjectForm({ userId }: { userId: string }) {
               {error}
             </div>
           )}
+          {organizations.length > 0 && <div className="space-y-2"><Label className="text-gray-300">Posting as</Label><Select value={organizationId || "personal"} onValueChange={value => setOrganizationId(value === "personal" ? "" : value)}><SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger><SelectContent className="bg-[#1a1a1a] border-white/10 text-white"><SelectItem value="personal">Personal account</SelectItem>{organizations.map(org => <SelectItem key={org.id} value={org.id}>{org.name} · {org.entity_type === "company" ? "Company" : "Organization"}</SelectItem>)}</SelectContent></Select></div>}
 
           <div className="space-y-2">
             <Label className="text-gray-300">Project Title *</Label>

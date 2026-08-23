@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { getUsageLimit, limitResponse } from "@/lib/billing/limits"
+import { canPostAsOrganization } from "@/lib/social/server"
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { title, description, category, job_type, budget, location, skills_required } = body
+  const { title, description, category, job_type, budget, location, skills_required, company_name, salary_min, salary_max, experience_required, deadline } = body
 
   if (!title || !description || !category) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -56,18 +57,30 @@ export async function POST(request: Request) {
   const usage = await getUsageLimit(supabase, user.id, "jobs")
   if (!usage.allowed) return NextResponse.json(limitResponse(usage), { status: 403 })
 
+  let organizationId: string | null = null
+  if (typeof body.organizationId === "string" && body.organizationId) {
+    const access = await canPostAsOrganization(user.id, body.organizationId)
+    if (!access.allowed) return NextResponse.json({ error: "Only organization owners and admins can post jobs for this entity." }, { status: 403 })
+    organizationId = body.organizationId
+  }
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
       poster_id: user.id,
       client_id: user.id,
+      organization_id: organizationId,
       title,
       description,
       category,
       job_type: job_type || "full-time",
       budget: budget ? parseFloat(budget) : null,
+      company_name: company_name || null,
       location: location || null,
+      salary_min: Number.isFinite(Number(salary_min)) ? Number(salary_min) : null,
+      salary_max: Number.isFinite(Number(salary_max)) ? Number(salary_max) : null,
       skills_required: skills_required || [],
+      experience_required: experience_required || null,
+      deadline: deadline || null,
       status: "active",
     })
     .select("id")

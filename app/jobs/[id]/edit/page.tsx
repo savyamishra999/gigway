@@ -44,7 +44,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       if (!user) { router.push("/login"); return }
 
       const { data: job } = await supabase.from("jobs").select("*").eq("id", resolvedId).single()
-      if (!job || job.client_id !== user.id) { router.push(`/jobs/${resolvedId}`); return }
+      const access = await fetch(`/api/jobs/${resolvedId}`)
+      if (!job || (!access.ok && access.status !== 200)) { router.push(`/jobs/${resolvedId}`); return }
 
       setTitle(job.title || "")
       setDescription(job.description || "")
@@ -72,7 +73,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     e.preventDefault()
     setSaving(true)
     setError("")
-    const { error: updateError } = await supabase.from("jobs").update({
+    const response = await fetch(`/api/jobs/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({
       title,
       description,
       company_name: companyName || null,
@@ -84,9 +85,9 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       category,
       experience_required: experienceRequired || null,
       deadline: deadline || null,
-    }).eq("id", id)
+    }) })
     setSaving(false)
-    if (updateError) { setError("Save failed: " + updateError.message); return }
+    if (!response.ok) { const result = await response.json().catch(() => ({})); setError("Save failed: " + (result.error || "Request failed")); return }
     router.push(`/jobs/${id}`)
   }
 

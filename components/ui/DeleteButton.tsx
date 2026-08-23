@@ -10,9 +10,10 @@ interface DeleteButtonProps {
   id: string
   redirectTo: string
   label?: string
+  endpoint?: string
 }
 
-export default function DeleteButton({ table, id, redirectTo, label = "Delete" }: DeleteButtonProps) {
+export default function DeleteButton({ table, id, redirectTo, label = "Delete", endpoint }: DeleteButtonProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -20,7 +21,8 @@ export default function DeleteButton({ table, id, redirectTo, label = "Delete" }
 
   const handleDelete = async () => {
     setLoading(true)
-    await supabase.from(table).update({ status: "deleted" }).eq("id", id)
+    if (endpoint) await fetch(endpoint, { method: "DELETE" })
+    else await supabase.from(table).update({ status: "deleted" }).eq("id", id)
     setLoading(false)
     setOpen(false)
     router.push(redirectTo)

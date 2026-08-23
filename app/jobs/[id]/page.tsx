@@ -6,6 +6,7 @@ import { MapPin, Clock, Calendar, Building2, IndianRupee, Pencil, Briefcase, Che
 import JobApplyButton from "@/components/jobs/JobApplyButton"
 import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
+import { canManageJob } from "@/lib/jobs/server"
 
 export async function generateMetadata(
   props: { params: Promise<{ id: string }> }
@@ -55,6 +56,8 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
 
   if (!job) return notFound()
 
+  const { data: organization } = job.organization_id ? await supabase.from("organizations").select("id,name,username,logo_url,entity_type,industry,tagline,location,is_verified").eq("id", job.organization_id).maybeSingle() : { data: null }
+
   let hasApplied = false
   if (user) {
     const { data: existing } = await supabase
@@ -71,9 +74,10 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
     .select("*", { count: "exact", head: true })
     .eq("job_id", id)
 
-  const isOwner = user?.id === job.client_id
+  const isOwner = !!user && await canManageJob(user.id, job)
   const poster = job.profiles as { id?: string; full_name?: string | null; company?: string | null; avatar_url?: string | null; is_verified?: boolean | null } | null
-  const companyDisplay = job.company_name || poster?.company || poster?.full_name || "Company"
+  const companyDisplay = organization?.name || job.company_name || poster?.company || poster?.full_name || "Company"
+  const employerHref = organization?.username ? `/u/${organization.username}` : null
   const salary = job.salary_min && job.salary_max
     ? `₹${job.salary_min.toLocaleString()} – ₹${job.salary_max.toLocaleString()}`
     : job.salary_min
@@ -91,14 +95,15 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
             {/* Job Header */}
             <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-14 h-14 rounded-xl bg-brand-indigo/10 flex items-center justify-center text-brand-indigo font-bold text-2xl flex-shrink-0">
-                  {companyDisplay[0]?.toUpperCase() || "C"}
+                <div className="w-14 h-14 rounded-xl bg-brand-indigo/10 flex items-center justify-center overflow-hidden text-brand-indigo font-bold text-2xl flex-shrink-0">
+                  {organization?.logo_url ? <img src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : companyDisplay[0]?.toUpperCase() || "C"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-h2 font-extrabold text-brand-midnight mb-1">{job.title}</h1>
                   <div className="flex items-center gap-1.5">
-                    <p className="text-brand-slate">{companyDisplay}</p>
-                    {poster?.is_verified && <CheckCircle2 className="h-4 w-4 text-brand-indigo flex-shrink-0" />}
+                    {employerHref ? <Link href={employerHref} className="text-brand-slate hover:text-brand-indigo">{companyDisplay}</Link> : <p className="text-brand-slate">{companyDisplay}</p>}
+                    {(organization?.is_verified || poster?.is_verified) && <CheckCircle2 className="h-4 w-4 text-brand-indigo flex-shrink-0" />}
+                    {organization && <span className="text-caption font-bold text-brand-slate">{organization.entity_type === "company" ? "Company" : "Organization"}</span>}
                   </div>
                 </div>
                 {job.job_type && (
@@ -196,7 +201,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
                       className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-brand-borderLight text-brand-indigo hover:bg-brand-indigo/5 text-sm font-semibold transition-colors">
                       <Pencil className="h-4 w-4" /> Edit Job
                     </Link>
-                    <DeleteButton table="jobs" id={id} redirectTo="/jobs" label="Delete" />
+                    <DeleteButton table="jobs" id={id} redirectTo="/jobs" label="Delete" endpoint={`/api/jobs/${id}`} />
                   </div>
                 </div>
               )}
@@ -211,12 +216,12 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
                 <Building2 className="h-4 w-4 text-brand-indigo" /> About the Company
               </h2>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-indigo/10 flex items-center justify-center text-brand-indigo font-bold flex-shrink-0">
-                  {companyDisplay[0]?.toUpperCase() || "C"}
+                <div className="w-10 h-10 rounded-full bg-brand-indigo/10 flex items-center justify-center overflow-hidden text-brand-indigo font-bold flex-shrink-0">
+                  {organization?.logo_url ? <img src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : companyDisplay[0]?.toUpperCase() || "C"}
                 </div>
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className="text-brand-midnight font-medium text-sm truncate">{companyDisplay}</p>
-                  {poster?.is_verified && <CheckCircle2 className="h-3.5 w-3.5 text-brand-indigo flex-shrink-0" />}
+                  {employerHref ? <Link href={employerHref} className="text-brand-midnight font-medium text-sm truncate hover:text-brand-indigo">{companyDisplay}</Link> : <p className="text-brand-midnight font-medium text-sm truncate">{companyDisplay}</p>}
+                  {(organization?.is_verified || poster?.is_verified) && <CheckCircle2 className="h-3.5 w-3.5 text-brand-indigo flex-shrink-0" />}
                 </div>
               </div>
             </div>
