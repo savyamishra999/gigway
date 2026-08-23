@@ -165,9 +165,12 @@ export function PostCard({
     [comment, setComment] = useState(""),
     [commenting, setCommenting] = useState(false),
     [busy, setBusy] = useState(false),
+    [saved, setSaved] = useState(post.isSavedByMe),
+    [saving, setSaving] = useState(false),
     [reposted, setReposted] = useState(post.isRepostedByMe),
     [count, setCount] = useState(post.repostCount),
     [notice, setNotice] = useState("");
+  useEffect(() => setSaved(post.isSavedByMe), [post.isSavedByMe]);
   const api = async (url: string, method = "POST", body?: unknown) => {
     const r = await fetch(url, {
       method,
@@ -179,15 +182,26 @@ export function PostCard({
     return d;
   };
   const action = async (kind: "like" | "save") => {
+    const isSave = kind === "save";
+    const previous = saved;
+    if (isSave) setSaving(true);
     try {
-      await api(
+      const result = await api(
         `/api/social/posts/${post.id}/${kind}`,
-        post[kind === "like" ? "isLikedByMe" : "isSavedByMe"]
+        (isSave ? saved : post.isLikedByMe)
           ? "DELETE"
           : "POST",
       );
+      if (isSave) setSaved(result.saved === true);
       onRefresh();
-    } catch {}
+    } catch {
+      if (isSave) {
+        setSaved(previous);
+        setNotice("Could not update saved post");
+      }
+    } finally {
+      if (isSave) setSaving(false);
+    }
   };
   const repost = async () => {
     if (!post.canRepost) return;
@@ -483,10 +497,12 @@ export function PostCard({
         </button>
         <button
           onClick={() => action("save")}
-          className={`ml-auto ${post.isSavedByMe ? "text-brand-indigo" : ""}`}
-          aria-label="Save post"
+          disabled={saving}
+          className={`ml-auto disabled:opacity-60 ${saved ? "text-brand-indigo" : ""}`}
+          aria-label={saved ? "Unsave post" : "Save post"}
+          aria-pressed={saved}
         >
-          <Bookmark className="h-4 w-4" />
+          <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
         </button>
       </div>
       {post.canFollow && (
