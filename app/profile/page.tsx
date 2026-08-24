@@ -71,7 +71,7 @@ export default async function ProfilePage() {
     )
   }
   if (isHireTalent) {
-    completionItems.push({ label: "Company name", done: !!profile?.company_name || (memberships?.length ?? 0) > 0 })
+    completionItems.push({ label: "Create or join an organization", done: (memberships?.length ?? 0) > 0 })
   }
   const done  = completionItems.filter(i => i.done).length
   const total = completionItems.length

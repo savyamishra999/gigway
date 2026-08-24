@@ -1,0 +1,5 @@
+export const skillKey=(value:string)=>value.trim().replace(/\s+/g," ").toLowerCase()
+const words=(value?:string|null)=>new Set((value||"").toLowerCase().split(/[^a-z0-9+#.]+/).filter(x=>x.length>2))
+const overlap=(a:string[],b:string[])=>a.filter(x=>new Set(b.map(skillKey)).has(skillKey(x)))
+const recent=(date:string)=>Math.max(0,14-Math.floor((Date.now()-new Date(date).valueOf())/86400000))
+export function scoreOpportunity(profile:{skills?:string[]|null;location?:string|null;job_function?:string[]|string|null},item:{skills_required?:string[]|null;location?:string|null;title:string;category?:string|null;created_at:string}){const skills=overlap(profile.skills||[],item.skills_required||[]),location=!!profile.location&&!!item.location&&skillKey(profile.location)===skillKey(item.location),functions=Array.isArray(profile.job_function)?profile.job_function:profile.job_function?[profile.job_function]:[];const text=words(`${item.title} ${item.category||""}`),functionHit=functions.some(value=>[...words(value)].some(word=>text.has(word)));return{score:skills.length*30+(location?8:0)+(functionHit?6:0)+recent(item.created_at),skills,location,functionHit}}

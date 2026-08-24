@@ -15,7 +15,19 @@ export async function POST(request: NextRequest) {
   const body = await request.json(); const modes = Array.isArray(body.modes) ? body.modes.filter((m: unknown) => WORK_MODES.some(x => x.value === m)) : []
   const hireAs: HireAs | null = body.hireAs === "individual" || body.hireAs === "company" ? body.hireAs : null
 
+  // `profile_completed` means the minimum GigWay identity setup is complete;
+  // it does not mean a CV, portfolio, or verification is complete.
   const updatePayload: Record<string, unknown> = { profile_completed: true }
+  const name = typeof body.fullName === "string" ? body.fullName.trim().slice(0, 120) : ""
+  const tagline = typeof body.tagline === "string" ? body.tagline.trim().slice(0, 80) : ""
+  const location = typeof body.location === "string" ? body.location.trim().slice(0, 120) : ""
+  const skills = Array.isArray(body.skills) ? [...new Set(body.skills.filter((value: unknown) => typeof value === "string").map((value: string) => value.trim()).filter(Boolean))].slice(0, 10) : []
+  if (!name) return NextResponse.json({ error: "Enter your full name." }, { status: 400 })
+  updatePayload.full_name = name
+  updatePayload.tagline = tagline || null
+  updatePayload.location = location || null
+  updatePayload.skills = skills
+  if (typeof body.avatarUrl === "string") updatePayload.avatar_url = body.avatarUrl.trim() || null
   if (body.username !== undefined) {
     const username = normalizeUsername(String(body.username))
     const invalid = usernameError(username)

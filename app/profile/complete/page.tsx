@@ -12,7 +12,7 @@ export default async function ProfileCompletePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("profile_completed, username, full_name, user_roles, find_work_type, hire_talent_type, account_type")
+    .select("profile_completed, username, full_name, avatar_url, tagline, location, skills, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
     .single()
 
@@ -26,7 +26,7 @@ export default async function ProfileCompletePage() {
   const { data: intents } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true)
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-start py-10 px-4">
+    <div className="min-h-screen bg-brand-ivory flex flex-col items-center justify-start py-10 px-4">
       <div className="w-full max-w-2xl">
         <div className="flex justify-center mb-8">
           <Image src="/logo.png" width={168} height={56} alt="GigWay" priority
@@ -34,15 +34,15 @@ export default async function ProfileCompletePage() {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome to GigWay</h1>
-          <p className="text-[#94A3B8]">Set up your personal identity</p>
+          <h1 className="text-3xl font-bold text-brand-midnight mb-2">Welcome to GigWay</h1>
+          <p className="text-brand-slate">Set up your professional identity</p>
         </div>
 
-        <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-6 sm:p-8">
+        <div className="bg-white border border-brand-borderLight rounded-2xl p-6 shadow-soft sm:p-8">
           <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} rolesConfigured={roles.isConfigured} />
         </div>
 
-        <p className="text-center text-[#475569] text-xs mt-6">
+        <p className="text-center text-brand-slate text-xs mt-6">
           By continuing, you agree to GigWay&apos;s Terms of Service &amp; Privacy Policy
         </p>
       </div>

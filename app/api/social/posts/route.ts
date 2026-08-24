@@ -63,7 +63,9 @@ export async function POST(req: NextRequest) {
     author_organization_id = b.organizationId;
   } else {
     const profile = await resolveProfile(user.id);
-    if (!profile) return NextResponse.json({ error: "Complete your professional profile before posting." }, { status: 403 });
+    if (!profile || !profile.full_name?.trim() || !profile.username) return NextResponse.json({ error: "Complete your minimum GigWay identity before posting." }, { status: 403 });
+    const { data: readiness } = await db.from("profiles").select("profile_completed").eq("id", user.id).maybeSingle();
+    if (!readiness?.profile_completed) return NextResponse.json({ error: "Complete your minimum GigWay identity before posting." }, { status: 403 });
     author_profile_id = profile.id;
   }
   const { data, error } = await db.from("posts").insert({ author_user_id: user.id, author_profile_id, author_organization_id, post_type: "text", body: body || null, visibility, status: draft ? "hidden" : "published" }).select(POST_FIELDS).single();

@@ -89,6 +89,8 @@ type Props = {
   projects: Item[];
   people: Item[];
   organizations: Item[];
+  jobRailTitle?: string;
+  projectRailTitle?: string;
 };
 const PROFESSIONAL_TOOLS: Item[] = [
   {
@@ -556,6 +558,8 @@ export default function SocialHomeFeed({
   projects,
   people,
   organizations,
+  jobRailTitle = "Jobs",
+  projectRailTitle = "Projects",
 }: Props) {
   const [feed, setFeed] = useState<"discover" | "following">("discover"),
     [posts, setPosts] = useState<FeedItem[]>([]),
@@ -592,10 +596,10 @@ export default function SocialHomeFeed({
     load(true);
   }, [feed]);
   const rails = [
-    <Rail key="j" title="Jobs for You" href="/jobs" items={jobs} cta="View job" />,
+    <Rail key="j" title={jobRailTitle} href="/jobs" items={jobs} cta="View job" />,
     <Rail
       key="p"
-      title="Projects You May Like"
+      title={projectRailTitle}
       href="/projects"
       items={projects}
       cta="View project"

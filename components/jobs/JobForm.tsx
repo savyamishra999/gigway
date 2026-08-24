@@ -23,7 +23,7 @@ const CATEGORIES = [
   "Writing", "Data Science", "Finance", "Sales", "HR", "Operations", "Other",
 ]
 
-export default function JobForm({ userId, organizations = [] }: { userId: string; organizations?: { id: string; name: string; entity_type: "company" | "organization" }[] }) {
+export default function JobForm({ userId, organizations = [], initialOrganizationId = "" }: { userId: string; organizations?: { id: string; name: string; entity_type: "company" | "organization" }[]; initialOrganizationId?: string }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [companyName, setCompanyName] = useState("")
@@ -38,7 +38,7 @@ export default function JobForm({ userId, organizations = [] }: { userId: string
   const [skills, setSkills] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [organizationId, setOrganizationId] = useState("")
+  const [organizationId, setOrganizationId] = useState(initialOrganizationId)
   const supabase = createClient()
   const router = useRouter()
 

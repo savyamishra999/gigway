@@ -34,18 +34,19 @@ export default function ChipPicker({
     ? (categorized ? Object.values(options as Record<string, string[]>).flat() : (options as string[]))
         .filter(o => o.toLowerCase().includes(search.toLowerCase()))
     : categorized ? (options as Record<string, string[]>)[category] ?? [] : (options as string[])
-  const visiblePool = pool.filter(o => !selected.includes(o))
+  const key = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase()
+  const visiblePool = pool.filter(o => !selected.some(value => key(value) === key(o)))
 
   const toggle = (value: string) => {
-    if (selected.includes(value)) { onChange(selected.filter(v => v !== value)); return }
+    if (selected.some(item => key(item) === key(value))) { onChange(selected.filter(v => key(v) !== key(value))); return }
     if (atMax) return
-    onChange([...selected, value])
+    onChange([...selected, value.trim().replace(/\s+/g, " ")])
   }
 
   const addCustom = () => {
-    const trimmed = customValue.trim()
+    const trimmed = customValue.trim().replace(/\s+/g, " ")
     setCustomValue("")
-    if (!trimmed || selected.includes(trimmed) || atMax) return
+    if (!trimmed || selected.some(value => key(value) === key(trimmed)) || atMax) return
     onChange([...selected, trimmed])
   }
 
