@@ -169,7 +169,10 @@ export function PostCard({
     [text, setText] = useState(post.body || ""),
     [visibility, setVisibility] = useState(post.visibility),
     [comment, setComment] = useState(""),
-    [commenting, setCommenting] = useState(false),
+    [commentsOpen, setCommentsOpen] = useState(false),
+    [comments, setComments] = useState(post.replyPreview || []),
+    [commentsLoaded, setCommentsLoaded] = useState(false),
+    [commentsLoading, setCommentsLoading] = useState(false),
     [busy, setBusy] = useState(false),
     [saved, setSaved] = useState(post.isSavedByMe),
     [saving, setSaving] = useState(false),
@@ -293,15 +296,37 @@ export function PostCard({
       setBusy(false);
     }
   };
+  const loadComments = async () => {
+    if (commentsLoading || commentsLoaded) return;
+    setCommentsLoading(true);
+    try {
+      const response = await api(`/api/social/posts/${post.id}/comments`, "GET");
+      if (response && typeof response === "object" && Array.isArray((response as { items?: unknown }).items)) {
+        setComments((response as { items: typeof comments }).items);
+        setCommentsLoaded(true);
+      }
+    } catch {
+      setNotice("Could not load comments. Try again.");
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+  const openComments = () => {
+    setCommentsOpen(true);
+    void loadComments();
+  };
   const addComment = async () => {
     if (!comment.trim() || busy) return;
     setBusy(true);
     try {
-      await api(`/api/social/posts/${post.id}/comments`, "POST", {
+      const response = await api(`/api/social/posts/${post.id}/comments`, "POST", {
         body: comment,
       });
       setComment("");
-      setCommenting(false);
+      if (response && typeof response === "object" && "comment" in response) {
+        setComments((items) => [...items, (response as { comment: typeof comments[number] }).comment]);
+        setCommentsLoaded(true);
+      }
       onRefresh();
     } catch {
     } finally {
@@ -309,7 +334,7 @@ export function PostCard({
     }
   };
   const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
-  const preview = post.replyPreview || [];
+  const preview = comments;
   return (
     <article className="relative min-w-0 max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft">
       <div className="flex gap-3">
@@ -476,10 +501,10 @@ export function PostCard({
         </>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-borderLight pt-3 text-caption font-bold text-brand-slate">
-        <Link href={`/social/posts/${post.id}`} className="flex items-center gap-1 hover:text-brand-indigo">
+        <button onClick={openComments} className="flex items-center gap-1 hover:text-brand-indigo">
           <MessageSquare className="h-4 w-4" />
           {post.commentCount ? `${post.commentCount} ${post.commentCount === 1 ? "Comment" : "Comments"}` : "Comment / Reply"}
-        </Link>
+        </button>
         <button
           onClick={repost}
           disabled={!post.canRepost}
@@ -517,7 +542,7 @@ export function PostCard({
           {post.author?.type === "organization" ? " Organization" : ""}
         </button>
       )}
-      {false && (
+      {commentsOpen && (
         <div className="mt-3 flex gap-2">
           <input
             value={comment}
@@ -534,7 +559,7 @@ export function PostCard({
           </button>
         </div>
       )}
-      {false && preview.length > 0 && (
+      {commentsOpen && preview.length > 0 && (
         <section className="mt-4 border-t border-brand-borderLight pt-3" aria-label="Reply preview">
           <div className="space-y-3">
             {preview.map((reply) => {
@@ -545,9 +570,10 @@ export function PostCard({
               </div>;
             })}
           </div>
-          <Link href={`/social/posts/${post.id}`} className="mt-3 inline-block text-caption font-bold text-brand-indigo">View all {post.commentCount} {post.commentCount === 1 ? "reply" : "replies"}</Link>
         </section>
       )}
+      {commentsOpen && commentsLoading && <p className="mt-3 text-caption text-brand-slate">Loading comments…</p>}
+      {commentsOpen && commentsLoaded && preview.length === 0 && <p className="mt-3 text-caption text-brand-slate">No comments yet. Start the conversation.</p>}
       {notice && (
         <p className="mt-2 text-caption text-brand-indigo">{notice}</p>
       )}
