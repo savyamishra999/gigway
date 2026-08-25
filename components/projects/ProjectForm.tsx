@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
+import MarketplaceShareButton from "@/components/social/MarketplaceShareButton"
 import {
   Select,
   SelectContent,
@@ -40,6 +42,7 @@ export default function ProjectForm({ userId, organizations = [] }: { userId: st
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [organizationId, setOrganizationId] = useState("")
+  const [createdId, setCreatedId] = useState<string | null>(null)
   const router = useRouter()
 
   const addSkill = (skill: string) => {
@@ -62,8 +65,10 @@ export default function ProjectForm({ userId, organizations = [] }: { userId: st
     const response = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, category, project_type: projectType, budget, deadline, skills_required: skillsRequired, organizationId: organizationId || undefined }) })
     const data = await response.json().catch(() => ({})); setLoading(false)
     if (!response.ok) setError(data.error === "upgrade_required" ? "Your free project slot is already active. Upgrade to GigWay Business for more hiring capacity." : data.error || "Unable to post project.")
-    else router.push(`/projects/${data.project_id}`)
+    else setCreatedId(data.project_id)
   }
+
+  if (createdId) return <Card className="bg-white/5 border-white/10"><CardContent className="p-6 sm:p-8"><h1 className="text-2xl font-bold text-white">Project published successfully.</h1><p className="mt-2 text-sm text-gray-300">Share it with your professional network when you&apos;re ready.</p><div className="mt-6 flex flex-wrap gap-3"><Link href={`/projects/${createdId}`} className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-semibold text-white">View Project</Link><MarketplaceShareButton objectType="project" objectId={createdId} isOwner /></div></CardContent></Card>
 
   return (
     <Card className="bg-white/5 border-white/10">

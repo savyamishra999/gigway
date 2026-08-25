@@ -5,6 +5,7 @@ import { Star, Clock, Package, CheckCircle2, ExternalLink, Pencil, MessageSquare
 import GigCard, { type Gig } from "@/components/gigs/GigCard"
 import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
+import MarketplaceShareButton from "@/components/social/MarketplaceShareButton"
 
 export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await props.params
@@ -89,6 +90,7 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
                 )}
               </div>
               <h1 className="text-h2 font-extrabold text-brand-midnight mb-4">{gig.title}</h1>
+              {user && <div className="mb-4"><MarketplaceShareButton objectType="service" objectId={id} isOwner={isOwner} /></div>}
 
               {/* Freelancer mini row */}
               {freelancer && profileHref && (

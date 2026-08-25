@@ -83,14 +83,18 @@ export type FeedItem =
         href: string;
       };
       originalPost: Post;
-    };
+    }
+  | MarketplaceShare;
+export type MarketplaceShare = { type: "marketplace_share"; sharedAt: string; shareId: string; verb: "reposted" | "shared"; actor: { id: string; name: string; href: string; avatar?: string | null; type: "profile" | "organization" }; object: { type: "job" | "project" | "service"; title: string; href: string; subtitle: string; image?: string | null; cta: string; tags?: string[]; rating?: number | null } };
 type Props = {
   jobs: Item[];
   projects: Item[];
+  services?: Item[];
   people: Item[];
   organizations: Item[];
   jobRailTitle?: string;
   projectRailTitle?: string;
+  serviceRailTitle?: string;
 };
 const PROFESSIONAL_TOOLS: Item[] = [
   {
@@ -472,13 +476,10 @@ export function PostCard({
         </>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-borderLight pt-3 text-caption font-bold text-brand-slate">
-        <button
-          onClick={() => setCommenting((x) => !x)}
-          className="flex items-center gap-1"
-        >
+        <Link href={`/social/posts/${post.id}`} className="flex items-center gap-1 hover:text-brand-indigo">
           <MessageSquare className="h-4 w-4" />
-          Reply {post.commentCount}
-        </button>
+          {post.commentCount ? `${post.commentCount} ${post.commentCount === 1 ? "Comment" : "Comments"}` : "Comment / Reply"}
+        </Link>
         <button
           onClick={repost}
           disabled={!post.canRepost}
@@ -516,7 +517,7 @@ export function PostCard({
           {post.author?.type === "organization" ? " Organization" : ""}
         </button>
       )}
-      {commenting && (
+      {false && (
         <div className="mt-3 flex gap-2">
           <input
             value={comment}
@@ -533,7 +534,7 @@ export function PostCard({
           </button>
         </div>
       )}
-      {preview.length > 0 && (
+      {false && preview.length > 0 && (
         <section className="mt-4 border-t border-brand-borderLight pt-3" aria-label="Reply preview">
           <div className="space-y-3">
             {preview.map((reply) => {
@@ -556,12 +557,15 @@ export function PostCard({
 export default function SocialHomeFeed({
   jobs,
   projects,
+  services = [],
   people,
   organizations,
   jobRailTitle = "Jobs",
   projectRailTitle = "Projects",
+  serviceRailTitle = "Popular Services",
 }: Props) {
   const [feed, setFeed] = useState<"discover" | "following">("discover"),
+    [serviceItems, setServiceItems] = useState<Item[]>(services),
     [posts, setPosts] = useState<FeedItem[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(false),
@@ -595,6 +599,13 @@ export default function SocialHomeFeed({
     setCursor(null);
     load(true);
   }, [feed]);
+  useEffect(() => {
+    if (services.length) { setServiceItems(services); return; }
+    fetch("/api/gigs?limit=6").then((r) => r.ok ? r.json() : null).then((data) => {
+      if (!Array.isArray(data?.gigs)) return;
+      setServiceItems(data.gigs.slice(0, 6).map((gig: any) => ({ id: gig.id, title: gig.title, href: `/gigs/${gig.id}`, image: gig.image_url, subtitle: [gig.price ? `From ₹${gig.price}` : null, gig.category].filter(Boolean).join(" · ") })));
+    }).catch(() => {});
+  }, [services]);
   const rails = [
     <Rail key="j" title={jobRailTitle} href="/jobs" items={jobs} cta="View job" />,
     <Rail
@@ -604,6 +615,7 @@ export default function SocialHomeFeed({
       items={projects}
       cta="View project"
     />,
+    <Rail key="s" title={serviceRailTitle} href="/gigs" items={serviceItems} cta="View service" />,
     <Rail
       key="u"
       title="Professionals to Follow"
@@ -642,7 +654,7 @@ export default function SocialHomeFeed({
           onClick={() => setFeed("discover")}
           className={`flex-1 rounded-lg py-2 font-bold ${feed === "discover" ? "bg-brand-indigo text-white" : "text-brand-slate"}`}
         >
-          Discover
+          For You
         </button>
         <button
           onClick={() => setFeed("following")}
@@ -653,6 +665,10 @@ export default function SocialHomeFeed({
       </div>
       <div className="mt-5">
         {posts.map((item, i) => {
+          if ("type" in item && item.type === "marketplace_share") {
+            const share = item as MarketplaceShare;
+            return <div key={`marketplace-${share.shareId}`}><p className="mb-2 flex min-w-0 items-center gap-1.5 text-caption font-semibold text-brand-slate"><Repeat2 className="h-3.5 w-3.5"/><Link href={share.actor.href} className="truncate hover:text-brand-indigo">{share.actor.name}</Link><span>{share.verb} a {share.object.type === "service" ? "Service" : share.object.type[0].toUpperCase() + share.object.type.slice(1)}</span></p><Link href={share.object.href} className="block max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft hover:border-brand-indigo/35"><div className="flex min-w-0 gap-3">{share.object.image ? <img src={share.object.image} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover"/> : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-brand-indigo">{share.object.type === "job" ? <BriefcaseBusiness className="h-5 w-5"/> : share.object.type === "project" ? <Building2 className="h-5 w-5"/> : <Package className="h-5 w-5"/>}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{share.object.title}</p><p className="mt-1 line-clamp-2 text-caption text-brand-slate">{share.object.subtitle}</p>{share.object.tags?.length ? <p className="mt-2 truncate text-caption text-brand-indigo">{share.object.tags.join(" · ")}</p> : null}</div></div><p className="mt-3 text-caption font-bold text-brand-indigo">{share.object.cta}</p></Link><div className="h-4"/></div>
+          }
           const repost = ("type" in item ? item : null) as Extract<
               FeedItem,
               {

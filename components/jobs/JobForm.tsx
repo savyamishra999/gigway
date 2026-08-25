@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
+import MarketplaceShareButton from "@/components/social/MarketplaceShareButton"
 import {
   Select,
   SelectContent,
@@ -39,6 +41,7 @@ export default function JobForm({ userId, organizations = [], initialOrganizatio
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [organizationId, setOrganizationId] = useState(initialOrganizationId)
+  const [createdId, setCreatedId] = useState<string | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -63,8 +66,10 @@ export default function JobForm({ userId, organizations = [], initialOrganizatio
       setError(result.error || "Error posting job")
       return
     }
-    router.push(`/jobs/${result.job_id}`)
+    setCreatedId(result.job_id)
   }
+
+  if (createdId) return <Card className="bg-white/5 border-white/10"><CardContent className="p-6 sm:p-8"><h1 className="text-2xl font-bold text-white">Job posted successfully.</h1><p className="mt-2 text-sm text-gray-300">Share it with your professional network when you&apos;re ready.</p><div className="mt-6 flex flex-wrap gap-3"><Link href={`/jobs/${createdId}`} className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-semibold text-white">View Job</Link><MarketplaceShareButton objectType="job" objectId={createdId} isOwner /></div></CardContent></Card>
 
   return (
     <Card className="bg-white/5 border-white/10">

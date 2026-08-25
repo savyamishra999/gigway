@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 import Hero from "@/components/home/Hero"
 import LiveStats from "@/components/home/LiveStats"
 import ProfessionalIdentity from "@/components/home/ProfessionalIdentity"
@@ -13,6 +14,8 @@ import FinalCTA from "@/components/home/FinalCTA"
 
 export default async function HomePage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) redirect("/home")
 
   const [
     { count: professionalCount },

@@ -8,11 +8,12 @@ const POST_FIELDS = "id,author_user_id,author_profile_id,author_organization_id,
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type Activity = {
-  type: "post" | "repost";
+  type: "post" | "repost" | "marketplace_share";
   key: string;
   time: string;
   post: any;
-  actor?: { id: string; full_name: string | null; username: string | null; avatar_url: string | null };
+  actor?: { id: string; full_name?: string | null; username?: string | null; avatar_url?: string | null; name?: string | null; logo_url?: string | null; kind?: "profile" | "organization" };
+  share?: any;
 };
 type FeedCursor = { time: string; key: string };
 
@@ -29,7 +30,7 @@ function readCursor(value: string | null): FeedCursor | null {
     const cursor = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
     if (typeof cursor.time !== "string" || Number.isNaN(new Date(cursor.time).valueOf()) || typeof cursor.key !== "string") throw Error();
     const parts = cursor.key.split(":");
-    if ((parts[0] !== "post" || parts.length !== 2 || !UUID.test(parts[1])) && (parts[0] !== "repost" || parts.length !== 3 || !UUID.test(parts[1]) || !UUID.test(parts[2]))) throw Error();
+    if ((parts[0] !== "post" || parts.length !== 2 || !UUID.test(parts[1])) && (parts[0] !== "repost" || parts.length !== 3 || !UUID.test(parts[1]) || !UUID.test(parts[2])) && (parts[0] !== "marketplace" || parts.length !== 2 || !UUID.test(parts[1]))) throw Error();
     return cursor;
   } catch {
     return null;
@@ -123,23 +124,39 @@ export async function GET(req: NextRequest) {
 
     let originalsQuery = db.from("posts").select(POST_FIELDS).eq("status", "published").or(originalFilters).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(FETCH_SIZE);
     let repostsQuery = db.from("post_reposts").select("post_id,user_id,created_at").in("user_id", repostActorIds).order("created_at", { ascending: false }).order("post_id", { ascending: false }).order("user_id", { ascending: false }).limit(FETCH_SIZE);
+    const shareFilters = [`actor_user_id.in.(${repostActorIds.join(",")})`, ...(organizationIds.length ? [`actor_organization_id.in.(${organizationIds.join(",")})`] : [])].join(",");
+    let sharesQuery = db.from("marketplace_shares").select("id,actor_user_id,actor_organization_id,job_id,project_id,service_id,commentary,created_at").or(shareFilters).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(FETCH_SIZE);
     if (cursor) {
       const [kind, first, second] = cursor.key.split(":");
       originalsQuery = kind === "post" ? originalsQuery.or(`created_at.lt.${cursor.time},and(created_at.eq.${cursor.time},id.lt.${first})`) : originalsQuery.lte("created_at", cursor.time);
       repostsQuery = kind === "repost" ? repostsQuery.or(`created_at.lt.${cursor.time},and(created_at.eq.${cursor.time},post_id.lt.${first}),and(created_at.eq.${cursor.time},post_id.eq.${first},user_id.lt.${second})`) : repostsQuery.lt("created_at", cursor.time);
+      sharesQuery = kind === "marketplace" ? sharesQuery.or(`created_at.lt.${cursor.time},and(created_at.eq.${cursor.time},id.lt.${first})`) : sharesQuery.lte("created_at", cursor.time);
     }
     stage = "activities";
-    const [originalsRes, repostsRes, actorsRes] = await Promise.all([
+    const [originalsRes, repostsRes, actorsRes, sharesRes] = await Promise.all([
       originalsQuery,
       repostsQuery,
       db.from("profiles").select("id,full_name,username,avatar_url").in("id", repostActorIds),
+      sharesQuery,
     ]);
-    if (originalsRes.error || repostsRes.error || actorsRes.error) throw originalsRes.error || repostsRes.error || actorsRes.error;
+    if (originalsRes.error || repostsRes.error || actorsRes.error || sharesRes.error) throw originalsRes.error || repostsRes.error || actorsRes.error || sharesRes.error;
     const repostRows = repostsRes.data || [];
     const repostPostIds = [...new Set(repostRows.map((row) => row.post_id))];
     const repostPosts = repostPostIds.length ? (await db.from("posts").select(POST_FIELDS).in("id", repostPostIds).eq("status", "published")).data || [] : [];
     const postsById = new Map(repostPosts.map((post) => [post.id, post]));
     const actorsById = new Map((actorsRes.data || []).map((actor) => [actor.id, actor]));
+    const shares = sharesRes.data || [];
+    const shareUserIds = [...new Set(shares.map(s => s.actor_user_id).filter(Boolean))] as string[];
+    const shareOrgIds = [...new Set(shares.map(s => s.actor_organization_id).filter(Boolean))] as string[];
+    const jobIds = [...new Set(shares.map(s => s.job_id).filter(Boolean))] as string[], projectIds = [...new Set(shares.map(s => s.project_id).filter(Boolean))] as string[], serviceIds = [...new Set(shares.map(s => s.service_id).filter(Boolean))] as string[];
+    const [sharePeople, shareOrgs, jobs, projects, services] = await Promise.all([
+      shareUserIds.length ? db.from("profiles").select("id,full_name,username,avatar_url").in("id", shareUserIds) : Promise.resolve({ data: [] as any[] }),
+      shareOrgIds.length ? db.from("organizations").select("id,name,username,logo_url").in("id", shareOrgIds) : Promise.resolve({ data: [] as any[] }),
+      jobIds.length ? db.from("jobs").select("id,title,company_name,location,job_type,salary_min,salary_max,status,organization_id,client_id").in("id", jobIds).eq("status", "active") : Promise.resolve({ data: [] as any[] }),
+      projectIds.length ? db.from("projects").select("id,title,budget,skills_required,status,organization_id,client_id").in("id", projectIds).eq("status", "open") : Promise.resolve({ data: [] as any[] }),
+      serviceIds.length ? db.from("gigs").select("id,title,price,rating,image_url,status,freelancer_id,owner_id").in("id", serviceIds).eq("status", "active") : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const peopleById = new Map((sharePeople.data || []).map(p => [p.id, p])), orgsById = new Map((shareOrgs.data || []).map(o => [o.id, o])), jobsById = new Map((jobs.data || []).map(x => [x.id, x])), projectsById = new Map((projects.data || []).map(x => [x.id, x])), servicesById = new Map((services.data || []).map(x => [x.id, x]));
     const activities: Activity[] = [];
     for (const post of originalsRes.data || []) if (await canViewPost(post, viewer.id)) activities.push({ type: "post", key: `post:${post.id}`, time: post.created_at, post });
     for (const repost of repostRows) {
@@ -147,20 +164,25 @@ export async function GET(req: NextRequest) {
       const actor = actorsById.get(repost.user_id);
       if (post && actor && await canViewPost(post, viewer.id)) activities.push({ type: "repost", key: `repost:${repost.post_id}:${repost.user_id}`, time: repost.created_at, post, actor });
     }
+    for (const share of shares) {
+      const actor = share.actor_user_id ? peopleById.get(share.actor_user_id) : orgsById.get(share.actor_organization_id);
+      const object = share.job_id ? jobsById.get(share.job_id) : share.project_id ? projectsById.get(share.project_id) : servicesById.get(share.service_id);
+      if (actor && object) activities.push({ type: "marketplace_share", key: `marketplace:${share.id}`, time: share.created_at, post: object, actor: { ...actor, kind: share.actor_user_id ? "profile" : "organization" }, share });
+    }
     const ordered = activities.filter((activity) => isAfterCursor(activity, cursor)).sort((a, b) => b.time.localeCompare(a.time) || b.key.localeCompare(a.key));
     const seenPosts = new Set<string>();
     const deduped: Activity[] = [];
     let ownReposts = 0;
     for (const activity of ordered) {
-      if (seenPosts.has(activity.post.id)) continue;
+      if (seenPosts.has(`${activity.type === "marketplace_share" ? "marketplace" : "post"}:${activity.post.id}`)) continue;
       if (activity.type === "repost" && activity.actor?.id === viewer.id && ownReposts >= MAX_OWN_REPOSTS_PER_PAGE) continue;
-      seenPosts.add(activity.post.id);
+      seenPosts.add(`${activity.type === "marketplace_share" ? "marketplace" : "post"}:${activity.post.id}`);
       if (activity.type === "repost" && activity.actor?.id === viewer.id) ownReposts += 1;
       deduped.push(activity);
     }
     const page = deduped.slice(0, PAGE_SIZE);
     stage = "serialization";
-    const items = await Promise.all(page.map(async (activity) => activity.type === "post" ? safePost(activity.post, viewer.id) : {
+    const items = await Promise.all(page.map(async (activity) => activity.type === "post" ? safePost(activity.post, viewer.id) : activity.type === "marketplace_share" ? (() => { const object = activity.post, type = activity.share.job_id ? "job" : activity.share.project_id ? "project" : "service"; const salary = object.salary_min || object.salary_max ? `${object.salary_min ? `From ₹${Number(object.salary_min).toLocaleString()}` : ""}${object.salary_min && object.salary_max ? " · " : ""}${object.salary_max ? `Up to ₹${Number(object.salary_max).toLocaleString()}` : ""}` : null; const ownObject = activity.actor!.kind === "organization" ? activity.actor!.id === object.organization_id : activity.actor!.id === (object.client_id || object.freelancer_id || object.owner_id); return { type: "marketplace_share" as const, shareId: activity.share.id, sharedAt: activity.time, verb: ownObject ? "shared" as const : "reposted" as const, actor: { id: activity.actor!.id, name: activity.actor!.name || activity.actor!.full_name || "GigWay member", href: activity.actor!.kind === "organization" ? (activity.actor!.username ? `/u/${activity.actor!.username}` : "/explore?tab=organizations") : activity.actor!.id === viewer.id ? "/profile" : activity.actor!.username ? `/u/${activity.actor!.username}` : `/freelancers/${activity.actor!.id}`, avatar: activity.actor!.logo_url || activity.actor!.avatar_url, type: activity.actor!.kind! }, object: { type, title: object.title, href: `/${type === "service" ? "gigs" : `${type}s`}/${object.id}`, subtitle: type === "job" ? [object.company_name, object.location, object.job_type, salary].filter(Boolean).join(" · ") : type === "project" ? [`Budget: ₹${Number(object.budget || 0).toLocaleString()}`, ...(object.skills_required || []).slice(0, 3)].join(" · ") : [`From ₹${Number(object.price || 0).toLocaleString()}`, object.rating ? `${object.rating} rating` : null].filter(Boolean).join(" · "), image: object.image_url, tags: type === "project" ? (object.skills_required || []).slice(0, 3) : undefined, rating: object.rating, cta: type === "job" ? "View Job / Apply" : type === "project" ? "View Project / Send Proposal" : "View Service" } } })() : {
       type: "repost" as const,
       repostedAt: activity.time,
       repostActor: {
@@ -172,10 +194,9 @@ export async function GET(req: NextRequest) {
       },
       originalPost: await safePost(activity.post, viewer.id),
     }));
-    const originals = await withReplyPreviews(items.map((item): any => "type" in item && item.type === "repost" ? item.originalPost : item));
-    const enrichedItems = items.map((item, index) => "type" in item && item.type === "repost" ? { ...item, originalPost: originals[index] } : originals[index]);
+    const postItems = items.filter((item): any => !("type" in item) || item.type === "repost"); const originals = await withReplyPreviews(postItems.map((item): any => "type" in item && item.type === "repost" ? item.originalPost : item)); let postIndex = 0; const enrichedItems = items.map((item) => { if ("type" in item && item.type === "marketplace_share") return item; const enriched = originals[postIndex++]; return "type" in item && item.type === "repost" ? { ...item, originalPost: enriched } : enriched });
     const last = page.at(-1);
-    const hasMore = deduped.length > PAGE_SIZE || (originalsRes.data || []).length === FETCH_SIZE || repostRows.length === FETCH_SIZE;
+    const hasMore = deduped.length > PAGE_SIZE || (originalsRes.data || []).length === FETCH_SIZE || repostRows.length === FETCH_SIZE || shares.length === FETCH_SIZE;
     return NextResponse.json({ items: enrichedItems, nextCursor: hasMore && last ? encodeCursor(last) : null });
   } catch (error) {
     logFeedFailure(stage, error);

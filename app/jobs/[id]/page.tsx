@@ -7,6 +7,7 @@ import JobApplyButton from "@/components/jobs/JobApplyButton"
 import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
 import { canManageJob } from "@/lib/jobs/server"
+import MarketplaceShareButton from "@/components/social/MarketplaceShareButton"
 
 export async function generateMetadata(
   props: { params: Promise<{ id: string }> }
@@ -136,6 +137,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
                   <Users className="h-4 w-4" /> {applicantCount || 0} applicant{applicantCount === 1 ? "" : "s"}
                 </span>
               </div>
+              {user && <div className="mt-4"><MarketplaceShareButton objectType="job" objectId={id} isOwner={isOwner} /></div>}
             </div>
 
             {/* Description */}

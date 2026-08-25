@@ -6,6 +6,7 @@ import { Calendar, IndianRupee, Users, Clock, ShieldCheck, Pencil, CheckCircle2,
 import ProposalForm from "@/components/projects/ProposalForm"
 import SaveButton from "@/components/projects/SaveButton"
 import ShareButton from "@/components/projects/ShareButton"
+import MarketplaceShareButton from "@/components/social/MarketplaceShareButton"
 import ReviewForm from "@/components/reviews/ReviewForm"
 import ReleasePaymentButton from "@/components/escrow/ReleasePaymentButton"
 import DeleteButton from "@/components/ui/DeleteButton"
@@ -153,6 +154,7 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
               <div className="flex items-center gap-3 mt-5 pt-5 border-t border-brand-borderLight">
                 {user && <SaveButton projectId={id} userId={user.id} />}
                 <ShareButton title={project.title} url={`https://gigway.in/projects/${id}`} />
+                {user && <MarketplaceShareButton objectType="project" objectId={id} isOwner={isOwner} />}
               </div>
             </div>
 

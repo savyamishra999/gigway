@@ -8,6 +8,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const category = searchParams.get("category")
   const search = searchParams.get("search")
+  const requestedLimit = Number(searchParams.get("limit"))
+  const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 12) : null
 
   let query = supabase
     .from("gigs")
@@ -16,6 +18,7 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: false })
 
   if (category && category !== "all") query = query.ilike("category", category)
+  if (limit) query = query.limit(limit)
 
   const { data: gigs, error } = await query
 
