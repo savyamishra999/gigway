@@ -606,30 +606,33 @@ export default function SocialHomeFeed({
       setServiceItems(data.gigs.slice(0, 6).map((gig: any) => ({ id: gig.id, title: gig.title, href: `/gigs/${gig.id}`, image: gig.image_url, subtitle: [gig.price ? `From ₹${gig.price}` : null, gig.category].filter(Boolean).join(" · ") })));
     }).catch(() => {});
   }, [services]);
+  // Keep discovery useful even when the social feed is short: each populated
+  // rail is inserted after a post when possible, then any remainder is
+  // appended below the available posts.
   const rails = [
-    <Rail key="j" title={jobRailTitle} href="/jobs" items={jobs} cta="View job" />,
-    <Rail
+    jobs.length ? <Rail key="j" title={jobRailTitle} href="/jobs" items={jobs} cta="View job" /> : null,
+    projects.length ? <Rail
       key="p"
       title={projectRailTitle}
       href="/projects"
       items={projects}
       cta="View project"
-    />,
-    <Rail key="s" title={serviceRailTitle} href="/gigs" items={serviceItems} cta="View service" />,
-    <Rail
+    /> : null,
+    serviceItems.length ? <Rail key="s" title={serviceRailTitle} href="/gigs" items={serviceItems} cta="View service" /> : null,
+    people.length ? <Rail
       key="u"
       title="Professionals to Follow"
       href="/explore?tab=people"
       items={people}
       cta="View profile"
-    />,
-    <Rail
+    /> : null,
+    organizations.length ? <Rail
       key="o"
       title="Companies & Organizations to Follow"
       href="/explore?tab=organizations"
       items={organizations}
       cta="View entity"
-    />,
+    /> : null,
     <Rail
       key="t"
       title="Professional Tools"
@@ -637,7 +640,9 @@ export default function SocialHomeFeed({
       items={PROFESSIONAL_TOOLS}
       cta="Open tool"
     />,
-  ];
+  ].filter(Boolean);
+  const discoveryRails = rails.filter((rail) => rail !== null);
+  const insertedRailCount = posts.length < 3 ? 0 : Math.floor((posts.length - 3) / 4) + 1;
   return (
     <section className="mt-8 w-full min-w-0 max-w-3xl">
       <Link
@@ -698,7 +703,7 @@ export default function SocialHomeFeed({
               )}
               <PostCard post={post} onRefresh={() => load(true)} />
               {feed === "discover" && i + 1 >= 3 && (i + 1 - 3) % 4 === 0
-                ? rails[Math.floor((i - 2) / 4) % rails.length]
+                ? discoveryRails[Math.floor((i - 2) / 4)]
                 : null}
               <div className="h-4" />
             </div>
@@ -732,6 +737,9 @@ export default function SocialHomeFeed({
             )}
           </div>
         )}
+        {feed === "discover" && discoveryRails.slice(insertedRailCount).map((rail, index) => (
+          <div key={`remaining-rail-${index}`}>{rail}</div>
+        ))}
         {!loading && !error && cursor && (
           <button
             onClick={() => load()}
