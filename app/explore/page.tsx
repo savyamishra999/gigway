@@ -15,6 +15,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Sear
   const q = (params.q || "").trim().slice(0, 80)
   const tab = tabs.includes(params.tab || "") ? params.tab! : "all"
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const term = q.replace(/[%_(),]/g, " ")
   const like = `%${term}%`
 
@@ -25,7 +26,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Sear
   if (params.location) peopleQuery = peopleQuery.ilike("location", `%${params.location}%`)
 
   let orgsQuery = supabase.from("organizations")
-    .select("id, name, username, logo_url, tagline, industry, location, is_verified")
+    .select("id, name, username, logo_url, tagline, industry, location, is_verified, entity_type")
     .order("created_at", { ascending: false }).limit(24)
   if (term) orgsQuery = orgsQuery.or(`name.ilike.${like},username.ilike.${like},tagline.ilike.${like},industry.ilike.${like}`)
   if (params.industry) orgsQuery = orgsQuery.ilike("industry", `%${params.industry}%`)
@@ -43,10 +44,10 @@ export default async function ExplorePage({ searchParams }: { searchParams: Sear
     .eq("status", "active").order("created_at", { ascending: false }).limit(24)
   if (term) gigsQuery = gigsQuery.ilike("title", like)
 
-  const [peopleRes, orgsRes, jobsRes, projectsRes, gigsRes] = await Promise.all([peopleQuery, orgsQuery, jobsQuery, projectsQuery, gigsQuery])
+  const [peopleRes, orgsRes, jobsRes, projectsRes, gigsRes, followsRes, entityFollowsRes] = await Promise.all([peopleQuery, orgsQuery, jobsQuery, projectsQuery, gigsQuery, user ? supabase.from("profile_follows").select("followed_profile_id").eq("follower_user_id", user.id) : Promise.resolve({ data: [] }), user ? supabase.from("organization_follows").select("organization_id").eq("follower_user_id", user.id) : Promise.resolve({ data: [] })])
   const data: DiscoverData = {
     people: peopleRes.data || [], organizations: orgsRes.data || [], jobs: jobsRes.data || [],
     projects: projectsRes.data || [], services: gigsRes.data || [],
   }
-  return <DiscoverClient initialData={data} query={q} tab={tab} filters={{ skill: params.skill || "", location: params.location || "", mode: params.mode || "", industry: params.industry || "" }} />
+  return <DiscoverClient initialData={data} query={q} tab={tab} filters={{ skill: params.skill || "", location: params.location || "", mode: params.mode || "", industry: params.industry || "" }} followedProfileIds={(followsRes.data || []).map(item => item.followed_profile_id)} followedOrganizationIds={(entityFollowsRes.data || []).map(item => item.organization_id)} />
 }

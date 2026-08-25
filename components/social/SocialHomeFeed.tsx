@@ -28,6 +28,8 @@ type Item = {
   cta?: string;
   image?: string | null;
 };
+type OpportunityItem = Item & { kind: "job" | "project" | "service" };
+type NetworkItem = Item & { kind: "person" | "company" | "organization"; actorId: string };
 export type Post = {
   id: string;
   body: string | null;
@@ -87,14 +89,8 @@ export type FeedItem =
   | MarketplaceShare;
 export type MarketplaceShare = { type: "marketplace_share"; sharedAt: string; shareId: string; verb: "reposted" | "shared"; actor: { id: string; name: string; href: string; avatar?: string | null; type: "profile" | "organization" }; object: { type: "job" | "project" | "service"; title: string; href: string; subtitle: string; image?: string | null; cta: string; tags?: string[]; rating?: number | null } };
 type Props = {
-  jobs: Item[];
-  projects: Item[];
-  services?: Item[];
-  people: Item[];
-  organizations: Item[];
-  jobRailTitle?: string;
-  projectRailTitle?: string;
-  serviceRailTitle?: string;
+  opportunities: OpportunityItem[];
+  network: NetworkItem[];
 };
 const PROFESSIONAL_TOOLS: Item[] = [
   {
@@ -156,6 +152,17 @@ function Rail({
       </div>
     </section>
   );
+}
+function OpportunityRail({ items }: { items: OpportunityItem[] }) {
+  if (!items.length) return null;
+  return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Opportunities for You</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{items.map((item) => <Link key={`${item.kind}-${item.id}`} href={item.href} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-indigo/35 sm:w-60"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <img src={item.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover"/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{item.title?.[0] || "G"}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.title}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div><p className="mt-4 text-caption font-bold text-brand-indigo">{item.cta}</p></Link>)}</div></section>;
+}
+function NetworkRail({ items }: { items: NetworkItem[] }) {
+  const [candidates, setCandidates] = useState(items), [busyId, setBusyId] = useState<string | null>(null);
+  useEffect(() => setCandidates(items), [items]);
+  if (!candidates.length) return null;
+  const follow = async (item: NetworkItem) => { setBusyId(item.actorId); try { const response = await fetch(`/api/social/follow/${item.kind === "person" ? "profile" : "organization"}/${item.actorId}`, { method: "POST" }); if (!response.ok) throw Error(); setCandidates((rows) => rows.filter((row) => row.actorId !== item.actorId)); } finally { setBusyId(null); } };
+  return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Grow Your Network</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{candidates.map((item) => <article key={`${item.kind}-${item.actorId}`} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft sm:w-60"><Link href={item.href} className="block"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <img src={item.image} alt="" className={`h-10 w-10 shrink-0 object-cover ${item.kind === "person" ? "rounded-full" : "rounded-xl"}`}/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{(item.name || "G")[0]}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.name}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div></Link><button onClick={() => void follow(item)} disabled={busyId === item.actorId} className="mt-4 w-full rounded-xl border border-brand-indigo/25 py-2 text-caption font-bold text-brand-indigo disabled:opacity-60">{busyId === item.actorId ? "Following…" : "Follow"}</button></article>)}</div></section>;
 }
 export function PostCard({
   post,
@@ -581,17 +588,10 @@ export function PostCard({
   );
 }
 export default function SocialHomeFeed({
-  jobs,
-  projects,
-  services = [],
-  people,
-  organizations,
-  jobRailTitle = "Jobs",
-  projectRailTitle = "Projects",
-  serviceRailTitle = "Popular Services",
+  opportunities,
+  network,
 }: Props) {
   const [feed, setFeed] = useState<"discover" | "following">("discover"),
-    [serviceItems, setServiceItems] = useState<Item[]>(services),
     [posts, setPosts] = useState<FeedItem[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(false),
@@ -625,40 +625,12 @@ export default function SocialHomeFeed({
     setCursor(null);
     load(true);
   }, [feed]);
-  useEffect(() => {
-    if (services.length) { setServiceItems(services); return; }
-    fetch("/api/gigs?limit=6").then((r) => r.ok ? r.json() : null).then((data) => {
-      if (!Array.isArray(data?.gigs)) return;
-      setServiceItems(data.gigs.slice(0, 6).map((gig: any) => ({ id: gig.id, title: gig.title, href: `/gigs/${gig.id}`, image: gig.image_url, subtitle: [gig.price ? `From ₹${gig.price}` : null, gig.category].filter(Boolean).join(" · ") })));
-    }).catch(() => {});
-  }, [services]);
   // Keep discovery useful even when the social feed is short: each populated
   // rail is inserted after a post when possible, then any remainder is
   // appended below the available posts.
   const rails = [
-    jobs.length ? <Rail key="j" title={jobRailTitle} href="/jobs" items={jobs} cta="View job" /> : null,
-    projects.length ? <Rail
-      key="p"
-      title={projectRailTitle}
-      href="/projects"
-      items={projects}
-      cta="View project"
-    /> : null,
-    serviceItems.length ? <Rail key="s" title={serviceRailTitle} href="/gigs" items={serviceItems} cta="View service" /> : null,
-    people.length ? <Rail
-      key="u"
-      title="Professionals to Follow"
-      href="/explore?tab=people"
-      items={people}
-      cta="View profile"
-    /> : null,
-    organizations.length ? <Rail
-      key="o"
-      title="Companies & Organizations to Follow"
-      href="/explore?tab=organizations"
-      items={organizations}
-      cta="View entity"
-    /> : null,
+    opportunities.length ? <OpportunityRail key="opportunities" items={opportunities} /> : null,
+    network.length ? <NetworkRail key="network" items={network} /> : null,
     <Rail
       key="t"
       title="Professional Tools"
