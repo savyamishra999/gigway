@@ -167,9 +167,11 @@ function NetworkRail({ items }: { items: NetworkItem[] }) {
 export function PostCard({
   post,
   onRefresh = () => {},
+  authHref,
 }: {
   post: Post;
   onRefresh?: () => void;
+  authHref?: string;
 }) {
   const [menu, setMenu] = useState(false),
     [editing, setEditing] = useState(false),
@@ -187,6 +189,11 @@ export function PostCard({
     [count, setCount] = useState(post.repostCount),
     [notice, setNotice] = useState("");
   useEffect(() => setSaved(post.isSavedByMe), [post.isSavedByMe]);
+  const requireAuth = () => {
+    if (!authHref) return false;
+    window.location.assign(authHref);
+    return true;
+  };
   const api = async (url: string, method = "POST", body?: unknown) => {
     const r = await fetch(url, {
       method,
@@ -198,6 +205,7 @@ export function PostCard({
     return d;
   };
   const action = async (kind: "like" | "save") => {
+    if (requireAuth()) return;
     const isSave = kind === "save";
     const previous = saved;
     if (isSave) setSaving(true);
@@ -220,6 +228,7 @@ export function PostCard({
     }
   };
   const repost = async () => {
+    if (requireAuth()) return;
     if (!post.canRepost) return;
     const before = reposted;
     setReposted(!before);
@@ -237,6 +246,7 @@ export function PostCard({
     }
   };
   const follow = async () => {
+    if (requireAuth()) return;
     if (!post.author) return;
     try {
       await api(
@@ -319,10 +329,12 @@ export function PostCard({
     }
   };
   const openComments = () => {
+    if (requireAuth()) return;
     setCommentsOpen(true);
     void loadComments();
   };
   const addComment = async () => {
+    if (requireAuth()) return;
     if (!comment.trim() || busy) return;
     setBusy(true);
     try {
@@ -514,7 +526,7 @@ export function PostCard({
         </button>
         <button
           onClick={repost}
-          disabled={!post.canRepost}
+          disabled={!post.canRepost && !authHref}
           className={`flex items-center gap-1 disabled:opacity-40 ${reposted ? "text-brand-indigo" : ""}`}
         >
           <Repeat2 className="h-4 w-4" />
@@ -540,7 +552,7 @@ export function PostCard({
           <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
         </button>
       </div>
-      {post.canFollow && (
+      {(post.canFollow || (authHref && post.author)) && (
         <button
           onClick={follow}
           className="mt-3 text-caption font-bold text-brand-indigo"

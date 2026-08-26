@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import PostDetailContent from "@/components/social/PostDetailContent";
 import type { Post } from "@/components/social/SocialHomeFeed";
 import { createClient } from "@/lib/supabase/server";
@@ -13,9 +13,8 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
-  if (!user) redirect(`/login?next=/social/posts/${id}`);
-  const post = await resolvePostAccess(id, user.id);
-  if (!post) notFound();
-  const value = await safePost(post, user.id);
-  return <PostDetailContent post={value as Post} viewerId={user.id} />;
+  const post = await resolvePostAccess(id, user?.id);
+  if (!post || post.visibility !== "public" && !user) notFound();
+  const value = await safePost(post, user?.id);
+  return <PostDetailContent post={value as Post} viewerId={user?.id} />;
 }
