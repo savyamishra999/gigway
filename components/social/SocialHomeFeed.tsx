@@ -187,6 +187,7 @@ export function PostCard({
     [saving, setSaving] = useState(false),
     [reposted, setReposted] = useState(post.isRepostedByMe),
     [count, setCount] = useState(post.repostCount),
+    [shareOpen, setShareOpen] = useState(false),
     [notice, setNotice] = useState("");
   useEffect(() => setSaved(post.isSavedByMe), [post.isSavedByMe]);
   const requireAuth = () => {
@@ -257,7 +258,7 @@ export function PostCard({
     } catch {}
   };
   const copy = async () => {
-    const url = `${location.origin}/social/posts/${post.id}`;
+    const url = `https://gigway.in/social/posts/${post.id}`;
     try {
       await navigator.clipboard.writeText(url);
       setNotice("Link copied");
@@ -266,16 +267,24 @@ export function PostCard({
     setMenu(false);
   };
   const share = async () => {
-    const url = `${location.origin}/social/posts/${post.id}`;
+    const url = `https://gigway.in/social/posts/${post.id}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "GigWay post", url });
+        await navigator.share({ title: `${post.author?.name || "GigWay member"} on GigWay`, text: (post.body || "View this post on GigWay.").slice(0, 180), url });
         return;
       }
-      await navigator.clipboard.writeText(url);
-      setNotice("Link copied");
-      setTimeout(() => setNotice(""), 1800);
-    } catch {}
+    } catch { return; }
+    setShareOpen((value) => !value);
+  };
+  const shareTargets = () => {
+    const url = `https://gigway.in/social/posts/${post.id}`;
+    const text = `${(post.body || "View this post on GigWay.").replace(/\s+/g, " ").trim().slice(0, 180)} ${url}`;
+    return [
+      ["WhatsApp", `https://wa.me/?text=${encodeURIComponent(text)}`],
+      ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`],
+      ["Facebook", `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`],
+      ["X", `https://x.com/intent/post?text=${encodeURIComponent((post.body || "View this post on GigWay.").slice(0, 180))}&url=${encodeURIComponent(url)}`],
+    ] as const;
   };
   const report = async () => {
     const reason = window.prompt(
@@ -538,10 +547,16 @@ export function PostCard({
         >
           <Heart className="inline h-4 w-4" /> {post.likeCount}
         </button>
-        <button onClick={share} className="flex items-center gap-1">
-          <Send className="h-4 w-4" />
-          Share
-        </button>
+        <div className="relative">
+          <button onClick={share} className="flex items-center gap-1">
+            <Send className="h-4 w-4" />
+            Share
+          </button>
+          {shareOpen && <div className="absolute bottom-7 left-0 z-20 w-40 rounded-xl border border-brand-borderLight bg-white p-1 shadow-elevated">
+            {shareTargets().map(([label, href]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setShareOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-midnight hover:bg-brand-ivory">{label}</a>)}
+            <button onClick={copy} className="block w-full rounded-lg px-3 py-2 text-left text-body-sm font-semibold text-brand-midnight hover:bg-brand-ivory">Copy link</button>
+          </div>}
+        </div>
         <button
           onClick={() => action("save")}
           disabled={saving}
