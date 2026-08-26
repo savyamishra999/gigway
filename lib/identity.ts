@@ -1,9 +1,9 @@
 export const WORK_MODES = [
-  { value: "offering_services", label: "Available for Freelance", color: "text-emerald-300" },
-  { value: "looking_for_work", label: "Open to Full-time Work", color: "text-blue-300" },
-  // The database currently supports the three values above/below. Keep future modes
-  // visible in product copy only until their database constraint is deliberately extended.
-  { value: "hiring_talent", label: "Hiring", color: "text-amber-300" },
+  { value: "looking_for_work", label: "Find Jobs", color: "text-blue-300" },
+  { value: "looking_for_project", label: "Find Freelance Projects", color: "text-violet-300" },
+  { value: "offering_services", label: "Offer Services", color: "text-emerald-300" },
+  { value: "hiring_talent", label: "Hire Talent", color: "text-amber-300" },
+  { value: "grow_network", label: "Grow My Network", color: "text-pink-300" },
 ] as const
 
 export type WorkMode = (typeof WORK_MODES)[number]["value"]
@@ -45,7 +45,6 @@ export function mapModesToLegacyRoles(modes: WorkMode[], hireAs: HireAs | null):
   const hiring = modes.includes("hiring_talent")
 
   if (!offering && !looking && !hiring) return null
-  if (hiring && !hireAs) return null
 
   const user_roles: string[] = []
   let find_work_type: string | null = null

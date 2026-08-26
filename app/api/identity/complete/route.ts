@@ -12,7 +12,18 @@ export async function POST(request: NextRequest) {
   if (profileError) return NextResponse.json({ error: `Could not find your personal profile: ${profileError.message}` }, { status: 500 })
   if (!profile) return NextResponse.json({ error: "Your personal profile is unavailable. Work Modes were not changed; please contact support." }, { status: 409 })
   const profileId = profile.id
-  const body = await request.json(); const modes = Array.isArray(body.modes) ? body.modes.filter((m: unknown) => WORK_MODES.some(x => x.value === m)) : []
+  const body = await request.json()
+  const requestedModes = Array.isArray(body.modes) ? body.modes : []
+  const modes = requestedModes.filter((mode: unknown) => WORK_MODES.some(item => item.value === mode))
+  if (modes.length !== requestedModes.length) return NextResponse.json({ error: "Invalid interest selection." }, { status: 400 })
+  if (body.interestsOnly === true) {
+    const { data: existingIntents, error: existingError } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", profileId)
+    if (existingError) return NextResponse.json({ error: `Work Modes could not be read: ${existingError.message}` }, { status: 403 })
+    const { error: deactivateError } = await supabase.from("profile_intents").update({ is_active: false }).eq("profile_id", profileId).in("intent_type", WORK_MODES.map(mode => mode.value))
+    if (deactivateError) return NextResponse.json({ error: `Work Modes could not be saved: ${deactivateError.message}` }, { status: 403 })
+    for (const intent of modes) { const query = (existingIntents ?? []).some(row => row.intent_type === intent) ? supabase.from("profile_intents").update({ is_active: true }).eq("profile_id", profileId).eq("intent_type", intent) : supabase.from("profile_intents").insert({ profile_id: profileId, intent_type: intent, is_active: true }); const { error } = await query; if (error) return NextResponse.json({ error: `Work Modes could not be saved: ${error.message}` }, { status: 403 }) }
+    return NextResponse.json({ success: true })
+  }
   const hireAs: HireAs | null = body.hireAs === "individual" || body.hireAs === "company" ? body.hireAs : null
 
   // `profile_completed` means the minimum GigWay identity setup is complete;
@@ -56,7 +67,9 @@ export async function POST(request: NextRequest) {
   // Replace only this user's explicit preferences; no legacy fields are touched.
   const { data: existingIntents, error: existingError } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", profileId)
   if (existingError) return NextResponse.json({ error: `Work Modes could not be read: ${existingError.message}` }, { status: 403 })
-  const { error: deactivateError } = await supabase.from("profile_intents").update({ is_active: false }).eq("profile_id", profileId)
+  // Only replace the current product-interest set. Historical compatibility
+  // intents remain untouched until a dedicated migration/cleanup owns them.
+  const { error: deactivateError } = await supabase.from("profile_intents").update({ is_active: false }).eq("profile_id", profileId).in("intent_type", WORK_MODES.map(mode => mode.value))
   if (deactivateError) return NextResponse.json({ error: `Work Modes could not be saved: ${deactivateError.message}` }, { status: 403 })
   for (const intent of modes) { const query = (existingIntents ?? []).some(row => row.intent_type === intent) ? supabase.from("profile_intents").update({ is_active: true }).eq("profile_id", profileId).eq("intent_type", intent) : supabase.from("profile_intents").insert({ profile_id: profileId, intent_type: intent, is_active: true }); const { error } = await query; if (error) return NextResponse.json({ error: `Work Modes could not be saved: ${error.message}` }, { status: 403 }) }
   return NextResponse.json({ success: true })

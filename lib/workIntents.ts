@@ -32,10 +32,20 @@ const META: Record<WorkMode, WorkIntentMeta> = {
     dot: "bg-blue-400", badgeClass: "text-blue-300 bg-blue-400/10 border-blue-400/20",
     section: "fulltime",
   },
+  looking_for_project: {
+    value: "looking_for_project", label: "Freelance Projects",
+    dot: "bg-violet-400", badgeClass: "text-violet-300 bg-violet-400/10 border-violet-400/20",
+    section: "freelance",
+  },
   hiring_talent: {
     value: "hiring_talent", label: "Hiring",
     dot: "bg-orange-400", badgeClass: "text-orange-300 bg-orange-400/10 border-orange-400/20",
     section: "hiring",
+  },
+  grow_network: {
+    value: "grow_network", label: "Network",
+    dot: "bg-pink-400", badgeClass: "text-pink-300 bg-pink-400/10 border-pink-400/20",
+    section: "freelance",
   },
 }
 
