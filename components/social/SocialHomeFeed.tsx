@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
+import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
 import PostText from "@/components/social/PostText";
-import { classifyVideoPresentation } from "@/lib/social/video";
 import { useEffect, useState } from "react";
 import {
   Bookmark,
@@ -511,25 +511,7 @@ export function PostCard({
                 className="mt-4 max-h-[460px] w-full max-w-full rounded-xl object-cover"
               />
             ) : m.type === "video" ? (
-              <div
-                key={m.id}
-                className={
-                  classifyVideoPresentation(m) === "SHORT_VERTICAL"
-                    ? "mx-auto mt-4 w-full max-w-[18rem] overflow-hidden rounded-xl bg-black"
-                    : "mt-4 w-full max-w-full overflow-hidden rounded-xl bg-black"
-                }
-              >
-                <video
-                  controls
-                  preload="metadata"
-                  src={m.url}
-                  className={
-                    classifyVideoPresentation(m) === "SHORT_VERTICAL"
-                      ? "block aspect-[9/16] w-full max-h-[70vh] object-contain"
-                      : "block h-auto w-full max-w-full object-contain"
-                  }
-                />
-              </div>
+              <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
             ) : m.type === "audio" ? (
               <VijoxPlayer key={m.id} src={m.url} duration={m.durationSeconds} />
             ) : (
