@@ -108,7 +108,7 @@ export default async function ProfilePage() {
                     {profile?.username && <span className="text-sm font-medium text-[#94A3B8]">@{profile.username}</span>}
                     {isVerified && <CheckCircle2 className="h-5 w-5 text-[#4F46E5] flex-shrink-0" />}
                   </div>
-                  {profile?.tagline && <p className="text-[#CBD5E1] text-sm">{profile.tagline}</p>}
+                  {(profile?.bio || profile?.tagline) && <p className="max-w-2xl text-sm leading-6 text-[#CBD5E1]">{profile.bio || profile.tagline}</p>}
                   {founderLine && <p className="text-[#818CF8] text-xs font-medium mt-0.5">{founderLine}</p>}
                 </div>
 

@@ -69,7 +69,7 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
                     {profile.is_verified && <CheckCircle2 className="h-5 w-5 text-[#A99FFF]" />}
                   </div>
                   <p className="mt-1 text-[#9EA6B8]">@{profile.username}</p>
-                  {profile.tagline && <p className="mt-1.5 text-[#D4D8E3] text-sm">{profile.tagline}</p>}
+                  {(profile.bio || profile.tagline) && <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#D4D8E3]">{profile.bio || profile.tagline}</p>}
                   {founderLine && <p className="mt-1 text-xs font-medium text-[#B9B3FF]">{founderLine}</p>}
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[#8D96A8]">
                     {profile.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{profile.location}</span>}

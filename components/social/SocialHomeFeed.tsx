@@ -109,6 +109,20 @@ const PROFESSIONAL_TOOLS: Item[] = [
     cta: "Open tool",
   },
 ];
+
+function relativePostTime(value: string) {
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "";
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (seconds < 60) return "now";
+  if (seconds < 60 * 60) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 24 * 60 * 60) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 7 * 24 * 60 * 60) return `${Math.floor(seconds / 86400)}d`;
+  const date = new Date(value);
+  return date.getFullYear() === new Date().getFullYear()
+    ? date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+    : date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 function Rail({
   title,
   items,
@@ -380,8 +394,7 @@ export function PostCard({
           {authorHref ? <Link href={authorHref} className="block truncate font-bold text-brand-midnight hover:text-brand-indigo">{post.author?.name || "GigWay member"}</Link> : <p className="truncate font-bold text-brand-midnight">{post.author?.name || "GigWay member"}</p>}
           <p className="truncate text-caption text-brand-slate">
             {post.author?.username ? `@${post.author.username} · ` : ""}
-            {post.author?.tagline || "GigWay professional"} ·{" "}
-            {new Date(post.createdAt).toLocaleDateString()}
+            <time dateTime={post.createdAt} title={new Date(post.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}>{relativePostTime(post.createdAt)}</time>
           </p>
           {authorHref && <Link href={authorHref} aria-label={`View @${post.author?.username} profile`} className="absolute inset-x-0 bottom-0 h-5" />}
         </div>
