@@ -41,6 +41,7 @@ export type Post = {
   visibility: string;
   createdAt: string;
   editedAt: string | null;
+  momentSlug?: string | null;
   author: {
     type: string;
     id: string;
@@ -382,7 +383,8 @@ export function PostCard({
   const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
   const preview = comments;
   return (
-    <article className="relative min-w-0 max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft">
+    <article className={`relative min-w-0 max-w-full rounded-2xl border bg-white p-4 shadow-soft ${post.momentSlug === "raksha-bandhan" ? "border-brand-coral/35" : "border-brand-borderLight"}`}>
+      {post.momentSlug === "raksha-bandhan" && <p className="mb-3 text-caption font-bold tracking-[.12em] text-brand-coral">RAKSHA BANDHAN · GIGWAY MOMENT</p>}
       <div className="flex gap-3">
         {authorHref ? (
           <Link href={authorHref} aria-label={`View ${post.author?.name || "author"} profile`} className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-indigo/10 font-bold text-brand-indigo ${post.author?.type === "organization" ? "rounded-xl" : "rounded-full"}`}>

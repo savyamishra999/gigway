@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { FileText, ImagePlus, Loader2, Mic, Square, Video, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import MentionPicker from "@/components/social/MentionPicker";
 import { findActiveMention, replaceActiveMention } from "@/lib/social/mentions";
 import { createClient } from "@/lib/supabase/client";
@@ -40,6 +40,8 @@ const readMetadata = (file: File): Promise<VideoMetadata> => new Promise((resolv
 
 export default function CreatePostComposer({ profile, organizations }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const momentSlug = searchParams.get("moment");
   const input = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLDivElement>(null);
@@ -117,7 +119,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
     if (!body.trim() && !files.length) return void setError("Add text or an attachment before posting.");
     try {
       setStatus(files.length ? "uploading" : "publishing");
-      const created = await fetch("/api/social/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body, visibility, organizationId: author === "personal" ? undefined : author, draft: files.length > 0 }) });
+      const created = await fetch("/api/social/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body, visibility, organizationId: author === "personal" ? undefined : author, draft: files.length > 0, momentSlug: momentSlug || undefined }) });
       const createdBody = await created.json(); if (!created.ok) throw Error(createdBody.error || "Could not create post.");
       const postId = createdBody.post.id as string;
       for (const file of files) {
