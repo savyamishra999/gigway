@@ -19,6 +19,7 @@ import {
   Repeat2,
   Send,
   Users,
+  X,
 } from "lucide-react";
 type Item = {
   id: string;
@@ -575,7 +576,12 @@ export function PostCard({
         </button>
       )}
       {commentsOpen && (
-        <div className="mt-3 flex gap-2">
+        <section className="mt-3 border-t border-brand-borderLight pt-3" aria-label="Comments">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-body font-extrabold text-brand-midnight">Comments</h2>
+            <button type="button" onClick={() => setCommentsOpen(false)} aria-label="Close comments" className="grid h-8 w-8 place-items-center rounded-full text-brand-midnight transition hover:bg-brand-ivory"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="flex gap-2">
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value.slice(0, 2000))}
@@ -589,7 +595,8 @@ export function PostCard({
           >
             Post
           </button>
-        </div>
+          </div>
+        </section>
       )}
       {commentsOpen && preview.length > 0 && (
         <section className="mt-4 border-t border-brand-borderLight pt-3" aria-label="Reply preview">
