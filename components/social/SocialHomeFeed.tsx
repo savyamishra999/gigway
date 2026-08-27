@@ -529,7 +529,7 @@ export function PostCard({
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-borderLight pt-3 text-caption font-bold text-brand-slate">
         <button onClick={openComments} className="flex items-center gap-1 hover:text-brand-indigo">
           <MessageSquare className="h-4 w-4" />
-          {post.commentCount ? `${post.commentCount} ${post.commentCount === 1 ? "Comment" : "Comments"}` : "Comment / Reply"}
+          {post.commentCount ? `${post.commentCount} ${post.commentCount === 1 ? "Comment" : "Comments"}` : "Comment"}
         </button>
         <button
           onClick={repost}
