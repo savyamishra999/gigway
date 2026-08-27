@@ -6,6 +6,8 @@ import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import type { Moment } from "@/lib/moments"
+import { MomentHeader } from "@/components/moments/MomentExperience"
 
 const links = [
   { href: "/", label: "Home", icon: Home },
@@ -34,7 +36,7 @@ const MENU_ITEMS = [
   { href: "/contact", label: "Help & Support", icon: LifeBuoy },
 ]
 
-export default function ModernNavbar() {
+export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const supabase = createClient()
   const pathname = usePathname()
   const router = useRouter()
@@ -79,6 +81,7 @@ export default function ModernNavbar() {
           <Link href="/" className="shrink-0">
             <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-10 w-auto" />
           </Link>
+          <MomentHeader moment={moment} />
 
           <nav className="hidden lg:flex items-center gap-1">
             {links.map(({ href, label }) => (

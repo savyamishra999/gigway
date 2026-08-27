@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import ModernNavbar from '@/components/layout/ModernNavbar'
 import Footer from '@/components/layout/Footer'
+import { getActiveMoment } from '@/lib/moments'
 
 const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-manrope' })
 
@@ -50,7 +51,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <ModernNavbar />
+          <ModernNavbar moment={getActiveMoment()} />
           <main className="min-h-screen">
             {children}
           </main>

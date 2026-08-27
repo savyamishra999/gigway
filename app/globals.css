@@ -99,6 +99,10 @@
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
+/* A short, decorative Moment treatment beside the identity — never replaces the logo. */
+.moment-rakhi { animation: moment-rakhi-settle 2.8s ease-out both; }
+@keyframes moment-rakhi-settle { 0% { opacity: 0; transform: translateX(-9px) rotate(-24deg); } 55% { opacity: 1; transform: translateX(2px) rotate(8deg); } 100% { opacity: 1; transform: translateX(0) rotate(0); } }
+
 /* Post options sit on a white popover even when the page's base text is light. */
 button[aria-label="Post options"] + div button:not(.text-brand-coral) { color: #111827; }
 

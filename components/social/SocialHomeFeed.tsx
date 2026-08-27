@@ -3,6 +3,8 @@ import Link from "next/link";
 import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
 import PostText from "@/components/social/PostText";
+import { getActiveMoment } from "@/lib/moments";
+import { MomentHomeCard } from "@/components/moments/MomentExperience";
 import { useEffect, useState } from "react";
 import {
   Bookmark,
@@ -673,8 +675,10 @@ export default function SocialHomeFeed({
   ].filter(Boolean);
   const discoveryRails = rails.filter((rail) => rail !== null);
   const insertedRailCount = posts.length < 3 ? 0 : Math.floor((posts.length - 3) / 4) + 1;
+  const activeMoment = getActiveMoment();
   return (
     <section className="mt-8 w-full min-w-0 max-w-3xl">
+      <MomentHomeCard moment={activeMoment} />
       <Link
         href="/social/create"
         className="flex w-full min-w-0 justify-between rounded-2xl border border-brand-indigo/20 bg-white p-4 shadow-soft"
