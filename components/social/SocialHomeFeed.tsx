@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import VijoxPlayer from "@/components/social/VijoxPlayer";
 import PostText from "@/components/social/PostText";
 import { classifyVideoPresentation } from "@/lib/social/video";
 import { useEffect, useState } from "react";
@@ -516,6 +517,8 @@ export function PostCard({
                   }
                 />
               </div>
+            ) : m.type === "audio" ? (
+              <VijoxPlayer key={m.id} src={m.url} duration={m.durationSeconds} />
             ) : (
               <a
                 key={m.id}

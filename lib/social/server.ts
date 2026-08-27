@@ -110,8 +110,9 @@ export const MEDIA_RULES = {
   "video/mp4": { type:"video", extension:"mp4", extensions:["mp4"], max:100*1024*1024 },
   "video/webm": { type:"video", extension:"webm", extensions:["webm"], max:100*1024*1024 },
   "application/pdf": { type:"document", extension:"pdf", extensions:["pdf"], max:20*1024*1024 },
+  "audio/webm": { type:"audio", extension:"webm", extensions:["webm"], max:10*1024*1024 },
 } as const
-export type MediaType = "image"|"video"|"document"
+export type MediaType = "image"|"video"|"document"|"audio"
 
 export function validMediaMetadata(fileName:unknown,mimeType:unknown,size:unknown) {
   if(typeof fileName!=="string"||typeof mimeType!=="string"||typeof size!=="number"||!Number.isSafeInteger(size)||size<1)return null
@@ -135,7 +136,7 @@ export async function canManagePost(post:{author_user_id:string;author_organizat
 
 export async function updatePostType(postId:string) {
   const db=socialDb(); const {data}=await db.from("post_media").select("media_type").eq("post_id",postId)
-  const types=new Set((data||[]).map(x=>x.media_type)); const post_type=types.size===0?"text":types.size>1?"mixed":types.has("image")?"image":types.has("video")?"video":"document"
+  const types=new Set((data||[]).map(x=>x.media_type)); const post_type=types.size===0?"text":types.size>1?"mixed":types.has("image")?"image":types.has("video")?"video":types.has("audio")?"audio":"document"
   await db.from("posts").update({post_type,updated_at:new Date().toISOString()}).eq("id",postId)
   return post_type
 }
