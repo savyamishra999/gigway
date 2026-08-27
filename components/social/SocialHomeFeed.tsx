@@ -475,7 +475,7 @@ export function PostCard({
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, 5000))}
-            className="w-full rounded-xl border border-brand-borderLight p-3 text-body-sm outline-none focus:border-brand-indigo"
+            className="w-full rounded-xl border border-brand-borderLight bg-white p-3 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate focus:border-brand-indigo"
             rows={4}
           />
           {post.canManageVisibility && (
@@ -590,7 +590,7 @@ export function PostCard({
             value={comment}
             onChange={(e) => setComment(e.target.value.slice(0, 2000))}
             placeholder="Write a comment…"
-            className="min-w-0 flex-1 rounded-xl border border-brand-borderLight px-3 py-2 text-body-sm outline-none focus:border-brand-indigo"
+            className="min-w-0 flex-1 rounded-xl border border-brand-borderLight bg-white px-3 py-2 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate focus:border-brand-indigo"
           />
           <button
             disabled={busy}

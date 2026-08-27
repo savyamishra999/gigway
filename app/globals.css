@@ -106,6 +106,10 @@
 /* Post options sit on a white popover even when the page's base text is light. */
 button[aria-label="Post options"] + div button:not(.text-brand-coral) { color: #111827; }
 
+/* Social writing surfaces stay readable even while the app shell is in dark mode. */
+textarea.bg-white, input.bg-white { color: #111827; }
+textarea.bg-white::placeholder, input.bg-white::placeholder { color: #64748b; opacity: 1; }
+
 @layer utilities {
   /* Gradient text */
   .gradient-text {
