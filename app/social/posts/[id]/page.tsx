@@ -1,13 +1,41 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import PostDetailContent from "@/components/social/PostDetailContent";
 import type { Post } from "@/components/social/SocialHomeFeed";
-import { createClient } from "@/lib/supabase/server";
 import { resolvePostAccess, safePost } from "@/lib/social/server";
-import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
 
-const site="https://gigway.in";
-function snippet(body:string|null){const text=(body||"").replace(/<[^>]*>/g,"").replace(/\s+/g," ").trim();return text?text.slice(0,180):"View this post on GigWay."}
-export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{const{id}=await params;const post=await resolvePostAccess(id);if(!post||post.visibility!=="public")return{title:"GigWay — Professional Network & Marketplace",robots:{index:false,follow:false}};const value=await safePost(post);const author=value.author?.name||"GigWay member",title=`${author}${value.author?.username?` (@${value.author.username})`:""} on GigWay`,description=snippet(post.body),url=`${site}/social/posts/${id}`,image=`${url}/opengraph-image`;return{title,description,alternates:{canonical:url},openGraph:{type:"article",url,title,description,siteName:"GigWay — Professional Network & Marketplace",images:[{url:image,width:1200,height:630,alt:title}]},twitter:{card:"summary_large_image",title,description,images:[image]}}}
+const site = "https://gigway.in";
+const snippet = (body: string | null) => {
+  const text = (body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return text ? text.slice(0, 180) : "View this post on GigWay.";
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const post = await resolvePostAccess(id);
+  if (!post || post.visibility !== "public") return { title: "GigWay — Professional Network & Marketplace", robots: { index: false, follow: false } };
+
+  const value = await safePost(post);
+  const author = value.author?.name || "GigWay member";
+  const media = value.media.find((item: any) => item.type === "audio" || item.type === "video");
+  const title = media?.type === "audio" ? `VIJOX by ${author}` : media?.type === "video" ? `Video by ${author}` : `${author}${value.author?.username ? ` (@${value.author.username})` : ""} on GigWay`;
+  const description = snippet(post.body), url = `${site}/social/posts/${id}`, image = `${url}/opengraph-image`;
+  const delivery = media ? `${url}/media/${media.id}/public` : undefined;
+
+  return {
+    title, description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: media?.type === "video" ? "video.other" : "article", url, title, description,
+      siteName: "GigWay — Professional Network & Marketplace",
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
+      audio: media?.type === "audio" && delivery ? { url: delivery, secureUrl: delivery, type: media.mimeType } : undefined,
+      videos: media?.type === "video" && delivery ? { url: delivery, secureUrl: delivery, type: media.mimeType, width: 1280, height: 720 } : undefined,
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
+}
 
 export default async function PostDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
