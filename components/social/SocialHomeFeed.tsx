@@ -513,7 +513,7 @@ export function PostCard({
                 key={m.id}
                 src={m.url}
                 alt={m.fileName}
-                className="mt-4 max-h-[460px] w-full max-w-full rounded-xl object-cover"
+                className={`mt-4 max-h-[620px] w-full max-w-full rounded-xl bg-brand-ivory object-contain ${m.height && m.width && m.height > m.width ? "mx-auto" : ""}`}
               />
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
