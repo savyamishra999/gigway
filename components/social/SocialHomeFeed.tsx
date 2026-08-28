@@ -518,7 +518,7 @@ export function PostCard({
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
             ) : m.type === "audio" ? (
-              <VijoxPlayer key={m.id} src={m.url} duration={m.durationSeconds} />
+              <VijoxPlayer key={m.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} />
             ) : (
               <a
                 key={m.id}

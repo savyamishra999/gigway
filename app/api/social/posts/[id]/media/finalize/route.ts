@@ -25,7 +25,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: existing } = await db.from("post_media").select("id,media_type,storage_path").eq("post_id", id);
   if ((existing || []).some((x) => x.storage_path === b.path)) return NextResponse.json({ error: "This media is already attached." }, { status: 409 });
   const current = (existing || []).map((x) => x.media_type);
-  if (current.length >= 5 || (current.length && (!current.every((x) => x === "image") || rule.type !== "image"))) {
+  const allowedCombination = !current.length || (current.every((x) => x === "image") && (rule.type === "image" || rule.type === "audio")) || (current.length === 1 && current[0] === "audio" && rule.type === "image");
+  if (current.length >= 5 || !allowedCombination) {
     await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);
     return NextResponse.json({ error: "This attachment no longer fits the post media limit." }, { status: 400 });
   }
