@@ -19,6 +19,7 @@ import { findActiveMention, replaceActiveMention } from "@/lib/social/mentions";
 import { createClient } from "@/lib/supabase/client";
 import type { VideoMetadata } from "@/lib/social/video";
 import VijoxExperience from "@/components/social/VijoxExperience";
+import VijoxCircularProgress from "@/components/social/VijoxCircularProgress";
 type Author = { id?: string; name: string; avatar?: string | null };
 type Props = { profile: Author; organizations: Author[] };
 type Kind = "image" | "video" | "document" | "audio";
@@ -93,30 +94,6 @@ function Avatar({ a }: { a: Author }) {
         a.name.charAt(0).toUpperCase()
       )}
     </span>
-  );
-}
-function Ring({
-  progress,
-  level = 0,
-  children,
-}: {
-  progress: number;
-  level?: number;
-  children: React.ReactNode;
-}) {
-  const d = Math.max(18, Math.min(100, progress) * 3.6);
-  return (
-    <div
-      className="grid h-40 w-40 place-items-center rounded-full p-2 shadow-[0_12px_35px_rgba(124,58,237,.18)] motion-reduce:transform-none"
-      style={{
-        background: `conic-gradient(from -90deg,#ec4899 0deg,#8b5cf6 ${d}deg,#4f46e5 ${d + 35}deg,#06b6d4 ${d + 70}deg,#e8eaf0 ${d + 70}deg 360deg)`,
-        transform: `scale(${1 + level * 0.05})`,
-      }}
-    >
-      <div className="grid h-full w-full place-items-center rounded-full bg-white">
-        {children}
-      </div>
-    </div>
   );
 }
 export default function CreatePostComposer({ profile, organizations }: Props) {
@@ -506,9 +483,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             RECORDING VIJOX
           </p>
           <div className="mx-auto mt-4">
-            <Ring progress={(seconds / MAX) * 100} level={level}>
-              <Avatar a={profile} />
-            </Ring>
+            <VijoxCircularProgress currentTimeMs={Math.round(seconds * 1000)} durationMs={MAX * 1000} energy={level} label={`Recording VIJOX: ${clock(seconds)} of 00:27`} center={<Avatar a={profile} />} />
           </div>
           <p className="mt-4 text-lg font-extrabold tabular-nums text-brand-midnight">
             {clock(seconds)} <span className="text-brand-slate">/ 00:27</span>
@@ -544,7 +519,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-4">
           <VijoxExperience src={vijoxUrl || ""} duration={seconds || MAX} avatar={profile.avatar} name={profile.name} imageUrl={images[0] ? urls[files.indexOf(images[0])] : undefined} imageAlt={images[0]?.name || "Selected VIJOX scene image"} transcript={vijoxTranscriptText.trim() ? { text: vijoxTranscriptText.trim() } : null} />
           <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={record} className="rounded-xl border border-brand-indigo/20 bg-white px-3 py-2 text-caption font-bold text-brand-indigo">Record Again</button>
+            <button onClick={record} className="rounded-xl border border-brand-indigo/20 bg-white px-3 py-2 text-caption font-bold text-brand-indigo">Jox Again</button>
             <button onClick={removeVijox} aria-label="Remove VIJOX" className="flex items-center gap-1 px-2 py-2 text-caption font-bold text-brand-coral"><Trash2 className="h-3.5 w-3.5" />Remove</button>
             <button onClick={() => setEditingVijoxTranscript(true)} aria-label={vijoxTranscriptText.trim() ? "Edit VIJOX transcript" : "Add VIJOX transcript"} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700">{vijoxTranscriptText.trim() ? "Edit transcript" : "Add transcript"}</button>
           </div>
@@ -623,13 +598,13 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
         >
           <Mic className="h-4 w-4" />
-          {vijox ? "Record Again" : "Record VIJOX"}
+          {vijox ? "Jox Again" : "Create a Jox"}
         </button>
       </div>
       <p className="mt-2 text-caption text-brand-slate">
         {vijox
-          ? "VIJOX can be posted with your caption and up to four images."
-          : "Record up to 27 seconds of voice, or add media."}
+          ? "Your VIJOX can be Joxed with your caption and up to four images."
+          : "Jox your voice in up to 27 seconds, or add media."}
       </p>
       <div className="mt-5">
         <p className="text-caption font-bold text-brand-slate">
@@ -667,8 +642,8 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           : status === "publishing"
             ? "Publishing..."
             : status === "posted"
-              ? "Posted"
-              : "Post"}
+              ? (vijox ? "Joxed" : "Posted")
+              : (vijox ? "Jox" : "Post")}
       </button>
     </section>
   );
