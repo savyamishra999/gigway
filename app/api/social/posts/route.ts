@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canViewPost, plainText, requireSocialUser, resolveProfile, safePost, socialDb, withReplyPreviews } from "@/lib/social/server";
+import { canViewPost, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, socialDb, withReplyPreviews } from "@/lib/social/server";
 import { specialMoments } from "@/lib/moments";
 
 const PAGE_SIZE = 15;
 const FETCH_SIZE = PAGE_SIZE * 4 + 1;
 const MAX_OWN_REPOSTS_PER_PAGE = 3;
-const POST_FIELDS = "id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at,moment_slug";
+const POST_FIELDS = "id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at,moment_slug,vijox_transcript_text,vijox_transcript_segments";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type Activity = {
@@ -53,6 +53,8 @@ export async function POST(req: NextRequest) {
   const body = typeof b.body === "string" ? plainText(b.body, 5000, 0) : null;
   const visibility = b.visibility === "followers" ? "followers" : b.visibility === "public" ? "public" : null;
   const draft = b.draft === true;
+  const transcript = typeof b.vijoxTranscriptText === "string" ? plainText(b.vijoxTranscriptText, MAX_VIJOX_TRANSCRIPT_LENGTH, 0) : null;
+  if (typeof b.vijoxTranscriptText !== "undefined" && (!draft || transcript === null)) return NextResponse.json({ error: `A VIJOX transcript must be plain text of up to ${MAX_VIJOX_TRANSCRIPT_LENGTH} characters and attached while creating a media draft.` }, { status: 400 });
   const momentSlug = typeof b.momentSlug === "string" && specialMoments.some((moment) => moment.slug === b.momentSlug) ? b.momentSlug : null;
   if (body === null || !visibility || (!body && !draft)) return NextResponse.json({ error: "Enter a plain-text post of up to 5,000 characters." }, { status: 400 });
 
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
     if (!readiness?.profile_completed) return NextResponse.json({ error: "Complete your minimum GigWay identity before posting." }, { status: 403 });
     author_profile_id = profile.id;
   }
-  const { data, error } = await db.from("posts").insert({ author_user_id: user.id, author_profile_id, author_organization_id, post_type: "text", body: body || null, visibility, status: draft ? "hidden" : "published", moment_slug: momentSlug }).select(POST_FIELDS).single();
+  const { data, error } = await db.from("posts").insert({ author_user_id: user.id, author_profile_id, author_organization_id, post_type: "text", body: body || null, visibility, status: draft ? "hidden" : "published", moment_slug: momentSlug, vijox_transcript_text: transcript || null, vijox_transcript_segments: null }).select(POST_FIELDS).single();
   if (error || !data) return NextResponse.json({ error: "We could not publish your post." }, { status: 503 });
   const mentions = [...new Set((body || "").match(/(^|\s)@([a-zA-Z0-9_]{1,32})/g)?.map((x) => x.trim().slice(1).toLowerCase()) || [])].slice(0, 5);
   if (mentions.length) {
