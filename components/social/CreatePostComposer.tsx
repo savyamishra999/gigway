@@ -400,7 +400,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
     );
   };
   return (
-    <section className="rounded-3xl border border-brand-borderLight bg-white p-4 shadow-elevated sm:p-7">
+    <section className="rounded-3xl border border-brand-borderLight bg-white p-4 pb-24 text-brand-midnight shadow-elevated sm:p-7 sm:pb-7">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-caption font-bold tracking-[.15em] text-brand-coral">
@@ -418,7 +418,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <X />
         </button>
       </div>
-      <div className="mt-6 rounded-2xl bg-brand-ivory p-3">
+      <div className="mt-6 rounded-2xl border border-brand-borderLight bg-brand-ivory p-3">
         <label className="text-caption font-bold text-brand-slate">
           Post as
         </label>
@@ -426,7 +426,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           disabled={busy || recording}
-          className="mt-1 w-full bg-transparent font-bold outline-none"
+          className="mt-1 w-full appearance-none rounded-lg border border-brand-borderLight bg-white px-3 py-2 font-bold text-brand-midnight outline-none focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
         >
           <option value="personal">{profile.name} · Personal profile</option>
           {organizations.map((o) => (
@@ -467,7 +467,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         rows={7}
         maxLength={5000}
         placeholder="Share something useful with your professional network..."
-        className="mt-5 w-full resize-none rounded-2xl border border-brand-borderLight p-4 text-body-sm outline-none focus:border-brand-indigo"
+        className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
       {active && !closed && (
         <div ref={picker} className="relative z-10 mt-2">
@@ -611,9 +611,9 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
       <p className="mt-2 text-caption text-brand-slate">
         {vijox
           ? "Your VIJOX can be Joxed with your caption and up to four images."
-          : "Jox your voice in up to 27 seconds, or add media."}
+          : "Jox your voice in up to 27 seconds."}
       </p>
-      <div className="mt-5">
+      <div className="mt-5 rounded-xl bg-brand-ivory/65 p-3">
         <p className="text-caption font-bold text-brand-slate">
           Who can see this?
         </p>
@@ -621,13 +621,13 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           ["public", "Public"],
           ["followers", "Followers"],
         ].map(([v, l]) => (
-          <label key={v} className="mr-4 text-body-sm">
+          <label key={v} className="mr-4 inline-flex items-center gap-1.5 text-body-sm font-semibold text-brand-midnight">
             <input
               type="radio"
               value={v}
               checked={visibility === v}
               onChange={(e) => setVisibility(e.target.value)}
-              className="mr-1"
+              className="h-4 w-4 accent-brand-indigo"
             />
             {l}
           </label>
@@ -641,7 +641,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
       <button
         onClick={submit}
         disabled={busy || recording}
-        className="mt-6 flex w-full justify-center gap-2 rounded-xl bg-brand-indigo px-5 py-3 font-bold text-white disabled:opacity-60"
+        className="mt-6 flex w-full justify-center gap-2 rounded-xl bg-brand-indigo px-5 py-3 font-bold text-white shadow-sm disabled:opacity-60"
       >
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         {status === "uploading"
