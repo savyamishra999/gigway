@@ -10,9 +10,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const value = await safePost(post);
   const special = value.momentSlug === "raksha-bandhan";
   const photo = value.media.find((item: any) => item.type === "image");
+  const jox = value.media.some((item: any) => item.type === "audio");
   const author = value.author?.name || "GigWay member";
   const username = value.author?.username ? `@${value.author.username}` : "";
-  const text = (post.body || "View this post on GigWay.").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, photo ? 105 : 180);
+  const text = (post.body || value.vijoxTranscriptText || (jox ? "Listen to this Jox on GigWay." : "View this post on GigWay.")).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, photo ? 105 : 180);
   const accent = special ? "#c2410c" : "#4f46e5";
   const label = special ? "RAKSHA BANDHAN · GIGWAY MOMENT" : "GIGTHOUGHT";
 

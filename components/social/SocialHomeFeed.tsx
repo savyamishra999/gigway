@@ -284,16 +284,17 @@ export function PostCard({
     const url = `https://gigway.in/social/posts/${post.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      setNotice("Link copied");
+      setNotice(post.media.some((item) => item.type === "audio") ? "Jox link copied" : "Link copied");
       setTimeout(() => setNotice(""), 1800);
     } catch {}
     setMenu(false);
   };
   const share = async () => {
     const url = `https://gigway.in/social/posts/${post.id}`;
+    const jox = post.media.some((item) => item.type === "audio"), text = jox ? `${post.author?.name || "GigWay member"} shared a Jox on GigWay — listen here.` : (post.body || "View this post on GigWay.").slice(0, 180);
     try {
       if (navigator.share) {
-        await navigator.share({ title: `${post.author?.name || "GigWay member"} on GigWay`, text: (post.body || "View this post on GigWay.").slice(0, 180), url });
+        await navigator.share({ title: jox ? `${post.author?.name || "GigWay member"} shared a Jox on GigWay` : `${post.author?.name || "GigWay member"} on GigWay`, text, url });
         return;
       }
     } catch { return; }
@@ -301,7 +302,7 @@ export function PostCard({
   };
   const shareTargets = () => {
     const url = `https://gigway.in/social/posts/${post.id}`;
-    const text = `${(post.body || "View this post on GigWay.").replace(/\s+/g, " ").trim().slice(0, 180)} ${url}`;
+    const jox = post.media.some((item) => item.type === "audio"), copy = jox ? `${post.author?.name || "GigWay member"} shared a Jox on GigWay — listen here.` : (post.body || "View this post on GigWay.").replace(/\s+/g, " ").trim().slice(0, 180), text = `${copy} ${url}`;
     return [
       ["WhatsApp", `https://wa.me/?text=${encodeURIComponent(text)}`],
       ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`],
@@ -557,7 +558,7 @@ export function PostCard({
         <div className="relative">
           <button onClick={share} className="flex items-center gap-1">
             <Send className="h-4 w-4" />
-            Share
+            {post.media.some((item) => item.type === "audio") ? "Share this Jox" : "Share"}
           </button>
           {shareOpen && <div className="absolute bottom-7 left-0 z-20 w-40 rounded-xl border border-brand-borderLight bg-white p-1 shadow-elevated">
             {shareTargets().map(([label, href]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setShareOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-midnight hover:bg-brand-ivory">{label}</a>)}

@@ -6,9 +6,10 @@ import { resolvePostAccess, safePost } from "@/lib/social/server";
 import { createClient } from "@/lib/supabase/server";
 
 const site = "https://gigway.in";
-const snippet = (body: string | null) => {
+const snippet = (body: string | null, transcript?: string | null) => {
   const text = (body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-  return text ? text.slice(0, 180) : "View this post on GigWay.";
+  const spoken = (transcript || "").replace(/\s+/g, " ").trim();
+  return text ? text.slice(0, 180) : spoken ? spoken.slice(0, 180) : "Listen to this Jox on GigWay.";
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -19,8 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const value = await safePost(post);
   const author = value.author?.name || "GigWay member";
   const media = value.media.find((item: any) => item.type === "audio" || item.type === "video");
-  const title = media?.type === "audio" ? `VIJOX by ${author}` : media?.type === "video" ? `Video by ${author}` : `${author}${value.author?.username ? ` (@${value.author.username})` : ""} on GigWay`;
-  const description = snippet(post.body), url = `${site}/social/posts/${id}`, image = `${url}/opengraph-image`;
+  const title = media?.type === "audio" ? `${author} shared a Jox on GigWay` : media?.type === "video" ? `Video by ${author}` : `${author}${value.author?.username ? ` (@${value.author.username})` : ""} on GigWay`;
+  const description = snippet(post.body, value.vijoxTranscriptText), url = `${site}/social/posts/${id}`, image = `${url}/opengraph-image`;
   const delivery = media ? `${url}/media/${media.id}/public` : undefined;
 
   return {
