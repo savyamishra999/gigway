@@ -9,6 +9,9 @@ import {
 import VijoxTranscript, {
   type VijoxTranscriptData,
 } from "@/components/social/VijoxTranscript";
+import VijoxTimedReactions from "@/components/social/VijoxTimedReactions";
+import VijoxReactionMoments from "@/components/social/VijoxReactionMoments";
+import type { VijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions";
 
 const clock = (seconds: number) =>
   `00:${Math.max(0, Math.floor(seconds)).toString().padStart(2, "0")}`;
@@ -20,7 +23,9 @@ export type VijoxExperienceProps = {
   transcript?: VijoxTranscriptData | null;
   imageUrl?: string | null;
   imageAlt?: string;
+  postId?: string | null;
   compact?: boolean;
+  initialTimedReactionSummary?: VijoxTimedReactionSummary;
 };
 
 export default function VijoxExperience({
@@ -31,7 +36,9 @@ export default function VijoxExperience({
   transcript,
   imageUrl,
   imageAlt = "VIJOX scene image",
+  postId,
   compact = false,
+  initialTimedReactionSummary,
 }: VijoxExperienceProps) {
   const audio = useRef<HTMLAudioElement>(null),
     id = useRef(`vijox-${crypto.randomUUID()}`),
@@ -42,7 +49,8 @@ export default function VijoxExperience({
   const [playing, setPlaying] = useState(false),
     [current, setCurrent] = useState(0),
     [total, setTotal] = useState(duration || 27),
-    [energy, setEnergy] = useState(0);
+    [energy, setEnergy] = useState(0),
+    [reactionSummary, setReactionSummary] = useState<VijoxTimedReactionSummary | null>(initialTimedReactionSummary || null);
   const stopVisualizing = () => {
     if (frame.current) cancelAnimationFrame(frame.current);
     frame.current = null;
@@ -190,7 +198,9 @@ export default function VijoxExperience({
           )}
         </button>
       </div>
+      {postId && <VijoxReactionMoments summary={reactionSummary} currentTimeMs={Math.round(current * 1000)} durationMs={Math.round(total * 1000)} />}
       <VijoxTranscript transcript={transcript} currentSeconds={current} />
+      {postId && <VijoxTimedReactions postId={postId} currentTimeMs={() => Math.round((audio.current?.currentTime || 0) * 1000)} summary={reactionSummary} onSummaryChange={setReactionSummary} />}
     </div>
   );
 }

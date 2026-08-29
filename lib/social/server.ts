@@ -1,5 +1,6 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
+import { aggregateVijoxTimedReactions, type VijoxTimedReactionRow, zeroVijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions"
 
 export type SocialPost = { id:string; author_user_id:string; author_profile_id:string|null; author_organization_id:string|null; body:string|null; post_type:string; visibility:string; status:string; created_at:string; edited_at:string|null; moment_slug?:string|null; vijox_transcript_text?:string|null; vijox_transcript_segments?:unknown }
 export class SocialFeedStageError extends Error { constructor(public stage:string,public code:string|undefined,message:string){super(message)} }
@@ -102,6 +103,16 @@ export async function withReplyPreviews<T extends { id:string }>(posts:T[]) {
   requireSocialResult("reply_preview_authors",{error:profileError})
   const authors=new Map((profiles||[]).map(profile=>[profile.id,profile]))
   return posts.map(post=>({...post,replyPreview:(selected.get(post.id)||[]).reverse().map(comment=>{const author=authors.get(comment.user_id);return{id:comment.id,body:comment.body,createdAt:comment.created_at,author:author?{id:author.id,name:author.full_name,username:author.username,avatar:author.avatar_url,verified:author.is_verified}:null}})}))
+}
+
+/** Adds reaction summaries to already-authorized serialized VIJOX posts in one query. */
+export async function enrichPostsWithVijoxTimedReactions<T extends { id:string; media?: Array<{ type?: string; mimeType?: string | null } | null> }>(posts:T[], viewerUserId?:string|null) {
+  const ids=[...new Set(posts.filter(post=>post.media?.some(media=>media?.type==="audio"&&(!media.mimeType||media.mimeType==="audio/webm"))).map(post=>post.id))]
+  if (!ids.length) return posts
+  const {data,error}=await socialDb().from("vijox_timed_reactions").select("post_id,reactor_user_id,reaction_type,time_bucket_ms").in("post_id",ids)
+  requireSocialResult("vijox_timed_reactions",{error})
+  const summaries=aggregateVijoxTimedReactions((data||[]) as VijoxTimedReactionRow[],viewerUserId)
+  return posts.map(post=>ids.includes(post.id)?{...post,vijoxTimedReactionSummary:summaries.get(post.id)||zeroVijoxTimedReactionSummary()}:post)
 }
 
 export function plainText(value:unknown, max:number, min=1) {

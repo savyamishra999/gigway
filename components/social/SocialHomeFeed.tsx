@@ -6,6 +6,7 @@ import PostText from "@/components/social/PostText";
 import { getActiveMoment } from "@/lib/moments";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
 import { useEffect, useState } from "react";
+import type { VijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions";
 import {
   Bookmark,
   BriefcaseBusiness,
@@ -44,6 +45,7 @@ export type Post = {
   momentSlug?: string | null;
   vijoxTranscriptText?: string | null;
   vijoxTranscriptSegments?: { startMs: number; endMs: number; text: string }[] | null;
+  vijoxTimedReactionSummary?: VijoxTimedReactionSummary;
   author: {
     type: string;
     id: string;
@@ -520,7 +522,7 @@ export function PostCard({
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
             ) : m.type === "audio" ? (
-              <VijoxPlayer key={m.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} imageUrl={post.media.find((item) => item.type === "image")?.url} imageAlt={post.media.find((item) => item.type === "image")?.fileName || "VIJOX scene image"} transcript={post.vijoxTranscriptText ? { text: post.vijoxTranscriptText, segments: post.vijoxTranscriptSegments || undefined } : null} />
+              <VijoxPlayer key={m.id} postId={post.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} imageUrl={post.media.find((item) => item.type === "image")?.url} imageAlt={post.media.find((item) => item.type === "image")?.fileName || "VIJOX scene image"} transcript={post.vijoxTranscriptText ? { text: post.vijoxTranscriptText, segments: post.vijoxTranscriptSegments || undefined } : null} initialTimedReactionSummary={post.vijoxTimedReactionSummary} />
             ) : (
               <a
                 key={m.id}

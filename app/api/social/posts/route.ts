@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canViewPost, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, socialDb, withReplyPreviews } from "@/lib/social/server";
+import { canViewPost, enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, socialDb, withReplyPreviews } from "@/lib/social/server";
 import { specialMoments } from "@/lib/moments";
 
 const PAGE_SIZE = 15;
@@ -109,7 +109,8 @@ export async function GET(req: NextRequest) {
       for (const post of data || []) if (await canViewPost(post, viewer?.id)) accessible.push(post);
       const page = accessible.slice(0, PAGE_SIZE);
       stage = "serialization";
-      return NextResponse.json({ items: await withReplyPreviews(await Promise.all(page.map((post) => safePost(post, viewer?.id)))), nextCursor: accessible.length > PAGE_SIZE ? `${page.at(-1).created_at}|${page.at(-1).id}` : null });
+      const serialized = await withReplyPreviews(await Promise.all(page.map((post) => safePost(post, viewer?.id))));
+      return NextResponse.json({ items: await enrichPostsWithVijoxTimedReactions<any>(serialized as any[], viewer?.id), nextCursor: accessible.length > PAGE_SIZE ? `${page.at(-1).created_at}|${page.at(-1).id}` : null });
     }
 
     const cursor = readCursor(cursorValue);
@@ -201,7 +202,15 @@ export async function GET(req: NextRequest) {
     const postItems = items.filter((item): any => !("type" in item) || item.type === "repost"); const originals = await withReplyPreviews(postItems.map((item): any => "type" in item && item.type === "repost" ? item.originalPost : item)); let postIndex = 0; const enrichedItems = items.map((item) => { if ("type" in item && item.type === "marketplace_share") return item; const enriched = originals[postIndex++]; return "type" in item && item.type === "repost" ? { ...item, originalPost: enriched } : enriched });
     const last = page.at(-1);
     const hasMore = deduped.length > PAGE_SIZE || (originalsRes.data || []).length === FETCH_SIZE || repostRows.length === FETCH_SIZE || shares.length === FETCH_SIZE;
-    return NextResponse.json({ items: enrichedItems, nextCursor: hasMore && last ? encodeCursor(last) : null });
+    const feedPosts = enrichedItems.filter((item): item is any => !("type" in item) || item.type === "repost");
+    const reactionEnrichedPosts = await enrichPostsWithVijoxTimedReactions(feedPosts.map((item: any) => "type" in item && item.type === "repost" ? item.originalPost : item), viewer.id);
+    let reactionPostIndex = 0;
+    const finalItems = enrichedItems.map((item: any) => {
+      if ("type" in item && item.type === "marketplace_share") return item;
+      const post = reactionEnrichedPosts[reactionPostIndex++];
+      return "type" in item && item.type === "repost" ? { ...item, originalPost: post } : post;
+    });
+    return NextResponse.json({ items: finalItems, nextCursor: hasMore && last ? encodeCursor(last) : null });
   } catch (error) {
     logFeedFailure(stage, error);
     return NextResponse.json({ error: "feed_unavailable" }, { status: 503 });
