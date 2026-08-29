@@ -204,12 +204,12 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
       !navigator.mediaDevices?.getUserMedia ||
       typeof MediaRecorder === "undefined"
     )
-      return setError("Voice recording is not supported by this browser.");
+      return setError("Joxing is not supported by this browser.");
     try {
       const opus = MediaRecorder.isTypeSupported("audio/webm;codecs=opus");
       if (!opus && !MediaRecorder.isTypeSupported("audio/webm"))
         return setError(
-          "This browser cannot create a compatible VIJOX recording.",
+          "This browser cannot create a compatible Jox.",
         );
       setError("");
       const s = await navigator.mediaDevices.getUserMedia({
@@ -250,7 +250,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
       r.onerror = () => {
         cleanup();
         setRecording(false);
-        setError("Recording failed. Please try again.");
+        setError("Joxing failed. Please try again.");
       };
       r.onstop = () => {
         const duration = Math.min(
@@ -480,10 +480,10 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
       {recording && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-5 text-center">
           <p className="text-[10px] font-extrabold tracking-[.16em] text-violet-700">
-            RECORDING VIJOX
+            JOXING…
           </p>
           <div className="mx-auto mt-4">
-            <VijoxCircularProgress currentTimeMs={Math.round(seconds * 1000)} durationMs={MAX * 1000} energy={level} label={`Recording VIJOX: ${clock(seconds)} of 00:27`} center={<Avatar a={profile} />} />
+            <VijoxCircularProgress currentTimeMs={Math.round(seconds * 1000)} durationMs={MAX * 1000} energy={level} label={`Joxing: ${clock(seconds)} of 00:27`} center={<Avatar a={profile} />} />
           </div>
           <p className="mt-4 text-lg font-extrabold tabular-nums text-brand-midnight">
             {clock(seconds)} <span className="text-brand-slate">/ 00:27</span>
@@ -494,11 +494,11 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <div className="mt-4 flex justify-center gap-2">
             <button
               onClick={stop}
-              aria-label="Stop VIJOX recording"
+              aria-label="Stop Joxing"
               className="flex items-center gap-2 rounded-xl bg-brand-indigo px-4 py-2.5 font-bold text-white"
             >
               <Square className="h-4 w-4 fill-current" />
-              Stop
+              Stop Joxing
             </button>
             <button
               onClick={() => {
@@ -507,7 +507,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
                 setEditingVijoxTranscript(false);
                 stop();
               }}
-              aria-label="Cancel VIJOX recording"
+              aria-label="Cancel Joxing"
               className="rounded-xl border px-4 py-2.5 font-bold"
             >
               Cancel

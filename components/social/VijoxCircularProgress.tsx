@@ -11,7 +11,7 @@ export default function VijoxCircularProgress({ currentTimeMs, durationMs, energ
   const gradientId = useId().replace(/:/g, "");
   const point = (fraction: number, radius = 88) => { const angle = fraction * Math.PI * 2 - Math.PI / 2; return { x: SIZE / 2 + Math.cos(angle) * radius, y: SIZE / 2 + Math.sin(angle) * radius }; };
   const leading = point(progress), activeBucket = Math.floor(currentTimeMs / 500) * 500;
-  return <div className="relative mx-auto h-[min(58vw,208px)] w-[min(58vw,208px)] min-h-[170px] min-w-[170px] max-h-[208px] max-w-[208px]">
+  return <div className="relative mx-auto h-[min(58vw,220px)] w-[min(58vw,220px)] min-h-[175px] min-w-[175px] max-h-[220px] max-w-[220px]">
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full overflow-visible" role="img" aria-label={label}>
       <defs><linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#ec4899"/><stop offset=".38" stopColor="#8b5cf6"/><stop offset=".7" stopColor="#4f46e5"/><stop offset="1" stopColor="#06b6d4"/></linearGradient></defs>
       <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="#ede9fe" strokeWidth="7"/>

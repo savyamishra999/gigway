@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSocialUser, resolvePostAccess, socialDb } from "@/lib/social/server";
+import { isValidJoxMedia, requireSocialUser, resolvePostAccess, socialDb } from "@/lib/social/server";
 import { aggregateVijoxTimedReactions, VIJOX_REACTION_TYPES, type VijoxTimedReactionType, zeroVijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions";
 
 const types = new Set<string>(VIJOX_REACTION_TYPES);
@@ -11,14 +11,15 @@ const validInput = (body: unknown) => {
   return { reactionType: value.reactionType as ReactionType, timestampMs: value.timestampMs } as const;
 };
 async function vijoxDuration(postId: string) {
-  const { data } = await socialDb().from("post_media").select("duration_seconds").eq("post_id", postId).eq("media_type", "audio").eq("mime_type", "audio/webm").maybeSingle();
-  return typeof data?.duration_seconds === "number" && Number.isFinite(data.duration_seconds) && data.duration_seconds > 0 ? data.duration_seconds : null;
+  const { data } = await socialDb().from("post_media").select("duration_seconds,media_type,mime_type").eq("post_id", postId).eq("media_type", "audio");
+  const valid = (data || []).find(media => isValidJoxMedia(media.media_type, media.mime_type));
+  return typeof valid?.duration_seconds === "number" && Number.isFinite(valid.duration_seconds) && valid.duration_seconds > 0 ? valid.duration_seconds : null;
 }
 async function accessibleVijox(postId: string, userId?: string) {
   const post = await resolvePostAccess(postId, userId);
   if (!post) return { error: NextResponse.json({ error: "Post not found." }, { status: 404 }) } as const;
   const duration = await vijoxDuration(postId);
-  if (!duration) return { error: NextResponse.json({ error: "This post has no eligible VIJOX recording." }, { status: 400 }) } as const;
+  if (!duration) return { error: NextResponse.json({ error: "This post doesn't contain a valid Jox." }, { status: 400 }) } as const;
   return { duration } as const;
 }
 

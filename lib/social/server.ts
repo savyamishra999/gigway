@@ -107,7 +107,7 @@ export async function withReplyPreviews<T extends { id:string }>(posts:T[]) {
 
 /** Adds reaction summaries to already-authorized serialized VIJOX posts in one query. */
 export async function enrichPostsWithVijoxTimedReactions<T extends { id:string; media?: Array<{ type?: string; mimeType?: string | null } | null> }>(posts:T[], viewerUserId?:string|null) {
-  const ids=[...new Set(posts.filter(post=>post.media?.some(media=>media?.type==="audio"&&(!media.mimeType||media.mimeType==="audio/webm"))).map(post=>post.id))]
+  const ids=[...new Set(posts.filter(post=>post.media?.some(media=>media&&isValidJoxMedia(media.type,media.mimeType))).map(post=>post.id))]
   if (!ids.length) return posts
   const {data,error}=await socialDb().from("vijox_timed_reactions").select("post_id,reactor_user_id,reaction_type,time_bucket_ms").in("post_id",ids)
   requireSocialResult("vijox_timed_reactions",{error})
@@ -134,9 +134,16 @@ export const MEDIA_RULES = {
 } as const
 export type MediaType = "image"|"video"|"document"|"audio"
 
+/** The only persisted audio container accepted as a Jox: WebM, optionally Opus. */
+export function isValidJoxMedia(mediaType:unknown,mimeType:unknown) {
+  if (mediaType !== "audio" || typeof mimeType !== "string") return false
+  const [base,...parameters]=mimeType.toLowerCase().split(";").map(value=>value.trim())
+  return base === "audio/webm" && (!parameters.length || parameters.every(parameter=>parameter === "codecs=opus"))
+}
+
 export function validMediaMetadata(fileName:unknown,mimeType:unknown,size:unknown) {
   if(typeof fileName!=="string"||typeof mimeType!=="string"||typeof size!=="number"||!Number.isSafeInteger(size)||size<1)return null
-  const rule=MEDIA_RULES[mimeType as keyof typeof MEDIA_RULES]; if(!rule||size>rule.max)return null
+  const rule=isValidJoxMedia("audio",mimeType)?MEDIA_RULES["audio/webm"]:MEDIA_RULES[mimeType as keyof typeof MEDIA_RULES]; if(!rule||size>rule.max)return null
   const extension=fileName.trim().split(".").pop()?.toLowerCase(); if(!rule.extensions.includes(extension as never))return null
   return rule
 }
