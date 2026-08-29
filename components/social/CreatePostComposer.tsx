@@ -110,6 +110,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
     timeout = useRef<ReturnType<typeof setTimeout> | null>(null),
     interval = useRef<ReturnType<typeof setInterval> | null>(null),
     start = useRef(0),
+    quality = useRef({ meaningful: 0, quiet: 0, total: 0, updatedAt: 0 }),
     chunks = useRef<Blob[]>([]),
     preview = useRef<HTMLAudioElement>(null);
   const [body, setBody] = useState(""),
@@ -123,6 +124,8 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
     [recording, setRecording] = useState(false),
     [seconds, setSeconds] = useState(0),
     [level, setLevel] = useState(0),
+    [voiceLevel, setVoiceLevel] = useState<"Listening…" | "Low" | "Good">("Listening…"),
+    [quietJox, setQuietJox] = useState(false),
     [playing, setPlaying] = useState(false),
     [current, setCurrent] = useState(0),
     [vijoxTranscriptText, setVijoxTranscriptText] = useState(""),
@@ -198,7 +201,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
   };
   const record = async () => {
     if (busy || recording || (files.length && !images.length)) return;
-    setVijoxTranscriptText("");
+    setVijoxTranscriptText(""); setQuietJox(false); setVoiceLevel("Listening…"); quality.current={meaningful:0,quiet:0,total:0,updatedAt:Date.now()};
     setEditingVijoxTranscript(false);
     if (
       !navigator.mediaDevices?.getUserMedia ||
@@ -235,7 +238,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             const v = (x - 128) / 128;
             sum += v * v;
           });
-          setLevel(Math.min(1, Math.sqrt(sum / data.length) * 5));
+          const nextLevel=Math.min(1, Math.sqrt(sum / data.length) * 5); setLevel(nextLevel); const stats=quality.current; stats.total+=1; if(nextLevel>.025){stats.meaningful+=1;if(nextLevel<.09)stats.quiet+=1;} if(Date.now()-stats.updatedAt>650&&stats.meaningful>=20){setVoiceLevel(stats.quiet/stats.meaningful>.7?"Low":"Good");stats.updatedAt=Date.now();}
           frame.current = requestAnimationFrame(read);
         };
       read();
@@ -262,6 +265,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         rec.current = null;
         setRecording(false);
         setLevel(0);
+        const stats=quality.current; setQuietJox(stats.meaningful>=80&&stats.quiet/stats.meaningful>.78);
         if (!blob.size) setError("No audio was captured. Please try again.");
         else if (blob.size > limits.audio)
           setError("Your VIJOX is larger than the 10 MB limit.");
@@ -295,6 +299,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
     setCurrent(0);
     setSeconds(0);
     setVijoxTranscriptText("");
+    setQuietJox(false);
     setEditingVijoxTranscript(false);
     setFiles((f) => f.filter((x) => kind(x) !== "audio"));
   };
@@ -491,6 +496,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <p className="mt-1 text-caption text-brand-slate">
             Listening to your voice · stops automatically at 27 seconds
           </p>
+          <p className="mt-1 text-caption text-violet-700">Voice level · {voiceLevel}</p>
           <div className="mt-4 flex justify-center gap-2">
             <button
               onClick={stop}
@@ -523,6 +529,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             <button onClick={removeVijox} aria-label="Remove VIJOX" className="flex items-center gap-1 px-2 py-2 text-caption font-bold text-brand-coral"><Trash2 className="h-3.5 w-3.5" />Remove</button>
             <button onClick={() => setEditingVijoxTranscript(true)} aria-label={vijoxTranscriptText.trim() ? "Edit VIJOX transcript" : "Add VIJOX transcript"} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700">{vijoxTranscriptText.trim() ? "Edit transcript" : "Add transcript"}</button>
           </div>
+          {quietJox && <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-caption text-violet-800">Your voice sounds a little quiet. Jox Again for better clarity.</p>}
           {editingVijoxTranscript && <div className="mt-3 rounded-2xl border border-violet-100 bg-white/80 p-3"><label htmlFor="vijox-transcript" className="text-caption font-bold text-brand-midnight">Add the words spoken in your VIJOX</label><textarea id="vijox-transcript" value={vijoxTranscriptText} onChange={event => setVijoxTranscriptText(event.target.value)} maxLength={2000} rows={3} className="mt-2 w-full resize-none rounded-xl border border-brand-borderLight bg-white p-3 text-body-sm text-brand-midnight outline-none focus:border-brand-indigo" aria-describedby="vijox-transcript-count" /><div className="mt-2 flex flex-wrap items-center justify-between gap-2"><span id="vijox-transcript-count" className="text-caption text-brand-slate">{vijoxTranscriptText.length} / 2000 characters</span><div className="flex gap-2"><button type="button" onClick={() => setEditingVijoxTranscript(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button><button type="button" onClick={() => { setVijoxTranscriptText(""); setEditingVijoxTranscript(false); }} aria-label="Remove VIJOX transcript" className="rounded-lg px-3 py-1.5 text-caption font-bold text-brand-coral">Remove transcript</button></div></div></div>}
         </div>
       )}
