@@ -40,4 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Local-only Jox Clip proof-of-concept fixtures, renders, and review frames.
+/.local-jox-clip-poc/
+
 .vercel
