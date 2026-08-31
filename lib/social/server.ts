@@ -2,7 +2,9 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { aggregateVijoxTimedReactions, type VijoxTimedReactionRow, zeroVijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions"
 
-export type SocialPost = { id:string; author_user_id:string; author_profile_id:string|null; author_organization_id:string|null; body:string|null; post_type:string; visibility:string; status:string; created_at:string; edited_at:string|null; moment_slug?:string|null; vijox_transcript_text?:string|null; vijox_transcript_segments?:unknown }
+export type SocialContentFormat = "standard" | "vijox" | "glimps"
+export const SOCIAL_POST_FIELDS = "id,author_user_id,author_profile_id,author_organization_id,body,post_type,content_format,visibility,status,created_at,edited_at,moment_slug,vijox_transcript_text,vijox_transcript_segments"
+export type SocialPost = { id:string; author_user_id:string; author_profile_id:string|null; author_organization_id:string|null; body:string|null; post_type:string; content_format?:SocialContentFormat|null; visibility:string; status:string; created_at:string; edited_at:string|null; moment_slug?:string|null; vijox_transcript_text?:string|null; vijox_transcript_segments?:unknown }
 export class SocialFeedStageError extends Error { constructor(public stage:string,public code:string|undefined,message:string){super(message)} }
 function requireSocialResult(stage:string,result:unknown){const error=result&&typeof result==="object"&&"error" in result?(result as {error?:{code?:string;message?:string}|null}).error:null;if(error)throw new SocialFeedStageError(stage,error.code,error.message||"Supabase query failed")}
 
@@ -51,7 +53,7 @@ export async function canViewPost(post:SocialPost, viewerId?:string|null) {
 }
 
 export async function resolvePostAccess(id:string, viewerId?:string|null) {
-  const { data } = await socialDb().from("posts").select("id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at,moment_slug,vijox_transcript_text,vijox_transcript_segments").eq("id", id).maybeSingle()
+  const { data } = await socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("id", id).maybeSingle()
   if (!data || !(await canViewPost(data as SocialPost, viewerId))) return null
   return data as SocialPost
 }
@@ -76,7 +78,7 @@ export async function safePost(post:SocialPost, viewerId?:string|null) {
   const media=await Promise.all((mediaRes.data||[]).map(async item=>{const publicDelivery=post.visibility==="public"&&["audio","video"].includes(item.media_type);const result=publicDelivery?null:await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(item.storage_path,300);if(result)requireSocialResult("signed_url",result);const url=publicDelivery?`/social/posts/${post.id}/media/${item.id}/public`:result?.data?.signedUrl;return url?{id:item.id,type:item.media_type,url,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}:null}))
   const follow=viewerId&&!canManage?(post.author_profile_id?await db.from("profile_follows").select("followed_profile_id").eq("follower_user_id",viewerId).eq("followed_profile_id",post.author_profile_id).maybeSingle():post.author_organization_id?await db.from("organization_follows").select("organization_id").eq("follower_user_id",viewerId).eq("organization_id",post.author_organization_id).maybeSingle():{data:null}):{data:null}
   const mentionResult=mentionNames.length?await db.from("profiles").select("username").in("username",mentionNames).eq("profile_completed",true):{data:[]};requireSocialResult("mentions",mentionResult);const mentions=mentionResult.data||[]
-  return {id:post.id,body:post.body,postType:post.post_type,visibility:post.visibility,createdAt:post.created_at,editedAt:post.edited_at,momentSlug:post.moment_slug||null,vijoxTranscriptText:post.vijox_transcript_text||null,vijoxTranscriptSegments:validVijoxTranscriptSegments(post.vijox_transcript_segments),author,media:media.filter(Boolean),likeCount:likeRes.count||0,commentCount:commentRes.count||0,repostCount:repostRes.count||0,isRepostedByMe:!!repostedRes.data,canRepost:!!viewerId&&!canManage,isLikedByMe:!!likedRes.data,isSavedByMe:!!savedRes.data,canEdit:canManage,canDelete:canManage,canManageVisibility:canManage,canFollow:!!viewerId&&!canManage&&!!author,isFollowing:!!follow.data,canReport:!!viewerId&&!canManage,mentions:mentions.map(x=>x.username)}
+  return {id:post.id,body:post.body,postType:post.post_type,contentFormat:post.content_format||"standard",visibility:post.visibility,createdAt:post.created_at,editedAt:post.edited_at,momentSlug:post.moment_slug||null,vijoxTranscriptText:post.vijox_transcript_text||null,vijoxTranscriptSegments:validVijoxTranscriptSegments(post.vijox_transcript_segments),author,media:media.filter(Boolean),likeCount:likeRes.count||0,commentCount:commentRes.count||0,repostCount:repostRes.count||0,isRepostedByMe:!!repostedRes.data,canRepost:!!viewerId&&!canManage,isLikedByMe:!!likedRes.data,isSavedByMe:!!savedRes.data,canEdit:canManage,canDelete:canManage,canManageVisibility:canManage,canFollow:!!viewerId&&!canManage&&!!author,isFollowing:!!follow.data,canReport:!!viewerId&&!canManage,mentions:mentions.map(x=>x.username)}
 }
 
 export const MAX_VIJOX_TRANSCRIPT_LENGTH = 2000
@@ -123,6 +125,13 @@ export function plainText(value:unknown, max:number, min=1) {
 }
 
 export const POST_MEDIA_BUCKET = "post-media"
+export const GLIMPS_MAX_DURATION_SECONDS = 60
+export const GLIMPS_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
+export function socialContentFormat(value:unknown): SocialContentFormat | null { return value === "standard" || value === "vijox" || value === "glimps" ? value : null }
+export function validGlimpsMedia(media: Array<{media_type?:unknown;mime_type?:unknown;file_size_bytes?:unknown;duration_seconds?:unknown}>) { if (media.length !== 1) return false; const item=media[0]; return item.media_type === "video" && item.mime_type === "video/mp4" && typeof item.file_size_bytes === "number" && Number.isSafeInteger(item.file_size_bytes) && item.file_size_bytes > 0 && item.file_size_bytes <= GLIMPS_MAX_FILE_SIZE_BYTES && typeof item.duration_seconds === "number" && Number.isSafeInteger(item.duration_seconds) && item.duration_seconds > 0 && item.duration_seconds <= GLIMPS_MAX_DURATION_SECONDS }
+/** Shared, access-aware query foundation for a later GLIMPS feed. */
+export async function accessibleGlimps(viewerId?:string|null, limit=16) { const {data,error}=await socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(Math.max(1,Math.min(limit,50))); requireSocialResult("glimps_query",{error}); const visible=[] as SocialPost[]; for(const post of data||[]) if(await canViewPost(post as SocialPost,viewerId)) visible.push(post as SocialPost); return visible }
+export async function accessibleGlimpsPage(viewerId?:string|null, cursor?:string|null, limit=10) { const size=Math.max(1,Math.min(limit,20)), fetchSize=size*4+1; let query=socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(fetchSize); if(cursor){const [createdAt,id]=cursor.split("|"); if(!createdAt||!id) throw new SocialFeedStageError("glimps_cursor","invalid_cursor","Invalid cursor"); query=query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)} const {data,error}=await query; requireSocialResult("glimps_page",{error}); const rows=(data||[]) as SocialPost[], visible=[] as SocialPost[]; for(const post of rows){if(await canViewPost(post,viewerId)) visible.push(post); if(visible.length>size) break} const page=visible.slice(0,size), hasMore=visible.length>size||rows.length===fetchSize, marker=hasMore?(page.length===size?page.at(-1):rows.at(-1)):null; return { posts:page, nextCursor:marker?`${marker.created_at}|${marker.id}`:null } }
 export const MEDIA_RULES = {
   "image/jpeg": { type:"image", extension:"jpg", extensions:["jpg","jpeg"], max:10*1024*1024 },
   "image/png": { type:"image", extension:"png", extensions:["png"], max:10*1024*1024 },

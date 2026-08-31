@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, X } from "lucide-react"
+import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, Video, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { Moment } from "@/lib/moments"
 import { MomentHeader } from "@/components/moments/MomentExperience"
@@ -12,6 +12,7 @@ import { MomentHeader } from "@/components/moments/MomentExperience"
 const links = [
   { href: "/", label: "Home", icon: Home },
   { href: "/explore", label: "Discover", icon: Compass },
+  { href: "/social/glimps", label: "GLIMPS", icon: Video },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/projects", label: "Projects", icon: Compass },
   { href: "/gigs", label: "Gigs", icon: Package },

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
+import GlimpsRail from "@/components/social/GlimpsRail";
 import PostText from "@/components/social/PostText";
 import { getActiveMoment } from "@/lib/moments";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
@@ -39,6 +40,7 @@ export type Post = {
   id: string;
   body: string | null;
   postType: string;
+  contentFormat?: "standard" | "vijox" | "glimps";
   visibility: string;
   createdAt: string;
   editedAt: string | null;
@@ -100,6 +102,7 @@ export type MarketplaceShare = { type: "marketplace_share"; sharedAt: string; sh
 type Props = {
   opportunities: OpportunityItem[];
   network: NetworkItem[];
+  glimps: Post[];
 };
 const PROFESSIONAL_TOOLS: Item[] = [
   {
@@ -631,6 +634,7 @@ export function PostCard({
 export default function SocialHomeFeed({
   opportunities,
   network,
+  glimps,
 }: Props) {
   const [feed, setFeed] = useState<"discover" | "following">("discover"),
     [posts, setPosts] = useState<FeedItem[]>([]),
@@ -709,6 +713,7 @@ export default function SocialHomeFeed({
           Following
         </button>
       </div>
+      <GlimpsRail items={glimps} />
       <div className="mt-5">
         {posts.map((item, i) => {
           if ("type" in item && item.type === "marketplace_share") {

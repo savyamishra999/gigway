@@ -26,6 +26,3 @@ export function joxClipRenditionKey(postId: string, fingerprint: string) {
 /** Trusted server-side worker payload. The worker must receive the real creator
  * avatar source explicitly; it must never invent or fall back to a placeholder. */
 export type JoxClipRenderJob = { renditionId: string; postId: string; sourceAudioMediaId: string; sourceImageMediaId: string | null; creatorAvatarSource: string; templateVersion: typeof JOX_CLIP_TEMPLATE_VERSION; profile: typeof JOX_CLIP_PROFILE; outputStoragePath: string };
-
-/** Queue-provider boundary. No provider is configured in this repository yet. */
-export function joxClipQueueConfigured() { return false; }

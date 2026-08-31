@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { canViewPost, requireSocialUser, safePost, socialDb } from "@/lib/social/server"
+import { canViewPost, requireSocialUser, safePost, SOCIAL_POST_FIELDS, socialDb } from "@/lib/social/server"
 
 const PAGE_SIZE = 10
-const fields = "id,author_user_id,author_profile_id,author_organization_id,body,post_type,visibility,status,created_at,edited_at"
+const fields = SOCIAL_POST_FIELDS
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

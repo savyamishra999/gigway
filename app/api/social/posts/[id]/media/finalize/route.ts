@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canManagePost, POST_MEDIA_BUCKET, requireSocialUser, socialDb, updatePostType, validMediaDimensions, validMediaMetadata } from "@/lib/social/server";
+import { canManagePost, GLIMPS_MAX_DURATION_SECONDS, POST_MEDIA_BUCKET, requireSocialUser, socialDb, updatePostType, validMediaDimensions, validMediaMetadata } from "@/lib/social/server";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const u = await requireSocialUser();
@@ -12,9 +12,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!rule || !dimensions || typeof b.path !== "string") return NextResponse.json({ error: "Invalid media finalization request." }, { status: 400 });
 
   const db = socialDb();
-  const { data: post } = await db.from("posts").select("id,author_user_id,author_organization_id,status").eq("id", id).maybeSingle();
+  const { data: post } = await db.from("posts").select("id,author_user_id,author_organization_id,status,content_format").eq("id", id).maybeSingle();
   if (!post || !["published", "hidden"].includes(post.status)) return NextResponse.json({ error: "Post not found." }, { status: 404 });
   if (!(await canManagePost(post, u.id))) return NextResponse.json({ error: "You cannot attach media to this post." }, { status: 403 });
+  if (post.content_format === "glimps" && (rule.type !== "video" || b.mimeType !== "video/mp4" || typeof b.durationSeconds !== "number" || b.durationSeconds > GLIMPS_MAX_DURATION_SECONDS)) return NextResponse.json({ error: "A GLIMPS requires one MP4 video of 60 seconds or less." }, { status: 400 });
   const expected = post.author_organization_id ? `organizations/${post.author_organization_id}/${id}/` : `users/${u.id}/${id}/`;
   if (!b.path.startsWith(expected) || !b.path.endsWith(`.${rule.extension}`)) return NextResponse.json({ error: "Invalid storage path." }, { status: 400 });
 

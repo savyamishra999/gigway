@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import MentionPicker from "@/components/social/MentionPicker";
 import { findActiveMention, replaceActiveMention } from "@/lib/social/mentions";
 import { createClient } from "@/lib/supabase/client";
@@ -317,6 +318,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             visibility,
             organizationId: author === "personal" ? undefined : author,
             draft: files.length > 0,
+            contentFormat: vijox ? "vijox" : "standard",
             momentSlug: params.get("moment") || undefined,
             vijoxTranscriptText:
               vijox && vijoxTranscriptText.trim()
@@ -409,6 +411,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <h1 className="mt-1 text-h2 font-extrabold text-brand-midnight">
             Create Post
           </h1>
+          <Link href="/social/glimps/create" className="mt-2 inline-flex rounded-lg text-caption font-bold text-brand-indigo hover:underline">Create a GLIMPS</Link>
         </div>
         <button
           onClick={() => router.back()}

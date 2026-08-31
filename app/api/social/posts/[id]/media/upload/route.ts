@@ -5,8 +5,9 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   const user=await requireSocialUser(); if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
   const {id}=await params, body=await req.json().catch(()=>({})), size=body.fileSize??body.size, rule=validMediaMetadata(body.fileName,body.mimeType,size);
   if(!rule)return NextResponse.json({error:"Only JPG, PNG, WebP (10 MB), MP4/WebM (100 MB), PDF (20 MB), or VIJOX audio (10 MB) files are allowed."},{status:400});
-  const db=socialDb(),{data:post}=await db.from("posts").select("id,author_user_id,author_organization_id,status").eq("id",id).maybeSingle();
+  const db=socialDb(),{data:post}=await db.from("posts").select("id,author_user_id,author_organization_id,status,content_format").eq("id",id).maybeSingle();
   if(!post||!["published","hidden"].includes(post.status))return NextResponse.json({error:"Post not found."},{status:404}); if(!await canManagePost(post,user.id))return NextResponse.json({error:"You cannot add media to this post."},{status:403});
+  if(post.content_format==="glimps"&&(rule.type!=="video"||body.mimeType!=="video/mp4"))return NextResponse.json({error:"A GLIMPS requires an MP4 video."},{status:400});
   const {data:existing}=await db.from("post_media").select("media_type").eq("post_id",id),current=(existing||[]).map(x=>x.media_type);
   const allowed=!current.length||(current.every(x=>x==="image")&&(rule.type==="image"||rule.type==="audio"))||(current.length===1&&current[0]==="audio"&&rule.type==="image");
   if(current.length>=5)return NextResponse.json({error:"A post can have at most five attachments."},{status:400}); if(!allowed)return NextResponse.json({error:"Use up to five images, or one video, PDF, or VIJOX. VIJOX may be paired with images."},{status:400});
