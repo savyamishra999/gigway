@@ -7,6 +7,7 @@ const withPWA = require("next-pwa")({
 
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["@google-cloud/tasks"],
   // Yeh line webpack ko enable karegi
   webpack: (config, { isServer }) => {
     return config

@@ -3,6 +3,8 @@ import { canManagePost, requireSocialUser, socialDb } from "@/lib/social/server"
 import { JOX_CLIP_PROFILE, JOX_CLIP_TEMPLATE_VERSION, joxClipFingerprint, joxClipRenditionKey, validJoxClipSource } from "@/lib/social/jox-clip";
 import { enqueueJoxClipRender, joxClipQueueConfigured } from "@/lib/social/jox-clip-queue";
 
+export const runtime = "nodejs";
+
 const fields = "id,post_id,profile,status,storage_path,error_code";
 const response = (item: any) => NextResponse.json({ renditionId: item.id, status: item.status, profile: item.profile, clipUrl: item.status === "ready" ? `/social/posts/${item.post_id}/jox-clip` : null, canRetry: item.status === "failed" });
 

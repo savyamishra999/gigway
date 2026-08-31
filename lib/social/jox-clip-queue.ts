@@ -1,5 +1,4 @@
 import "server-only";
-import { CloudTasksClient } from "@google-cloud/tasks";
 
 export type JoxClipTask = { renditionId: string };
 type Config = { project: string; region: string; queue: string; workerUrl: string; serviceAccount: string };
@@ -15,6 +14,7 @@ export function joxClipQueueConfigured() { return !!config(); }
 
 export async function enqueueJoxClipRender(job: JoxClipTask) {
   const c = config(); if (!c) throw new Error("Jox Clip Cloud Tasks is not configured.");
+  const { CloudTasksClient } = await import("@google-cloud/tasks");
   const client = new CloudTasksClient(), parent = client.queuePath(c.project, c.region, c.queue);
   const name = client.taskPath(c.project, c.region, c.queue, `jox-${job.renditionId}`);
   try {
