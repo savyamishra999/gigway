@@ -594,14 +594,13 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <Video className="h-4 w-4" />
           Video
         </button>
-        <button
-          disabled={disabled("document")}
-          onClick={() => choose("document")}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
+        <Link
+          href="/social/glimps/create"
+          className="flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo"
         >
-          <FileText className="h-4 w-4" />
-          Document
-        </button>
+          <Video className="h-4 w-4" />
+          GLIMPS
+        </Link>
         <button
           disabled={disabled("audio")}
           onClick={record}
@@ -609,6 +608,14 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         >
           <Mic className="h-4 w-4" />
           {vijox ? "Jox Again" : "Create a Jox"}
+        </button>
+        <button
+          disabled={disabled("document")}
+          onClick={() => choose("document")}
+          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
+        >
+          <FileText className="h-4 w-4" />
+          Attachments
         </button>
       </div>
       <p className="mt-2 text-caption text-brand-slate">
