@@ -561,7 +561,7 @@ export function PostCard({
         <div className="relative">
           <button onClick={share} className="flex items-center gap-1">
             <Send className="h-4 w-4" />
-            {post.media.some((item) => item.type === "audio") ? "Share this Jox" : "Share"}
+            {post.contentDomain === "jox" ? "Share this Jox" : "Share"}
           </button>
           {shareOpen && <div className="absolute bottom-7 left-0 z-20 w-40 rounded-xl border border-brand-borderLight bg-white p-1 shadow-elevated">
             {shareTargets().map(([label, href]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setShareOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-midnight hover:bg-brand-ivory">{label}</a>)}

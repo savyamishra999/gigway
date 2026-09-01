@@ -4,32 +4,32 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, Video, X } from "lucide-react"
+import { Bell, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, Video, Volume2, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { Moment } from "@/lib/moments"
 import { MomentHeader } from "@/components/moments/MomentExperience"
 
 const links = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/explore", label: "Discover", icon: Compass },
+  { href: "/explore", label: "Network", icon: Compass },
+  { href: "/social/vijox", label: "VIJOX", icon: Volume2 },
   { href: "/social/glimps", label: "GLIMPS", icon: Video },
-  { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
-  { href: "/projects", label: "Projects", icon: Compass },
-  { href: "/gigs", label: "Gigs", icon: Package },
-  { href: "/subscribe", label: "Pricing", icon: Package },
+  { href: "/work", label: "Work", icon: Package },
 ]
 
 const MOBILE_TABS = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/explore", label: "Discover", icon: Compass },
+  { href: "/explore", label: "Network", icon: Compass },
   { href: "/create", label: "Create", icon: CirclePlus },
-  { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
+  { href: "/work", label: "Work", icon: Package },
   { href: "/profile", label: "Profile", icon: UserRound },
 ]
 
 const MENU_ITEMS = [
-  { href: "/ai-tools", label: "Professional Tools", icon: Sparkles },
+  { href: "/social/vijox", label: "VIJOX", icon: Volume2 },
+  { href: "/social/glimps", label: "GLIMPS", icon: Video },
   { href: "/subscribe", label: "GigWay Pro", icon: Package },
+  { href: "/ai-tools", label: "Professional Tools", icon: Sparkles },
   { href: "/profile", label: "View Profile", icon: UserRound },
   { href: "/profile/edit", label: "Edit Profile", icon: UserRound },
   { href: "/profile", label: "My Organizations", icon: Building2 },
