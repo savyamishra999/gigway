@@ -519,7 +519,7 @@ export function PostCard({
         <>
           {post.body && <PostText body={post.body} mentions={post.mentions} />}
           {post.media.map((m) =>
-            m.type === "image" && !post.media.some((item) => item.type === "audio") ? (
+            m.type === "image" && post.contentDomain !== "jox" ? (
               <img
                 key={m.id}
                 src={m.url}
@@ -529,8 +529,8 @@ export function PostCard({
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
             ) : post.contentDomain === "jox" && m.type === "audio" ? (
-              <VijoxPlayer key={m.id} postId={post.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} imageUrl={post.media.find((item) => item.type === "image")?.url} imageAlt={post.media.find((item) => item.type === "image")?.fileName || "VIJOX scene image"} transcript={post.vijoxTranscriptText ? { text: post.vijoxTranscriptText, segments: post.vijoxTranscriptSegments || undefined } : null} initialTimedReactionSummary={post.vijoxTimedReactionSummary} />
-            ) : (
+              <VijoxPlayer key={m.id} postId={post.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} images={post.media.filter(item => item.type === "image").map(item => ({ id:item.id,url:item.url,alt:"Jox companion image",width:item.width,height:item.height }))} transcript={post.vijoxTranscriptText ? { text: post.vijoxTranscriptText, segments: post.vijoxTranscriptSegments || undefined } : null} initialTimedReactionSummary={post.vijoxTimedReactionSummary} />
+            ) : post.contentDomain === "jox" && m.type === "image" ? null : (
               <a
                 key={m.id}
                 href={m.url}

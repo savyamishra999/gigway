@@ -195,8 +195,9 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       );
     if (wanted !== "image" && files.length)
       return setError("Only one attachment is allowed.");
-    if (images.length + next.length > (vijox ? 4 : 5))
-      return setError(`You can attach up to ${vijox ? 4 : 5} images.`);
+    const imageLimit = isJoxCreator || vijox ? 4 : 5;
+    if (images.length + next.length > imageLimit)
+      return setError(`You can attach up to ${imageLimit} images.`);
     setError("");
     setFiles((f) => [...f, ...next]);
   };
@@ -528,7 +529,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       )}
       {isJoxCreator && vijox && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-4">
-          <VijoxExperience src={vijoxUrl || ""} duration={seconds || MAX} avatar={profile.avatar} name={profile.name} imageUrl={images[0] ? urls[files.indexOf(images[0])] : undefined} imageAlt={images[0]?.name || "Selected VIJOX scene image"} transcript={vijoxTranscriptText.trim() ? { text: vijoxTranscriptText.trim() } : null} />
+          <VijoxExperience src={vijoxUrl || ""} duration={seconds || MAX} avatar={profile.avatar} name={profile.name} images={images.map((image, index) => ({ id: `${image.name}-${index}`, url: urls[files.indexOf(image)], alt: "Selected Jox companion image" }))} transcript={vijoxTranscriptText.trim() ? { text: vijoxTranscriptText.trim() } : null} />
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={record} className="rounded-xl border border-brand-indigo/20 bg-white px-3 py-2 text-caption font-bold text-brand-indigo">Jox Again</button>
             <button onClick={removeVijox} aria-label="Remove VIJOX" className="flex items-center gap-1 px-2 py-2 text-caption font-bold text-brand-coral"><Trash2 className="h-3.5 w-3.5" />Remove</button>
