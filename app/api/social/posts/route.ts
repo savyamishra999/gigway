@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canViewPost, enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, socialContentFormat, SOCIAL_POST_FIELDS, socialDb, withReplyPreviews } from "@/lib/social/server";
+import { parseContentDomain, toContentDomain, toPersistedContentFormat } from "@/lib/social/content-domain";
 import { specialMoments } from "@/lib/moments";
 
 const PAGE_SIZE = 15;
@@ -54,11 +55,13 @@ export async function POST(req: NextRequest) {
   const visibility = b.visibility === "followers" ? "followers" : b.visibility === "public" ? "public" : null;
   const draft = b.draft === true;
   const transcript = typeof b.vijoxTranscriptText === "string" ? plainText(b.vijoxTranscriptText, MAX_VIJOX_TRANSCRIPT_LENGTH, 0) : null;
-  const suppliedFormat = typeof b.contentFormat === "undefined" ? null : socialContentFormat(b.contentFormat);
-  if (typeof b.contentFormat !== "undefined" && !suppliedFormat) return NextResponse.json({ error: "Invalid content format." }, { status: 400 });
-  const contentFormat = suppliedFormat || (typeof b.vijoxTranscriptText !== "undefined" ? "vijox" : "standard");
-  if (contentFormat !== "standard" && !draft) return NextResponse.json({ error: "A media format must be created as a draft before publishing." }, { status: 400 });
-  if (typeof b.vijoxTranscriptText !== "undefined" && (!draft || transcript === null)) return NextResponse.json({ error: `A VIJOX transcript must be plain text of up to ${MAX_VIJOX_TRANSCRIPT_LENGTH} characters and attached while creating a media draft.` }, { status: 400 });
+  const suppliedDomain = typeof b.contentDomain === "undefined" ? null : parseContentDomain(b.contentDomain);
+  const legacyDomain = typeof b.contentFormat === "undefined" ? null : toContentDomain(socialContentFormat(b.contentFormat));
+  if ((typeof b.contentDomain !== "undefined" && !suppliedDomain) || (typeof b.contentFormat !== "undefined" && !legacyDomain) || (suppliedDomain && legacyDomain && suppliedDomain !== legacyDomain)) return NextResponse.json({ error: "Invalid content format." }, { status: 400 });
+  const contentDomain = suppliedDomain || legacyDomain || (typeof b.vijoxTranscriptText !== "undefined" ? "jox" : "post");
+  const contentFormat = toPersistedContentFormat(contentDomain);
+  if (contentDomain !== "post" && !draft) return NextResponse.json({ error: "A media format must be created as a draft before publishing." }, { status: 400 });
+  if (typeof b.vijoxTranscriptText !== "undefined" && (contentDomain !== "jox" || !draft || transcript === null)) return NextResponse.json({ error: `A Jox transcript must be plain text of up to ${MAX_VIJOX_TRANSCRIPT_LENGTH} characters and attached while creating a Jox draft.` }, { status: 400 });
   const momentSlug = typeof b.momentSlug === "string" && specialMoments.some((moment) => moment.slug === b.momentSlug) ? b.momentSlug : null;
   if (body === null || !visibility || (!body && !draft)) return NextResponse.json({ error: "Enter a plain-text post of up to 5,000 characters." }, { status: 400 });
 

@@ -62,7 +62,7 @@ export default function GlimpsCreateComposer({ profile, organizations }: Props) 
     setError("");
     try {
       setStatus("preparing");
-      const created = await fetch("/api/social/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body: caption, visibility, organizationId: author === "personal" ? undefined : author, draft: true, contentFormat: "glimps" }) });
+      const created = await fetch("/api/social/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body: caption, visibility, organizationId: author === "personal" ? undefined : author, draft: true, contentDomain: "glimps" }) });
       const post = await created.json(); if (!created.ok) throw Error(post.error || "Could not prepare your GLIMPS.");
       const prepared = await fetch(`/api/social/posts/${post.post.id}/media/upload`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileSize: file.size }) });
       const uploadInfo = await prepared.json(); if (!prepared.ok) throw Error(uploadInfo.error || "Could not prepare video upload.");

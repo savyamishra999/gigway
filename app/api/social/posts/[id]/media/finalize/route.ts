@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canManagePost, GLIMPS_MAX_DURATION_SECONDS, POST_MEDIA_BUCKET, requireSocialUser, socialDb, updatePostType, validMediaDimensions, validMediaMetadata } from "@/lib/social/server";
+import { allowsMediaComposition, toContentDomain } from "@/lib/social/content-domain";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const u = await requireSocialUser();
@@ -15,7 +16,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: post } = await db.from("posts").select("id,author_user_id,author_organization_id,status,content_format").eq("id", id).maybeSingle();
   if (!post || !["published", "hidden"].includes(post.status)) return NextResponse.json({ error: "Post not found." }, { status: 404 });
   if (!(await canManagePost(post, u.id))) return NextResponse.json({ error: "You cannot attach media to this post." }, { status: 403 });
-  if (post.content_format === "glimps" && (rule.type !== "video" || b.mimeType !== "video/mp4" || typeof b.durationSeconds !== "number" || b.durationSeconds > GLIMPS_MAX_DURATION_SECONDS)) return NextResponse.json({ error: "A GLIMPS requires one MP4 video of 60 seconds or less." }, { status: 400 });
+  const domain=toContentDomain(post.content_format); if(!domain)return NextResponse.json({error:"Invalid post format."},{status:400});
+  if (domain === "glimps" && (rule.type !== "video" || b.mimeType !== "video/mp4" || typeof b.durationSeconds !== "number" || b.durationSeconds > GLIMPS_MAX_DURATION_SECONDS)) return NextResponse.json({ error: "A GLIMPS requires one MP4 video of 60 seconds or less." }, { status: 400 });
   const expected = post.author_organization_id ? `organizations/${post.author_organization_id}/${id}/` : `users/${u.id}/${id}/`;
   if (!b.path.startsWith(expected) || !b.path.endsWith(`.${rule.extension}`)) return NextResponse.json({ error: "Invalid storage path." }, { status: 400 });
 
@@ -23,10 +25,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: objects } = await db.storage.from(POST_MEDIA_BUCKET).list(expected, { search: objectName });
   const object = objects?.find((x) => x.name === objectName);
   if (!object || Number(object.metadata?.size) !== fileSize || object.metadata?.mimetype !== b.mimeType) return NextResponse.json({ error: "Uploaded file could not be verified." }, { status: 400 });
-  const { data: existing } = await db.from("post_media").select("id,media_type,storage_path").eq("post_id", id);
+  const { data: existing } = await db.from("post_media").select("id,media_type,mime_type,storage_path").eq("post_id", id);
   if ((existing || []).some((x) => x.storage_path === b.path)) return NextResponse.json({ error: "This media is already attached." }, { status: 409 });
   const current = (existing || []).map((x) => x.media_type);
-  const allowedCombination = !current.length || (current.every((x) => x === "image") && (rule.type === "image" || rule.type === "audio")) || (current.length === 1 && current[0] === "audio" && rule.type === "image");
+  const allowedCombination = allowsMediaComposition(domain, [...(existing || []).map(x => ({ type:x.media_type,mimeType:x.mime_type })), { type:rule.type,mimeType:b.mimeType }]);
   if (current.length >= 5 || !allowedCombination) {
     await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);
     return NextResponse.json({ error: "This attachment no longer fits the post media limit." }, { status: 400 });
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await db.storage.from(POST_MEDIA_BUCKET).remove([b.path]);
     return NextResponse.json({ error: "Could not attach uploaded media." }, { status: 503 });
   }
-  const postType = await updatePostType(id);
+  await updatePostType(id);
   const { data: url } = await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(b.path, 300);
-  return NextResponse.json({ media: { id: data.id, type: data.media_type, url: url?.signedUrl, fileName: data.file_name, mimeType: data.mime_type, width: data.width, height: data.height, durationSeconds: data.duration_seconds }, postType }, { status: 201 });
+  return NextResponse.json({ media: { id: data.id, type: data.media_type, url: url?.signedUrl, fileName: data.file_name, mimeType: data.mime_type, width: data.width, height: data.height, durationSeconds: data.duration_seconds } }, { status: 201 });
 }

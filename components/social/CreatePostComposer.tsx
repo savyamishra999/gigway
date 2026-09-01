@@ -22,7 +22,7 @@ import type { VideoMetadata } from "@/lib/social/video";
 import VijoxExperience from "@/components/social/VijoxExperience";
 import VijoxCircularProgress from "@/components/social/VijoxCircularProgress";
 type Author = { id?: string; name: string; avatar?: string | null };
-type Props = { profile: Author; organizations: Author[] };
+type Props = { profile: Author; organizations: Author[]; mode?: "post" | "jox" };
 type Kind = "image" | "video" | "document" | "audio";
 type Status = "idle" | "uploading" | "publishing" | "posted";
 const MAX = 27,
@@ -97,7 +97,7 @@ function Avatar({ a }: { a: Author }) {
     </span>
   );
 }
-export default function CreatePostComposer({ profile, organizations }: Props) {
+export default function CreatePostComposer({ profile, organizations, mode = "post" }: Props) {
   const router = useRouter(),
     params = useSearchParams(),
     input = useRef<HTMLInputElement>(null),
@@ -131,7 +131,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
     [current, setCurrent] = useState(0),
     [vijoxTranscriptText, setVijoxTranscriptText] = useState(""),
     [editingVijoxTranscript, setEditingVijoxTranscript] = useState(false);
-  const busy = status !== "idle",
+  const isJoxCreator = mode === "jox", busy = status !== "idle",
     active = useMemo(() => findActiveMention(body, cursor), [body, cursor]),
     images = files.filter((f) => kind(f) === "image"),
     vijox = files.find((f) => kind(f) === "audio"),
@@ -269,11 +269,11 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         const stats=quality.current; setQuietJox(stats.meaningful>=80&&stats.quiet/stats.meaningful>.78);
         if (!blob.size) setError("No audio was captured. Please try again.");
         else if (blob.size > limits.audio)
-          setError("Your VIJOX is larger than the 10 MB limit.");
+          setError("Your Jox is larger than the 10 MB limit.");
         else {
           setFiles((f) => [
             ...f.filter((x) => kind(x) !== "audio"),
-            new File([blob], `vijox-${Date.now()}.webm`, {
+            new File([blob], `jox-${Date.now()}.webm`, {
               type: "audio/webm",
             }),
           ]);
@@ -291,7 +291,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
       timeout.current = setTimeout(stop, MAX * 1000);
     } catch {
       cleanup();
-      setError("Microphone access is needed to record a VIJOX.");
+      setError("Microphone access is needed to record a Jox.");
     }
   };
   const removeVijox = () => {
@@ -306,6 +306,8 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
   };
   const submit = async () => {
     if (busy || recording) return;
+    if (isJoxCreator && !vijox)
+      return setError("Record a Jox before publishing.");
     if (!body.trim() && !files.length)
       return setError("Add text or an attachment before posting.");
     try {
@@ -318,7 +320,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             visibility,
             organizationId: author === "personal" ? undefined : author,
             draft: files.length > 0,
-            contentFormat: vijox ? "vijox" : "standard",
+            contentDomain: isJoxCreator ? "jox" : "post",
             momentSlug: params.get("moment") || undefined,
             vijoxTranscriptText:
               vijox && vijoxTranscriptText.trim()
@@ -375,7 +377,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         if (!p.ok) throw Error(pb.error || "Could not publish post.");
       }
       setStatus("posted");
-      setTimeout(() => router.push("/home"), 700);
+      setTimeout(() => router.push(isJoxCreator ? `/social/posts/${cb.post.id}` : "/home"), 700);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("idle");
@@ -409,9 +411,9 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
             SOCIAL
           </p>
           <h1 className="mt-1 text-h2 font-extrabold text-brand-midnight">
-            Create Post
+            {isJoxCreator ? "Create a Jox" : "Create Post"}
           </h1>
-          <Link href="/social/glimps/create" className="mt-2 inline-flex rounded-lg text-caption font-bold text-brand-indigo hover:underline">Create a GLIMPS</Link>
+          {!isJoxCreator && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-caption font-bold text-brand-indigo"><Link href="/social/vijox/create" className="hover:underline">Create a Jox</Link><Link href="/social/glimps/create" className="hover:underline">Create a GLIMPS</Link></div>}
         </div>
         <button
           onClick={() => router.back()}
@@ -469,7 +471,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         disabled={busy || recording}
         rows={7}
         maxLength={5000}
-        placeholder="Share something useful with your professional network..."
+        placeholder={isJoxCreator ? "Add an optional caption for your Jox..." : "Share something useful with your professional network..."}
         className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
       {active && !closed && (
@@ -485,7 +487,7 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         {body.length}/5000
       </div>
       <input ref={input} type="file" className="hidden" onChange={add} />
-      {recording && (
+      {isJoxCreator && recording && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-5 text-center">
           <p className="text-[10px] font-extrabold tracking-[.16em] text-violet-700">
             JOXING…
@@ -519,12 +521,12 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
               aria-label="Cancel Joxing"
               className="rounded-xl border px-4 py-2.5 font-bold"
             >
-              Cancel
+              Cancel Joxing
             </button>
           </div>
         </div>
       )}
-      {vijox && (
+      {isJoxCreator && vijox && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-4">
           <VijoxExperience src={vijoxUrl || ""} duration={seconds || MAX} avatar={profile.avatar} name={profile.name} imageUrl={images[0] ? urls[files.indexOf(images[0])] : undefined} imageAlt={images[0]?.name || "Selected VIJOX scene image"} transcript={vijoxTranscriptText.trim() ? { text: vijoxTranscriptText.trim() } : null} />
           <div className="mt-3 flex flex-wrap gap-2">
@@ -586,6 +588,14 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <ImagePlus className="h-4 w-4" />
           Photo
         </button>
+        {isJoxCreator ? <button
+          disabled={disabled("audio")}
+          onClick={record}
+          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
+        >
+          <Mic className="h-4 w-4" />
+          {vijox ? "Jox Again" : "Jox your voice"}
+        </button> : <>
         <button
           disabled={disabled("video")}
           onClick={() => choose("video")}
@@ -593,21 +603,6 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
         >
           <Video className="h-4 w-4" />
           Video
-        </button>
-        <Link
-          href="/social/glimps/create"
-          className="flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo"
-        >
-          <Video className="h-4 w-4" />
-          GLIMPS
-        </Link>
-        <button
-          disabled={disabled("audio")}
-          onClick={record}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
-        >
-          <Mic className="h-4 w-4" />
-          {vijox ? "Jox Again" : "Create a Jox"}
         </button>
         <button
           disabled={disabled("document")}
@@ -617,11 +612,10 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           <FileText className="h-4 w-4" />
           Attachments
         </button>
+        </>}
       </div>
       <p className="mt-2 text-caption text-brand-slate">
-        {vijox
-          ? "Your VIJOX can be Joxed with your caption and up to four images."
-          : "Jox your voice in up to 27 seconds."}
+        {isJoxCreator ? "Jox your voice in up to 27 seconds. Add up to four companion images." : "Choose Post-native attachments, or use a dedicated creator for Jox and GLIMPS."}
       </p>
       <div className="mt-5 rounded-xl bg-brand-ivory/65 p-3">
         <p className="text-caption font-bold text-brand-slate">
@@ -659,8 +653,8 @@ export default function CreatePostComposer({ profile, organizations }: Props) {
           : status === "publishing"
             ? "Publishing..."
             : status === "posted"
-              ? (vijox ? "Joxed" : "Posted")
-              : (vijox ? "Jox" : "Post")}
+              ? (isJoxCreator ? "Joxed" : "Posted")
+              : (isJoxCreator ? "Jox" : "Post")}
       </button>
     </section>
   );
