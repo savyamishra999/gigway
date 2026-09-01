@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { VideoMetadata } from "@/lib/social/video";
 import VijoxExperience from "@/components/social/VijoxExperience";
 import VijoxCircularProgress from "@/components/social/VijoxCircularProgress";
+import { MAX_JOX_CAPTION_LENGTH } from "@/lib/social/content-domain";
 type Author = { id?: string; name: string; avatar?: string | null };
 type Props = { profile: Author; organizations: Author[]; mode?: "post" | "jox" };
 type Kind = "image" | "video" | "document" | "audio";
@@ -446,7 +447,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         ref={textarea}
         value={body}
         onChange={(e) => {
-          setBody(e.target.value.slice(0, 5000));
+          setBody(e.target.value.slice(0, isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000));
           setCursor(e.target.selectionStart);
           setClosed(false);
         }}
@@ -471,7 +472,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         }}
         disabled={busy || recording}
         rows={7}
-        maxLength={5000}
+        maxLength={isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000}
         placeholder={isJoxCreator ? "Add an optional caption for your Jox..." : "Share something useful with your professional network..."}
         className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
@@ -485,7 +486,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         </div>
       )}
       <div className="mt-1 text-right text-caption text-brand-slate">
-        {body.length}/5000
+        {body.length}/{isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000}
       </div>
       <input ref={input} type="file" className="hidden" onChange={add} />
       {isJoxCreator && recording && (

@@ -1,6 +1,7 @@
 export type ContentDomain = "post" | "jox" | "glimps";
 export type PersistedContentFormat = "standard" | "vijox" | "glimps";
 export type ContentMedia = { type?: unknown; mimeType?: unknown; fileSizeBytes?: unknown; durationSeconds?: unknown };
+export const MAX_JOX_CAPTION_LENGTH = 500;
 
 const domainToPersisted: Record<ContentDomain, PersistedContentFormat> = { post: "standard", jox: "vijox", glimps: "glimps" };
 const persistedToDomain: Record<PersistedContentFormat, ContentDomain> = { standard: "post", vijox: "jox", glimps: "glimps" };

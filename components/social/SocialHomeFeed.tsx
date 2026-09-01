@@ -135,6 +135,7 @@ function relativePostTime(value: string) {
     ? date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
     : date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
+function JoxCaption({ body, mentions }: { body: string; mentions?: string[] }) { const [expanded, setExpanded] = useState(false), long = body.length > 180; return <div className="mt-3 border-t border-violet-100 pt-3 text-body-sm text-brand-slate"><div className={expanded ? "" : "line-clamp-3"}><PostText body={body} mentions={mentions} /></div>{long && <button type="button" onClick={() => setExpanded(value => !value)} className="mt-1 min-h-10 text-caption font-bold text-violet-700">{expanded ? "Show less" : "more"}</button>}</div>; }
 function Rail({
   title,
   items,
@@ -517,7 +518,7 @@ export function PostCard({
         </div>
       ) : (
         <>
-          {post.body && <PostText body={post.body} mentions={post.mentions} />}
+          {post.body && post.contentDomain !== "jox" && <PostText body={post.body} mentions={post.mentions} />}
           {post.media.map((m) =>
             m.type === "image" && post.contentDomain !== "jox" ? (
               <img
@@ -540,6 +541,7 @@ export function PostCard({
               </a>
             ),
           )}
+          {post.body && post.contentDomain === "jox" && <JoxCaption body={post.body} mentions={post.mentions} />}
         </>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-borderLight pt-3 text-caption font-bold text-brand-slate">
