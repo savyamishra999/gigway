@@ -5,6 +5,7 @@ import VijoxPlayer from "@/components/social/VijoxPlayer";
 import GlimpsRail from "@/components/social/GlimpsRail";
 import PostText from "@/components/social/PostText";
 import { getActiveMoment } from "@/lib/moments";
+import { usePostLike } from "@/components/social/usePostEngagement";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
 import { useEffect, useState } from "react";
 import type { VijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions";
@@ -215,6 +216,7 @@ export function PostCard({
     [count, setCount] = useState(post.repostCount),
     [shareOpen, setShareOpen] = useState(false),
     [notice, setNotice] = useState("");
+  const { liked, likeCount, toggleLike } = usePostLike(post.id, post.isLikedByMe, post.likeCount, setNotice);
   useEffect(() => setSaved(post.isSavedByMe), [post.isSavedByMe]);
   const requireAuth = () => {
     if (!authHref) return false;
@@ -233,13 +235,14 @@ export function PostCard({
   };
   const action = async (kind: "like" | "save") => {
     if (requireAuth()) return;
+    if (kind === "like") { toggleLike(); return; }
     const isSave = kind === "save";
     const previous = saved;
     if (isSave) setSaving(true);
     try {
       const result = await api(
         `/api/social/posts/${post.id}/${kind}`,
-        (isSave ? saved : post.isLikedByMe)
+        (isSave ? saved : false)
           ? "DELETE"
           : "POST",
       );
@@ -554,9 +557,9 @@ export function PostCard({
         </button>
         <button
           onClick={() => action("like")}
-          className={post.isLikedByMe ? "text-brand-coral" : ""}
+          className={liked ? "text-brand-coral" : ""}
         >
-          <Heart className="inline h-4 w-4" /> {post.likeCount}
+          <Heart className={`inline h-4 w-4 ${liked ? "fill-current" : ""}`} /> {likeCount}
         </button>
         <div className="relative">
           <button onClick={share} className="flex items-center gap-1">
