@@ -473,7 +473,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         disabled={busy || recording}
         rows={7}
         maxLength={isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000}
-        placeholder={isJoxCreator ? "Add an optional caption for your Jox..." : "Share something useful with your professional network..."}
+        placeholder={isJoxCreator ? "Add a short note…" : "Share something useful with your professional network..."}
         className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
       {active && !closed && (

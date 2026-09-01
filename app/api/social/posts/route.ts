@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
   if ((typeof b.contentDomain !== "undefined" && !suppliedDomain) || (typeof b.contentFormat !== "undefined" && !legacyDomain) || (suppliedDomain && legacyDomain && suppliedDomain !== legacyDomain)) return NextResponse.json({ error: "Invalid content format." }, { status: 400 });
   const contentDomain = suppliedDomain || legacyDomain || (typeof b.vijoxTranscriptText !== "undefined" ? "jox" : "post");
   const contentFormat = toPersistedContentFormat(contentDomain);
+  if (contentDomain === "jox" && rawBody !== null && rawBody.length > MAX_JOX_CAPTION_LENGTH) return NextResponse.json({ error: `A Jox caption can be up to ${MAX_JOX_CAPTION_LENGTH} characters.` }, { status: 400 });
   const body = rawBody === null ? null : plainText(rawBody, contentDomain === "jox" ? MAX_JOX_CAPTION_LENGTH : 5000, 0);
   if (contentDomain !== "post" && !draft) return NextResponse.json({ error: "A media format must be created as a draft before publishing." }, { status: 400 });
   if (typeof b.vijoxTranscriptText !== "undefined" && (contentDomain !== "jox" || !draft || transcript === null)) return NextResponse.json({ error: `A Jox transcript must be plain text of up to ${MAX_VIJOX_TRANSCRIPT_LENGTH} characters and attached while creating a Jox draft.` }, { status: 400 });
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest) {
     const db = socialDb();
 
     if (feed === "discover") {
-      let query = db.from("posts").select(POST_FIELDS).eq("status", "published").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(PAGE_SIZE + 1);
+      let query = db.from("posts").select(POST_FIELDS).eq("status", "published").eq("content_format", "standard").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(PAGE_SIZE + 1);
       if (cursorValue) {
         const [createdAt, id] = cursorValue.split("|");
         if (!createdAt || !id) return NextResponse.json({ error: "Invalid cursor." }, { status: 400 });
@@ -136,7 +137,7 @@ export async function GET(req: NextRequest) {
     const repostActorIds = [...new Set([viewer.id, ...profileIds])];
     const originalFilters = [`author_user_id.eq.${viewer.id}`, ...(profileIds.length ? [`author_profile_id.in.(${profileIds.join(",")})`] : []), ...(organizationIds.length ? [`author_organization_id.in.(${organizationIds.join(",")})`] : [])].join(",");
 
-    let originalsQuery = db.from("posts").select(POST_FIELDS).eq("status", "published").or(originalFilters).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(FETCH_SIZE);
+    let originalsQuery = db.from("posts").select(POST_FIELDS).eq("status", "published").eq("content_format", "standard").or(originalFilters).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(FETCH_SIZE);
     let repostsQuery = db.from("post_reposts").select("post_id,user_id,created_at").in("user_id", repostActorIds).order("created_at", { ascending: false }).order("post_id", { ascending: false }).order("user_id", { ascending: false }).limit(FETCH_SIZE);
     const shareFilters = [`actor_user_id.in.(${repostActorIds.join(",")})`, ...(organizationIds.length ? [`actor_organization_id.in.(${organizationIds.join(",")})`] : [])].join(",");
     let sharesQuery = db.from("marketplace_shares").select("id,actor_user_id,actor_organization_id,job_id,project_id,service_id,commentary,created_at").or(shareFilters).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(FETCH_SIZE);
@@ -156,7 +157,7 @@ export async function GET(req: NextRequest) {
     if (originalsRes.error || repostsRes.error || actorsRes.error || sharesRes.error) throw originalsRes.error || repostsRes.error || actorsRes.error || sharesRes.error;
     const repostRows = repostsRes.data || [];
     const repostPostIds = [...new Set(repostRows.map((row) => row.post_id))];
-    const repostPosts = repostPostIds.length ? (await db.from("posts").select(POST_FIELDS).in("id", repostPostIds).eq("status", "published")).data || [] : [];
+    const repostPosts = repostPostIds.length ? (await db.from("posts").select(POST_FIELDS).in("id", repostPostIds).eq("status", "published").eq("content_format", "standard")).data || [] : [];
     const postsById = new Map(repostPosts.map((post) => [post.id, post]));
     const actorsById = new Map((actorsRes.data || []).map((actor) => [actor.id, actor]));
     const shares = sharesRes.data || [];

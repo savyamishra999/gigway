@@ -215,10 +215,12 @@ export function PostCard({
     [saving, setSaving] = useState(false),
     [reposted, setReposted] = useState(post.isRepostedByMe),
     [count, setCount] = useState(post.repostCount),
+    [following, setFollowing] = useState(post.isFollowing),
     [shareOpen, setShareOpen] = useState(false),
     [notice, setNotice] = useState("");
   const { liked, likeCount, toggleLike } = usePostLike(post.id, post.isLikedByMe, post.likeCount, setNotice);
   useEffect(() => setSaved(post.isSavedByMe), [post.isSavedByMe]);
+  useEffect(() => setFollowing(post.isFollowing), [post.isFollowing]);
   const requireAuth = () => {
     if (!authHref) return false;
     window.location.assign(authHref);
@@ -279,13 +281,17 @@ export function PostCard({
   const follow = async () => {
     if (requireAuth()) return;
     if (!post.author) return;
+    const previous = following;
+    setFollowing(!previous);
     try {
       await api(
         `/api/social/follow/${post.author.type === "organization" ? "organization" : "profile"}/${post.author.id}`,
-        post.isFollowing ? "DELETE" : "POST",
+        previous ? "DELETE" : "POST",
       );
-      onRefresh();
-    } catch {}
+    } catch {
+      setFollowing(previous);
+      setNotice("Could not update follow.");
+    }
   };
   const copy = async () => {
     const url = `https://gigway.in/social/posts/${post.id}`;
@@ -415,6 +421,7 @@ export function PostCard({
           </p>
           {authorHref && <Link href={authorHref} aria-label={`View @${post.author?.username} profile`} className="absolute inset-x-0 bottom-0 h-5" />}
         </div>
+        {(post.canFollow || (authHref && post.author)) && !following && <button onClick={follow} className="min-h-10 shrink-0 rounded-xl border border-brand-indigo/25 px-3 text-caption font-bold text-brand-indigo">Follow</button>}
         {post.canManageVisibility && (
           <span className="text-caption text-brand-slate">
             {post.visibility === "followers" ? "Followers" : "Public"}
@@ -583,15 +590,6 @@ export function PostCard({
           <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
         </button>
       </div>
-      {(post.canFollow || (authHref && post.author)) && (
-        <button
-          onClick={follow}
-          className="mt-3 text-caption font-bold text-brand-indigo"
-        >
-          {post.isFollowing ? "Following" : "Follow"}
-          {post.author?.type === "organization" ? " Organization" : ""}
-        </button>
-      )}
       {commentsOpen && (
         <section className="mt-3 border-t border-brand-borderLight pt-3" aria-label="Comments">
           <div className="mb-3 flex items-center justify-between">
