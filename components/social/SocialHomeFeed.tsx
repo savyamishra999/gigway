@@ -5,6 +5,7 @@ import VijoxPlayer from "@/components/social/VijoxPlayer";
 import GlimpsRail from "@/components/social/GlimpsRail";
 import PostText from "@/components/social/PostText";
 import ExternalPostPreview from "@/components/social/ExternalPostPreview";
+import { externalPreviewFor, urlsInText } from "@/lib/social/external-links";
 import { getActiveMoment } from "@/lib/moments";
 import { usePostLike } from "@/components/social/usePostEngagement";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
@@ -400,7 +401,7 @@ export function PostCard({
     }
   };
   const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
-  const preview = comments;
+  const preview = comments, richPreviewUrls = post.contentDomain === "post" && post.body ? urlsInText(post.body).filter(url => !!externalPreviewFor(url)) : [];
   return (
     <article className={`relative min-w-0 max-w-full rounded-2xl border bg-white p-4 shadow-soft ${post.momentSlug === "raksha-bandhan" ? "border-brand-coral/35" : "border-brand-borderLight"}`}>
       {post.momentSlug === "raksha-bandhan" && <p className="mb-3 text-caption font-bold tracking-[.12em] text-brand-coral">RAKSHA BANDHAN · GIGWAY MOMENT</p>}
@@ -526,7 +527,7 @@ export function PostCard({
         </div>
       ) : (
         <>
-          {post.body && post.contentDomain !== "jox" && <><PostText body={post.body} mentions={post.mentions} />{post.contentDomain === "post" && <ExternalPostPreview body={post.body} />}</>}
+          {post.body && post.contentDomain !== "jox" && <><PostText body={post.body} mentions={post.mentions} hiddenUrls={richPreviewUrls} />{post.contentDomain === "post" && <ExternalPostPreview body={post.body} />}</>}
           {post.media.map((m) =>
             m.type === "image" && post.contentDomain !== "jox" ? (
               <img
