@@ -4,6 +4,7 @@ import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
 import GlimpsRail from "@/components/social/GlimpsRail";
 import PostText from "@/components/social/PostText";
+import ExternalPostPreview from "@/components/social/ExternalPostPreview";
 import { getActiveMoment } from "@/lib/moments";
 import { usePostLike } from "@/components/social/usePostEngagement";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
@@ -304,10 +305,10 @@ export function PostCard({
   };
   const share = async () => {
     const url = `https://gigway.in/social/posts/${post.id}`;
-    const jox = post.media.some((item) => item.type === "audio"), text = jox ? `${post.author?.name || "GigWay member"} shared a Jox on GigWay — listen here.` : (post.body || "View this post on GigWay.").slice(0, 180);
+    const text = post.contentDomain === "jox" ? "Listen to this Jox on GigWay" : post.contentDomain === "glimps" ? "Watch this GLIMPS on GigWay" : (post.body || "View this post on GigWay.").slice(0, 180);
     try {
       if (navigator.share) {
-        await navigator.share({ title: jox ? `${post.author?.name || "GigWay member"} shared a Jox on GigWay` : `${post.author?.name || "GigWay member"} on GigWay`, text, url });
+        await navigator.share({ title: post.contentDomain === "jox" ? `Jox by ${post.author?.name || "GigWay member"} on GigWay` : post.contentDomain === "glimps" ? `GLIMPS by ${post.author?.name || "GigWay member"} on GigWay` : `Post by ${post.author?.name || "GigWay member"} on GigWay`, text, url });
         return;
       }
     } catch { return; }
@@ -315,7 +316,7 @@ export function PostCard({
   };
   const shareTargets = () => {
     const url = `https://gigway.in/social/posts/${post.id}`;
-    const jox = post.media.some((item) => item.type === "audio"), copy = jox ? `${post.author?.name || "GigWay member"} shared a Jox on GigWay — listen here.` : (post.body || "View this post on GigWay.").replace(/\s+/g, " ").trim().slice(0, 180), text = `${copy} ${url}`;
+    const copy = post.contentDomain === "jox" ? "Listen to this Jox on GigWay" : post.contentDomain === "glimps" ? "Watch this GLIMPS on GigWay" : (post.body || "View this post on GigWay.").replace(/\s+/g, " ").trim().slice(0, 180), text = `${copy} ${url}`;
     return [
       ["WhatsApp", `https://wa.me/?text=${encodeURIComponent(text)}`],
       ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`],
@@ -525,7 +526,7 @@ export function PostCard({
         </div>
       ) : (
         <>
-          {post.body && post.contentDomain !== "jox" && <PostText body={post.body} mentions={post.mentions} />}
+          {post.body && post.contentDomain !== "jox" && <><PostText body={post.body} mentions={post.mentions} />{post.contentDomain === "post" && <ExternalPostPreview body={post.body} />}</>}
           {post.media.map((m) =>
             m.type === "image" && post.contentDomain !== "jox" ? (
               <img

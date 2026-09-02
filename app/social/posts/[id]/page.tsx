@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const value = await safePost(post);
   const author = value.author?.name || "GigWay member";
   const media = value.media.find((item: any) => item.type === "audio" || item.type === "video");
-  const title = media?.type === "audio" ? `${author} shared a Jox on GigWay` : media?.type === "video" ? `Video by ${author}` : `${author}${value.author?.username ? ` (@${value.author.username})` : ""} on GigWay`;
+  const title = value.contentDomain === "jox" ? `Jox by ${author} on GigWay` : value.contentDomain === "glimps" ? `GLIMPS by ${author} on GigWay` : `Post by ${author} on GigWay`;
   const description = snippet(post.body, value.vijoxTranscriptText), url = `${site}/social/posts/${id}`, image = `${url}/opengraph-image`;
   const delivery = media ? `${url}/media/${media.id}/public` : undefined;
 
@@ -28,11 +28,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title, description,
     alternates: { canonical: url },
     openGraph: {
-      type: media?.type === "video" ? "video.other" : "article", url, title, description,
+      type: value.contentDomain === "glimps" ? "video.other" : "article", url, title, description,
       siteName: "GigWay — Professional Network & Marketplace",
       images: [{ url: image, width: 1200, height: 630, alt: title }],
-      audio: media?.type === "audio" && delivery ? { url: delivery, secureUrl: delivery, type: media.mimeType } : undefined,
-      videos: media?.type === "video" && delivery ? { url: delivery, secureUrl: delivery, type: media.mimeType, width: 1280, height: 720 } : undefined,
+      audio: value.contentDomain === "jox" && delivery ? { url: delivery, secureUrl: delivery, type: media?.mimeType } : undefined,
+      videos: value.contentDomain === "glimps" && delivery ? { url: delivery, secureUrl: delivery, type: media?.mimeType, width: 1280, height: 720 } : undefined,
     },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };

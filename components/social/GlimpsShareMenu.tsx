@@ -1,0 +1,16 @@
+"use client";
+
+import { Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+export default function GlimpsShareMenu({ postId, contentDomain, immersive }: { postId: string; contentDomain?: string; immersive: boolean }) {
+  const [open, setOpen] = useState(false), [notice, setNotice] = useState("");
+  const root = useRef<HTMLDivElement>(null), url = `https://gigway.in/social/posts/${postId}`, copy = "Watch this GLIMPS on GigWay";
+  useEffect(() => { const close = (event: MouseEvent) => { if (root.current && !root.current.contains(event.target as Node)) setOpen(false); }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); }; document.addEventListener("mousedown", close); document.addEventListener("keydown", escape); return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); }; }, []);
+  const nativeShare = async () => { try { await navigator.share?.({ title: "GLIMPS on GigWay", text: copy, url }); } catch {} finally { setOpen(false); } };
+  const copyLink = async () => { try { await navigator.clipboard.writeText(url); setNotice("Link copied"); } catch { setNotice("Could not copy link"); } setOpen(false); setTimeout(() => setNotice(""), 1800); };
+  const targets = [["WhatsApp", `https://wa.me/?text=${encodeURIComponent(`${copy} ${url}`)}`], ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`], ["Facebook", `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`], ["X", `https://x.com/intent/post?text=${encodeURIComponent(copy)}&url=${encodeURIComponent(url)}`]] as const;
+  const shell = immersive ? "bg-black/80 text-white border-white/20" : "bg-white text-brand-midnight border-brand-borderLight";
+  if (contentDomain !== "glimps") return null;
+  return <div ref={root} className="relative"><button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open} aria-haspopup="menu" aria-label="Share GLIMPS" className={`grid min-h-10 min-w-10 place-items-center rounded-full ${immersive ? "bg-black/35 backdrop-blur hover:bg-black/55" : ""}`}><Send className="h-5 w-5" /></button>{open && <div role="menu" className={`absolute bottom-12 right-0 z-50 w-44 max-w-[calc(100vw-1.5rem)] rounded-2xl border p-1 shadow-elevated ${shell}`}>{typeof navigator !== "undefined" && "share" in navigator && <button role="menuitem" type="button" onClick={() => void nativeShare()} className="min-h-10 w-full rounded-xl px-3 text-left text-caption font-bold hover:bg-white/10">Native Share</button>}<button role="menuitem" type="button" onClick={() => void copyLink()} className="min-h-10 w-full rounded-xl px-3 text-left text-caption font-bold hover:bg-white/10">Copy Link</button>{targets.map(([label, href]) => <a key={label} role="menuitem" href={href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className="flex min-h-10 items-center rounded-xl px-3 text-caption font-bold hover:bg-white/10">{label}</a>)}</div>}{notice && <span role="status" className={`absolute bottom-12 right-0 whitespace-nowrap rounded-lg px-3 py-2 text-caption font-bold shadow-soft ${shell}`}>{notice}</span>}</div>;
+}
