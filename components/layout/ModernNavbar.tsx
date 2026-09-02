@@ -40,6 +40,7 @@ const MENU_ITEMS = [
 export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const supabase = createClient()
   const pathname = usePathname()
+  const focusedGlimpsCreator = pathname === "/social/glimps/create"
   const router = useRouter()
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [profile, setProfile] = useState<{ full_name?: string | null; username?: string | null; avatar_url?: string | null } | null>(null)
@@ -77,7 +78,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl">
+      <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
           <Link href="/" className="shrink-0">
             <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-10 w-auto" />
@@ -173,7 +174,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
       </header>
 
       {user && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-brand-borderLight bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
+        <nav className={`fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-brand-borderLight bg-white/95 px-2 py-2 backdrop-blur lg:hidden ${focusedGlimpsCreator ? "hidden" : ""}`}>
           {MOBILE_TABS.map(item => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
