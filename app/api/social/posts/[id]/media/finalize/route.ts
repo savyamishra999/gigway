@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canManagePost, GLIMPS_MAX_DURATION_SECONDS, POST_MEDIA_BUCKET, requireSocialUser, socialDb, updatePostType, validMediaDimensions, validMediaMetadata } from "@/lib/social/server";
-import { allowsMediaComposition, toContentDomain } from "@/lib/social/content-domain";
+import { allowsMediaComposition, isValidGlimpsVideoMime, toContentDomain } from "@/lib/social/content-domain";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const u = await requireSocialUser();
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!post || !["published", "hidden"].includes(post.status)) return NextResponse.json({ error: "Post not found." }, { status: 404 });
   if (!(await canManagePost(post, u.id))) return NextResponse.json({ error: "You cannot attach media to this post." }, { status: 403 });
   const domain=toContentDomain(post.content_format); if(!domain)return NextResponse.json({error:"Invalid post format."},{status:400});
-  if (domain === "glimps" && (rule.type !== "video" || b.mimeType !== "video/mp4" || typeof b.durationSeconds !== "number" || b.durationSeconds > GLIMPS_MAX_DURATION_SECONDS)) return NextResponse.json({ error: "A GLIMPS requires one MP4 video of 60 seconds or less." }, { status: 400 });
+  if (domain === "glimps" && (rule.type !== "video" || !isValidGlimpsVideoMime(b.mimeType) || typeof b.durationSeconds !== "number" || b.durationSeconds > GLIMPS_MAX_DURATION_SECONDS)) return NextResponse.json({ error: "A GLIMPS requires one MP4 or WebM video of 60 seconds or less." }, { status: 400 });
   const expected = post.author_organization_id ? `organizations/${post.author_organization_id}/${id}/` : `users/${u.id}/${id}/`;
   if (!b.path.startsWith(expected) || !b.path.endsWith(`.${rule.extension}`)) return NextResponse.json({ error: "Invalid storage path." }, { status: 400 });
 

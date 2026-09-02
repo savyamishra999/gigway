@@ -3,6 +3,8 @@ export type PersistedContentFormat = "standard" | "vijox" | "glimps";
 export type ContentMedia = { type?: unknown; mimeType?: unknown; fileSizeBytes?: unknown; durationSeconds?: unknown };
 export const MAX_JOX_CAPTION_LENGTH = 280;
 export const MAX_GLIMPS_CAPTION_LENGTH = 500;
+export const GLIMPS_VIDEO_MIME_TYPES = ["video/mp4", "video/webm"] as const;
+export function isValidGlimpsVideoMime(mimeType: unknown): mimeType is (typeof GLIMPS_VIDEO_MIME_TYPES)[number] { return typeof mimeType === "string" && GLIMPS_VIDEO_MIME_TYPES.includes(mimeType.split(";")[0].trim().toLowerCase() as (typeof GLIMPS_VIDEO_MIME_TYPES)[number]); }
 
 const domainToPersisted: Record<ContentDomain, PersistedContentFormat> = { post: "standard", jox: "vijox", glimps: "glimps" };
 const persistedToDomain: Record<PersistedContentFormat, ContentDomain> = { standard: "post", vijox: "jox", glimps: "glimps" };
@@ -16,4 +18,4 @@ export function isGlimps(value: unknown): boolean { return toContentDomain(value
 export function isStandardPost(value: unknown): boolean { return toContentDomain(value) === "post"; }
 export function isValidJoxContent(media: ContentMedia[]): boolean { const audio = media.filter(item => item.type === "audio" && isValidJoxMime(item.mimeType) && typeof item.durationSeconds === "number" && Number.isInteger(item.durationSeconds) && item.durationSeconds > 0 && item.durationSeconds <= 27), images = media.filter(item => item.type === "image"); return audio.length === 1 && media.length === audio.length + images.length && images.length <= 4; }
 export function isValidJoxMime(mimeType: unknown): boolean { if (typeof mimeType !== "string") return false; const [base, ...parameters] = mimeType.toLowerCase().split(";").map(value => value.trim()); return base === "audio/webm" && (!parameters.length || parameters.every(parameter => parameter === "codecs=opus")); }
-export function allowsMediaComposition(domain: ContentDomain, media: ContentMedia[]): boolean { if (domain === "post") return media.length <= 5 && (media.length <= 1 || media.every(item => item.type === "image")); if (domain === "jox") return media.every(item => item.type === "audio" || item.type === "image") && media.filter(item => item.type === "audio").length <= 1 && media.filter(item => item.type === "image").length <= 4; return media.length <= 1 && media.every(item => item.type === "video" && item.mimeType === "video/mp4"); }
+export function allowsMediaComposition(domain: ContentDomain, media: ContentMedia[]): boolean { if (domain === "post") return media.length <= 5 && (media.length <= 1 || media.every(item => item.type === "image")); if (domain === "jox") return media.every(item => item.type === "audio" || item.type === "image") && media.filter(item => item.type === "audio").length <= 1 && media.filter(item => item.type === "image").length <= 4; return media.length <= 1 && media.every(item => item.type === "video" && isValidGlimpsVideoMime(item.mimeType)); }
