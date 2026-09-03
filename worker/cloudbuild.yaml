@@ -1,5 +1,5 @@
 steps:
   - name: gcr.io/cloud-builders/docker
-    args: [build, -f, worker/Dockerfile, -t, ${_IMAGE}, .]
+    args: ["build", "-f", "worker/Dockerfile", "-t", "${_IMAGE}", "."]
 images:
-  - ${_IMAGE}
+  - "${_IMAGE}"
