@@ -86,6 +86,18 @@ export async function enqueueMediaInspection(job: MediaInspectionTask, request?:
     const client = new CloudTasksClient(authClient ? { authClient } : undefined);
     const parent = client.queuePath(c.project, c.region, c.queue);
     const name = client.taskPath(c.project, c.region, c.queue, `inspection-${job.inspectionId}`);
+    if (authClient) {
+      const effectiveAuthClient = await client.auth.getClient();
+      console.info("media_inspection_cloud_tasks_request", {
+        usesProvidedAuthClient: effectiveAuthClient === authClient,
+        project: c.project,
+        location: c.region,
+        queue: c.queue,
+        parent,
+        taskName: name,
+        taskOidcServiceAccount: c.serviceAccount,
+      });
+    }
     stage = "cloud_tasks_create";
     const [created] = await client.createTask({ parent, task: { name, httpRequest: { httpMethod: "POST", url: `${c.workerUrl}/tasks/inspect-media`, headers: { "Content-Type": "application/json" }, body: Buffer.from(JSON.stringify({ inspectionId: job.inspectionId })), oidcToken: { serviceAccountEmail: c.serviceAccount, audience: c.workerUrl } } } });
     return created.name;
