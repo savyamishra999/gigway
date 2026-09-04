@@ -24,9 +24,20 @@ function wifConfig(): WifConfig | null {
 function productionGoogleAuth(vercelOidcToken: string) {
   const wif = wifConfig();
   if (!wif) throw new Error("Vercel WIF is not configured.");
+  const audience = `//iam.googleapis.com/projects/${wif.projectNumber}/locations/global/workloadIdentityPools/${wif.poolId}/providers/${wif.providerId}`;
+  console.info("media_inspection_wif_sts_audience", {
+    audience: JSON.stringify(audience),
+    audienceLength: audience.length,
+    projectNumber: JSON.stringify(wif.projectNumber),
+    projectNumberLength: wif.projectNumber.length,
+    poolId: JSON.stringify(wif.poolId),
+    poolIdLength: wif.poolId.length,
+    providerId: JSON.stringify(wif.providerId),
+    providerIdLength: wif.providerId.length,
+  });
   return new IdentityPoolClient({
     type: "external_account",
-    audience: `//iam.googleapis.com/projects/${wif.projectNumber}/locations/global/workloadIdentityPools/${wif.poolId}/providers/${wif.providerId}`,
+    audience,
     subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
     token_url: "https://sts.googleapis.com/v1/token",
     service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${wif.producerServiceAccount}:generateAccessToken`,
