@@ -11,6 +11,25 @@ const MAX_JOX_BYTES = 10 * 1024 * 1024;
 const TTL_HOURS = 24;
 const log = (event, fields = {}) => console.info(JSON.stringify({ event, ...fields }));
 
+function safeLookupError(error) {
+  if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null };
+  const message = String(error.message || "")
+    .replace(/authorization\s*[:=]\s*(?:bearer\s+)?[^\s,;]+/gi, "Authorization: [REDACTED]")
+    .replace(/bearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED_JWT]")
+    .replace(/\b(?:sb_secret|sbp|service_role)[A-Za-z0-9._-]+\b/gi, "[REDACTED_API_KEY]")
+    .replace(/(api[_-]?key|service[_-]?role(?:[_-]?key)?)\s*[:=]\s*[^\s,;]+/gi, "$1=[REDACTED]")
+    .replace(/(https?:\/\/[^\s?#]+)[?#][^\s]*/gi, "$1?[REDACTED_QUERY_OR_FRAGMENT]")
+    .slice(0, 500);
+  const details = error.details;
+  return {
+    lookupErrorName: typeof error.name === "string" ? error.name : "Error",
+    lookupErrorMessage: message || null,
+    lookupErrorStatus: typeof error.status === "number" || typeof error.statusCode === "number" ? (error.status ?? error.statusCode) : null,
+    lookupErrorDetailsType: details === null || details === undefined ? null : Array.isArray(details) ? "Array" : typeof details === "object" ? details.constructor?.name || "Object" : typeof details,
+  };
+}
+
 function run(command, args, timeout = 30000) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: "pipe", windowsHide: true }); let stdout = "", stderr = "";
@@ -35,7 +54,7 @@ function joxProbeAccepted(value, size) {
 export async function inspectMedia(inspectionId) {
   const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
   const inspection = lookup.data;
-  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupErrorCode: lookup.error?.code || null, status: inspection?.status || null });
+  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupErrorCode: lookup.error?.code || null, status: inspection?.status || null, ...safeLookupError(lookup.error) });
   if (!inspection) { log("media_inspection_early_return", { inspectionId, reason: lookup.error ? "lookup_error" : "row_not_found" }); return { status: 204 }; }
   if (inspection.status === "ready" || inspection.status === "rejected") { log("media_inspection_early_return", { inspectionId, reason: `already_${inspection.status}` }); return { status: 204 }; }
   if (inspection.purpose !== "jox_audio" || inspection.bucket !== "post-media" || inspection.storage_path !== `users/${inspection.uploader_user_id}/jox-temp/${inspection.id}/source.webm`) {
