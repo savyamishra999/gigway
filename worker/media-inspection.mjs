@@ -21,9 +21,9 @@ function run(command, args, timeout = 30000) {
 }
 
 async function reject(inspection, code, details = {}) {
-  await db.storage.from(inspection.bucket).remove([inspection.storage_path]);
-  await db.from("media_inspections").update({ status: "rejected", rejection_code: code, completed_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...details }).eq("id", inspection.id).in("status", ["pending", "processing"]);
-  log("media_inspection_rejected", { inspectionId: inspection.id, code });
+  const removal = await db.storage.from(inspection.bucket).remove([inspection.storage_path]);
+  const update = await db.from("media_inspections").update({ status: "rejected", rejection_code: code, completed_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...details }).eq("id", inspection.id).in("status", ["pending", "processing"]);
+  log("media_inspection_rejected", { inspectionId: inspection.id, code, storageRemovalErrorCode: removal.error?.statusCode || null, rejectionUpdateErrorCode: update.error?.code || null });
 }
 
 function joxProbeAccepted(value, size) {
@@ -33,14 +33,21 @@ function joxProbeAccepted(value, size) {
 }
 
 export async function inspectMedia(inspectionId) {
-  const { data: inspection } = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
-  if (!inspection || inspection.status === "ready" || inspection.status === "rejected") return { status: 204 };
+  const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
+  const inspection = lookup.data;
+  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupErrorCode: lookup.error?.code || null, status: inspection?.status || null });
+  if (!inspection) { log("media_inspection_early_return", { inspectionId, reason: lookup.error ? "lookup_error" : "row_not_found" }); return { status: 204 }; }
+  if (inspection.status === "ready" || inspection.status === "rejected") { log("media_inspection_early_return", { inspectionId, reason: `already_${inspection.status}` }); return { status: 204 }; }
   if (inspection.purpose !== "jox_audio" || inspection.bucket !== "post-media" || inspection.storage_path !== `users/${inspection.uploader_user_id}/jox-temp/${inspection.id}/source.webm`) {
     if (inspection.status === "pending" || inspection.status === "processing") await reject(inspection, "invalid_inspection_target");
+    log("media_inspection_early_return", { inspectionId, reason: "invalid_inspection_target" });
     return { status: 204 };
   }
-  const { data: claimed } = await db.from("media_inspections").update({ status: "processing", updated_at: new Date().toISOString(), rejection_code: null }).eq("id", inspectionId).eq("status", "pending").select("id").maybeSingle();
-  if (!claimed) return { status: inspection.status === "processing" ? 503 : 204 };
+  const claim = await db.from("media_inspections").update({ status: "processing", updated_at: new Date().toISOString(), rejection_code: null }).eq("id", inspectionId).eq("status", "pending").select("id").maybeSingle();
+  const claimed = claim.data;
+  log("media_inspection_claim", { inspectionId, attempted: true, claimed: !!claimed, claimErrorCode: claim.error?.code || null });
+  if (!claimed) { log("media_inspection_early_return", { inspectionId, reason: claim.error ? "claim_error" : inspection.status === "processing" ? "already_processing" : "claim_not_applied" }); return { status: inspection.status === "processing" ? 503 : 204 }; }
+  log("media_inspection_processing_started", { inspectionId });
   const work = await mkdtemp(join(tmpdir(), "media-inspection-"));
   try {
     const source = join(work, "source.webm"), download = await db.storage.from(inspection.bucket).download(inspection.storage_path);
