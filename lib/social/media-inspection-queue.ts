@@ -65,6 +65,11 @@ function failureStage(stage: QueueStage, error: unknown): QueueStage {
   return /iamcredentials|generateaccess?token|serviceaccounts/i.test(message) ? "service_account_impersonation" : stage;
 }
 
+function safeUrlForLog(value: string) {
+  const queryOrFragment = value.search(/[?#]/);
+  return JSON.stringify(queryOrFragment === -1 ? value : `${value.slice(0, queryOrFragment)}[REDACTED_QUERY_OR_FRAGMENT]`);
+}
+
 /**
  * In production, pass the server route's incoming Request. The token is a
  * Vercel-injected header and Google verifies its issuer and WIF attributes.
@@ -86,6 +91,10 @@ export async function enqueueMediaInspection(job: MediaInspectionTask, request?:
     const client = new CloudTasksClient(authClient ? { authClient } : undefined);
     const parent = client.queuePath(c.project, c.region, c.queue);
     const name = client.taskPath(c.project, c.region, c.queue, `inspection-${job.inspectionId}`);
+    const taskUrl = `${c.workerUrl}/tasks/inspect-media`;
+    const rawWorkerUrl = process.env.MEDIA_INSPECTION_WORKER_URL || "";
+    let parsedTaskUrl: URL | undefined;
+    try { parsedTaskUrl = new URL(taskUrl); } catch { /* Logged below without changing task creation. */ }
     if (authClient) {
       const effectiveAuthClient = await client.auth.getClient();
       console.info("media_inspection_cloud_tasks_request", {
@@ -96,10 +105,16 @@ export async function enqueueMediaInspection(job: MediaInspectionTask, request?:
         parent,
         taskName: name,
         taskOidcServiceAccount: c.serviceAccount,
+        rawWorkerUrl: safeUrlForLog(rawWorkerUrl),
+        rawWorkerUrlLength: rawWorkerUrl.length,
+        taskUrl: safeUrlForLog(taskUrl),
+        taskUrlLength: taskUrl.length,
+        taskUrlValid: !!parsedTaskUrl,
+        ...(parsedTaskUrl ? { taskUrlProtocol: parsedTaskUrl.protocol, taskUrlHostname: parsedTaskUrl.hostname, taskUrlPathname: parsedTaskUrl.pathname, taskUrlPort: parsedTaskUrl.port } : {}),
       });
     }
     stage = "cloud_tasks_create";
-    const [created] = await client.createTask({ parent, task: { name, httpRequest: { httpMethod: "POST", url: `${c.workerUrl}/tasks/inspect-media`, headers: { "Content-Type": "application/json" }, body: Buffer.from(JSON.stringify({ inspectionId: job.inspectionId })), oidcToken: { serviceAccountEmail: c.serviceAccount, audience: c.workerUrl } } } });
+    const [created] = await client.createTask({ parent, task: { name, httpRequest: { httpMethod: "POST", url: taskUrl, headers: { "Content-Type": "application/json" }, body: Buffer.from(JSON.stringify({ inspectionId: job.inspectionId })), oidcToken: { serviceAccountEmail: c.serviceAccount, audience: c.workerUrl } } } });
     return created.name;
   } catch (error: any) {
     if (stage === "cloud_tasks_create" && error?.code === 6) {
