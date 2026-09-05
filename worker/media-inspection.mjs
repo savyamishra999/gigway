@@ -11,9 +11,8 @@ const MAX_JOX_BYTES = 10 * 1024 * 1024;
 const TTL_HOURS = 24;
 const log = (event, fields = {}) => console.info(JSON.stringify({ event, ...fields }));
 
-function safeLookupError(error) {
-  if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null };
-  const message = String(error.message || "")
+function sanitizeDiagnosticMessage(value) {
+  return String(value || "")
     .replace(/authorization\s*[:=]\s*(?:bearer\s+)?[^\s,;]+/gi, "Authorization: [REDACTED]")
     .replace(/bearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
     .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED_JWT]")
@@ -21,12 +20,24 @@ function safeLookupError(error) {
     .replace(/(api[_-]?key|service[_-]?role(?:[_-]?key)?)\s*[:=]\s*[^\s,;]+/gi, "$1=[REDACTED]")
     .replace(/(https?:\/\/[^\s?#]+)[?#][^\s]*/gi, "$1?[REDACTED_QUERY_OR_FRAGMENT]")
     .slice(0, 500);
+}
+
+function safeLookupError(error) {
+  if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null, lookupErrorCauseName: null, lookupErrorCauseCode: null, lookupErrorCauseMessage: null, lookupErrorCauseErrno: null, lookupErrorCauseSyscall: null, lookupErrorCauseHostname: null };
+  const message = sanitizeDiagnosticMessage(error.message);
   const details = error.details;
+  const cause = error.cause;
   return {
     lookupErrorName: typeof error.name === "string" ? error.name : "Error",
     lookupErrorMessage: message || null,
     lookupErrorStatus: typeof error.status === "number" || typeof error.statusCode === "number" ? (error.status ?? error.statusCode) : null,
     lookupErrorDetailsType: details === null || details === undefined ? null : Array.isArray(details) ? "Array" : typeof details === "object" ? details.constructor?.name || "Object" : typeof details,
+    lookupErrorCauseName: typeof cause?.name === "string" ? cause.name : null,
+    lookupErrorCauseCode: typeof cause?.code === "string" || typeof cause?.code === "number" ? cause.code : null,
+    lookupErrorCauseMessage: cause ? sanitizeDiagnosticMessage(cause.message) || null : null,
+    lookupErrorCauseErrno: typeof cause?.errno === "string" || typeof cause?.errno === "number" ? cause.errno : null,
+    lookupErrorCauseSyscall: typeof cause?.syscall === "string" ? cause.syscall.slice(0, 80) : null,
+    lookupErrorCauseHostname: typeof cause?.hostname === "string" && /^[A-Za-z0-9.-]+$/.test(cause.hostname) ? cause.hostname : null,
   };
 }
 
