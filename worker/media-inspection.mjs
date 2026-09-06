@@ -22,19 +22,47 @@ function sanitizeDiagnosticMessage(value) {
     .slice(0, 500);
 }
 
+function serviceKeyMetadata(value) {
+  const key = typeof value === "string" ? value : "";
+  return {
+    keyPresent: Boolean(key),
+    keyLength: typeof value === "string" ? key.length : null,
+    keyHasLeadingWhitespace: /^\s/.test(key),
+    keyHasTrailingWhitespace: /\s$/.test(key),
+    keyHasNewline: key.includes("\n"),
+    keyHasCarriageReturn: key.includes("\r"),
+    keyLooksJwtThreeSegment: /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(key),
+  };
+}
+
+function lookupDetailsMetadata(details) {
+  const detailsType = details === null || details === undefined ? null : Array.isArray(details) ? "Array" : typeof details === "object" ? details.constructor?.name || "Object" : typeof details;
+  if (typeof details !== "string") return { lookupDetailsPresent: details !== null && details !== undefined, lookupDetailsType: detailsType, lookupFailureCategory: null, lookupSafeErrorCode: null };
+  const safeCode = details.match(/\(([A-Z0-9_]{2,64})\)/)?.[1] || null;
+  const lookupFailureCategory = /\bHeaders\.(?:append|set)\b|invalid header value/i.test(details) ? "header_validation"
+    : /\bAbortError\b|\bABORT_ERR\b|Request was aborted/i.test(details) ? "abort"
+      : /\bENOTFOUND\b|\bEAI_AGAIN\b|\bENODATA\b/i.test(details) ? "dns"
+        : /\bETIMEDOUT\b|\bUND_ERR_CONNECT_TIMEOUT\b|\bConnectTimeoutError\b|\btimeout\b/i.test(details) ? "timeout"
+          : /\bECONNREFUSED\b|\bECONNRESET\b|\bEHOSTUNREACH\b|\bENETUNREACH\b|\bUND_ERR_SOCKET\b|\bSocketError\b/i.test(details) ? "connection"
+            : /\bERR_TLS_[A-Z0-9_]+\b|\bCERT_[A-Z0-9_]+\b|\bUNABLE_TO_VERIFY\b|\bSELF_SIGNED\b|\bTLS\b/i.test(details) ? "tls"
+              : /\bfetch failed\b|\bTypeError\b/i.test(details) ? "transport"
+                : "unknown";
+  return { lookupDetailsPresent: true, lookupDetailsType: detailsType, lookupFailureCategory, lookupSafeErrorCode: safeCode };
+}
+
 function safeLookupError(error) {
-  if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null, lookupErrorCauseName: null, lookupErrorCauseCode: null, lookupErrorCauseMessage: null, lookupErrorCauseErrno: null, lookupErrorCauseSyscall: null, lookupErrorCauseHostname: null };
-  const message = sanitizeDiagnosticMessage(error.message);
+  if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null, lookupDetailsPresent: false, lookupDetailsType: null, lookupFailureCategory: null, lookupSafeErrorCode: null, lookupErrorCauseName: null, lookupErrorCauseCode: null, lookupErrorCauseMessage: null, lookupErrorCauseErrno: null, lookupErrorCauseSyscall: null, lookupErrorCauseHostname: null };
   const details = error.details;
   const cause = error.cause;
   return {
     lookupErrorName: typeof error.name === "string" ? error.name : "Error",
-    lookupErrorMessage: message || null,
+    lookupErrorMessage: error.message === "TypeError: fetch failed" ? "TypeError: fetch failed" : null,
     lookupErrorStatus: typeof error.status === "number" || typeof error.statusCode === "number" ? (error.status ?? error.statusCode) : null,
     lookupErrorDetailsType: details === null || details === undefined ? null : Array.isArray(details) ? "Array" : typeof details === "object" ? details.constructor?.name || "Object" : typeof details,
+    ...lookupDetailsMetadata(details),
     lookupErrorCauseName: typeof cause?.name === "string" ? cause.name : null,
     lookupErrorCauseCode: typeof cause?.code === "string" || typeof cause?.code === "number" ? cause.code : null,
-    lookupErrorCauseMessage: cause ? sanitizeDiagnosticMessage(cause.message) || null : null,
+    lookupErrorCauseMessage: null,
     lookupErrorCauseErrno: typeof cause?.errno === "string" || typeof cause?.errno === "number" ? cause.errno : null,
     lookupErrorCauseSyscall: typeof cause?.syscall === "string" ? cause.syscall.slice(0, 80) : null,
     lookupErrorCauseHostname: typeof cause?.hostname === "string" && /^[A-Za-z0-9.-]+$/.test(cause.hostname) ? cause.hostname : null,
@@ -128,6 +156,7 @@ function joxProbeAccepted(value, size) {
 }
 
 export async function inspectMedia(inspectionId) {
+  log("media_inspection_supabase_credential_metadata", serviceKeyMetadata(serviceKey));
   await probeSupabaseTransport();
   const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
   const inspection = lookup.data;
