@@ -41,6 +41,71 @@ function safeLookupError(error) {
   };
 }
 
+async function probeSupabaseTransport() {
+  let parsed;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    log("media_inspection_supabase_transport_probe", {
+      urlValid: false,
+      protocol: null,
+      hostname: null,
+      port: null,
+      pathname: null,
+      queryExists: null,
+      fragmentExists: null,
+      probeHttpStatus: null,
+      directFetchErrorName: null,
+      directFetchCauseName: null,
+      directFetchCauseCode: null,
+      directFetchErrorMessage: null,
+      directFetchCauseMessage: null,
+      directFetchCauseErrno: null,
+      directFetchCauseSyscall: null,
+      directFetchCauseHostname: null,
+    });
+    return;
+  }
+
+  const metadata = {
+    urlValid: true,
+    protocol: parsed.protocol,
+    hostname: parsed.hostname,
+    port: parsed.port || null,
+    pathname: parsed.pathname === "/" ? "root" : "non_root",
+    queryExists: Boolean(parsed.search),
+    fragmentExists: Boolean(parsed.hash),
+  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(new URL("/rest/v1/", parsed.origin), {
+      method: "GET",
+      signal: controller.signal,
+    });
+    log("media_inspection_supabase_transport_probe", {
+      ...metadata,
+      probeHttpStatus: response.status,
+    });
+  } catch (error) {
+    const cause = error?.cause;
+    log("media_inspection_supabase_transport_probe", {
+      ...metadata,
+      probeHttpStatus: null,
+      directFetchErrorName: typeof error?.name === "string" ? error.name : "Error",
+      directFetchCauseName: typeof cause?.name === "string" ? cause.name : null,
+      directFetchCauseCode: typeof cause?.code === "string" || typeof cause?.code === "number" ? cause.code : null,
+      directFetchErrorMessage: sanitizeDiagnosticMessage(error?.message) || null,
+      directFetchCauseMessage: cause ? sanitizeDiagnosticMessage(cause.message) || null : null,
+      directFetchCauseErrno: typeof cause?.errno === "string" || typeof cause?.errno === "number" ? cause.errno : null,
+      directFetchCauseSyscall: typeof cause?.syscall === "string" ? cause.syscall.slice(0, 80) : null,
+      directFetchCauseHostname: typeof cause?.hostname === "string" && /^[A-Za-z0-9.-]+$/.test(cause.hostname) ? cause.hostname : null,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function run(command, args, timeout = 30000) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: "pipe", windowsHide: true }); let stdout = "", stderr = "";
@@ -63,6 +128,7 @@ function joxProbeAccepted(value, size) {
 }
 
 export async function inspectMedia(inspectionId) {
+  await probeSupabaseTransport();
   const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
   const inspection = lookup.data;
   log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupErrorCode: lookup.error?.code || null, status: inspection?.status || null, ...safeLookupError(lookup.error) });
