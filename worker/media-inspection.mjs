@@ -50,6 +50,14 @@ function lookupDetailsMetadata(details) {
   return { lookupDetailsPresent: true, lookupDetailsType: detailsType, lookupFailureCategory, lookupSafeErrorCode: safeCode };
 }
 
+function safeLookupErrorCode(value) {
+  return typeof value === "string" && /^[A-Z0-9_]{2,64}$/.test(value) ? value : null;
+}
+
+function safeHttpStatus(value) {
+  return Number.isInteger(value) && value >= 100 && value <= 599 ? value : null;
+}
+
 function safeLookupError(error) {
   if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null, lookupDetailsPresent: false, lookupDetailsType: null, lookupFailureCategory: null, lookupSafeErrorCode: null, lookupErrorCauseName: null, lookupErrorCauseCode: null, lookupErrorCauseMessage: null, lookupErrorCauseErrno: null, lookupErrorCauseSyscall: null, lookupErrorCauseHostname: null };
   const details = error.details;
@@ -160,7 +168,7 @@ export async function inspectMedia(inspectionId) {
   await probeSupabaseTransport();
   const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
   const inspection = lookup.data;
-  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupErrorCode: lookup.error?.code || null, status: inspection?.status || null, ...safeLookupError(lookup.error) });
+  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupHttpStatus: safeHttpStatus(lookup.status), lookupErrorCode: safeLookupErrorCode(lookup.error?.code), status: inspection?.status || null, ...safeLookupError(lookup.error) });
   if (!inspection) { log("media_inspection_early_return", { inspectionId, reason: lookup.error ? "lookup_error" : "row_not_found" }); return { status: 204 }; }
   if (inspection.status === "ready" || inspection.status === "rejected") { log("media_inspection_early_return", { inspectionId, reason: `already_${inspection.status}` }); return { status: 204 }; }
   if (inspection.purpose !== "jox_audio" || inspection.bucket !== "post-media" || inspection.storage_path !== `users/${inspection.uploader_user_id}/jox-temp/${inspection.id}/source.webm`) {
