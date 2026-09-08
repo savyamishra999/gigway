@@ -101,7 +101,7 @@ function Avatar({ a }: { a: Author }) {
 export default function CreatePostComposer({ profile, organizations, mode = "post" }: Props) {
   const router = useRouter(),
     params = useSearchParams(),
-    input = useRef<HTMLInputElement>(null),
+    input = useRef<HTMLInputElement>(null), uploadInput = useRef<HTMLInputElement>(null),
     textarea = useRef<HTMLTextAreaElement>(null),
     picker = useRef<HTMLDivElement>(null),
     rec = useRef<MediaRecorder | null>(null),
@@ -114,7 +114,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     start = useRef(0),
     quality = useRef({ meaningful: 0, quiet: 0, total: 0, updatedAt: 0 }),
     chunks = useRef<Blob[]>([]),
-    preview = useRef<HTMLAudioElement>(null);
+    preview = useRef<HTMLAudioElement>(null), uploadRun = useRef(0);
   const [body, setBody] = useState(""),
     [cursor, setCursor] = useState(0),
     [closed, setClosed] = useState(false),
@@ -131,7 +131,8 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     [playing, setPlaying] = useState(false),
     [current, setCurrent] = useState(0),
     [vijoxTranscriptText, setVijoxTranscriptText] = useState(""),
-    [editingVijoxTranscript, setEditingVijoxTranscript] = useState(false);
+    [editingVijoxTranscript, setEditingVijoxTranscript] = useState(false),
+    [inspectionId, setInspectionId] = useState<string | null>(null);
   const isJoxCreator = mode === "jox", busy = status !== "idle",
     active = useMemo(() => findActiveMention(body, cursor), [body, cursor]),
     images = files.filter((f) => kind(f) === "image"),
@@ -152,6 +153,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
   };
   useEffect(
     () => () => {
+      uploadRun.current += 1;
       cleanup();
       preview.current?.pause();
     },
@@ -169,6 +171,31 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       input.current?.setAttribute("data-kind", k);
       input.current?.click();
     }
+  };
+  const uploadJox = async (file: File) => {
+    if (file.size > limits.audio) return setError("The file is too large.");
+    const localDuration = await new Promise<number | null>((resolve) => { const url = URL.createObjectURL(file), audio = document.createElement("audio"); audio.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(Number.isFinite(audio.duration) ? audio.duration : null); }; audio.onerror = () => { URL.revokeObjectURL(url); resolve(null); }; audio.src = url; });
+    if (localDuration !== null && localDuration > MAX) return setError("Jox can be up to 27 seconds.");
+    const runId = ++uploadRun.current; setStatus("uploading"); setError("");
+    try {
+      const init = await fetch("/api/social/jox-uploads/init", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileSize: file.size }) }), data = await init.json();
+      if (!init.ok) throw Error(data.error || "Could not upload your Jox.");
+      const upload = await createClient().storage.from("post-media").uploadToSignedUrl(data.path, data.token, file, { contentType: file.type });
+      if (upload.error) throw Error("Upload failed. Please try again.");
+      const complete = await fetch(`/api/social/jox-uploads/${data.inspectionId}/complete`, { method: "POST" }), result = await complete.json();
+      if (!complete.ok) throw Error(result.error || "Could not check your Jox.");
+      if (runId !== uploadRun.current) return; setInspectionId(data.inspectionId); setFiles((files) => [...files.filter(item => kind(item) !== "audio"), file]); setStatus("publishing");
+      const poll = async () => {
+        const response = await fetch(`/api/social/jox-uploads/${data.inspectionId}`, { cache: "no-store" }), state = await response.json();
+        if (!response.ok) throw Error("Could not check your Jox.");
+        if (runId !== uploadRun.current) return true;
+        if (state.inspection.status === "ready") { setSeconds(state.inspection.durationSeconds || 0); setStatus("idle"); return true; }
+        if (state.inspection.status === "rejected") throw Error(state.inspection.rejected || "This audio can’t be used as a Jox.");
+        return false;
+      };
+      for (let attempt = 0; attempt < 60; attempt += 1) { if (await poll()) return; await new Promise(resolve => setTimeout(resolve, 2000)); }
+      throw Error("Checking your Jox is taking longer than expected. Please try again shortly.");
+    } catch (error) { if (runId === uploadRun.current) { setInspectionId(null); setFiles((files) => files.filter(item => item !== file)); setError(error instanceof Error ? error.message : "Could not check your Jox."); setStatus("idle"); } }
   };
   const add = (e: ChangeEvent<HTMLInputElement>) => {
     const next = Array.from(e.target.files || []),
@@ -297,6 +324,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     }
   };
   const removeVijox = () => {
+    uploadRun.current += 1;
     preview.current?.pause();
     setPlaying(false);
     setCurrent(0);
@@ -304,12 +332,12 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     setVijoxTranscriptText("");
     setQuietJox(false);
     setEditingVijoxTranscript(false);
-    setFiles((f) => f.filter((x) => kind(x) !== "audio"));
+    if (inspectionId) fetch(`/api/social/jox-uploads/${inspectionId}`, { method: "DELETE" }).catch(() => undefined);
+    setInspectionId(null); setFiles((f) => f.filter((x) => kind(x) !== "audio"));
   };
   const submit = async () => {
     if (busy || recording) return;
-    if (isJoxCreator && !vijox)
-      return setError("Record a Jox before publishing.");
+    if (isJoxCreator && (!vijox || (inspectionId && status !== "idle"))) return setError("Jox your voice or upload audio before publishing.");
     if (!body.trim() && !files.length)
       return setError("Add text or an attachment before posting.");
     try {
@@ -332,7 +360,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         }),
         cb = await created.json();
       if (!created.ok) throw Error(cb.error || "Could not create post.");
-      for (const file of files) {
+      for (const file of files.filter(file => !(inspectionId && kind(file) === "audio"))) {
         const init = await fetch(
             `/api/social/posts/${cb.post.id}/media/upload`,
             {
@@ -369,6 +397,11 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
           fb = await final.json();
         if (!final.ok)
           throw Error(fb.error || "Could not attach uploaded media.");
+      }
+      if (inspectionId) {
+        const attached = await fetch(`/api/social/posts/${cb.post.id}/jox-upload`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ inspectionId }) }), result = await attached.json();
+        if (!attached.ok) throw Error(result.error || "Could not attach your Jox.");
+        setInspectionId(null);
       }
       if (files.length) {
         setStatus("publishing");
@@ -489,6 +522,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         {body.length}/{isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000}
       </div>
       <input ref={input} type="file" className="hidden" onChange={add} />
+      <input ref={uploadInput} type="file" accept="audio/webm,.webm" className="hidden" aria-label="Upload audio for your Jox" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadJox(file); }} />
       {isJoxCreator && recording && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-5 text-center">
           <p className="text-[10px] font-extrabold tracking-[.16em] text-violet-700">
@@ -590,14 +624,14 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
           <ImagePlus className="h-4 w-4" />
           Photo
         </button>
-        {isJoxCreator ? <button
+        {isJoxCreator ? <><button
           disabled={disabled("audio")}
           onClick={record}
           className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
         >
           <Mic className="h-4 w-4" />
           {vijox ? "Jox Again" : "Jox your voice"}
-        </button> : <>
+        </button><span className="self-center text-caption text-brand-slate">or</span><button disabled={busy || recording || !!vijox} onClick={() => uploadInput.current?.click()} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700 disabled:opacity-40">Upload audio</button></> : <>
         <button
           disabled={disabled("video")}
           onClick={() => choose("video")}
@@ -653,7 +687,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         {status === "uploading"
           ? "Uploading..."
           : status === "publishing"
-            ? "Publishing..."
+            ? (inspectionId ? "Checking your Jox..." : "Publishing...")
             : status === "posted"
               ? (isJoxCreator ? "Joxed" : "Posted")
               : (isJoxCreator ? "Jox" : "Post")}
