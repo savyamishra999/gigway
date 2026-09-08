@@ -4,7 +4,7 @@ import { IdentityPoolClient } from "google-auth-library";
 export type MediaInspectionTask = { inspectionId: string };
 type Config = { project: string; region: string; queue: string; workerUrl: string; serviceAccount: string };
 type WifConfig = { projectNumber: string; poolId: string; providerId: string; producerServiceAccount: string };
-type QueueStage = "configuration" | "vercel_oidc" | "google_sts" | "service_account_impersonation" | "cloud_tasks_create";
+type QueueStage = "configuration" | "vercel_oidc" | "cloud_tasks_create";
 
 function config(): Config | null {
   const project = process.env.GOOGLE_CLOUD_PROJECT, region = process.env.GOOGLE_CLOUD_REGION, queue = process.env.MEDIA_INSPECTION_TASK_QUEUE, workerUrl = process.env.MEDIA_INSPECTION_WORKER_URL, serviceAccount = process.env.MEDIA_INSPECTION_TASK_SERVICE_ACCOUNT_EMAIL;
@@ -25,16 +25,6 @@ function productionGoogleAuth(vercelOidcToken: string) {
   const wif = wifConfig();
   if (!wif) throw new Error("Vercel WIF is not configured.");
   const audience = `//iam.googleapis.com/projects/${wif.projectNumber}/locations/global/workloadIdentityPools/${wif.poolId}/providers/${wif.providerId}`;
-  console.info("media_inspection_wif_sts_audience", {
-    audience: JSON.stringify(audience),
-    audienceLength: audience.length,
-    projectNumber: JSON.stringify(wif.projectNumber),
-    projectNumberLength: wif.projectNumber.length,
-    poolId: JSON.stringify(wif.poolId),
-    poolIdLength: wif.poolId.length,
-    providerId: JSON.stringify(wif.providerId),
-    providerIdLength: wif.providerId.length,
-  });
   return new IdentityPoolClient({
     type: "external_account",
     audience,
@@ -59,17 +49,6 @@ function safeErrorDetails(error: unknown) {
   };
 }
 
-function failureStage(stage: QueueStage, error: unknown): QueueStage {
-  if (stage !== "google_sts") return stage;
-  const message = typeof (error as { message?: unknown })?.message === "string" ? (error as { message: string }).message : "";
-  return /iamcredentials|generateaccess?token|serviceaccounts/i.test(message) ? "service_account_impersonation" : stage;
-}
-
-function safeUrlForLog(value: string) {
-  const queryOrFragment = value.search(/[?#]/);
-  return JSON.stringify(queryOrFragment === -1 ? value : `${value.slice(0, queryOrFragment)}[REDACTED_QUERY_OR_FRAGMENT]`);
-}
-
 /**
  * In production, pass the server route's incoming Request. The token is a
  * Vercel-injected header and Google verifies its issuer and WIF attributes.
@@ -85,34 +64,10 @@ export async function enqueueMediaInspection(job: MediaInspectionTask, request?:
     if (production && !vercelOidcToken) throw new Error("Vercel production OIDC token is required.");
     if (!production && process.env.MEDIA_INSPECTION_ALLOW_LOCAL_ADC !== "true") throw new Error("Local Cloud Tasks ADC is disabled. Set MEDIA_INSPECTION_ALLOW_LOCAL_ADC=true explicitly for development.");
     const authClient = production ? productionGoogleAuth(vercelOidcToken!) : undefined;
-    // Force federation before createTask so Vercel logs distinguish WIF/SA errors
-    // from Cloud Tasks request errors. No token or credential is logged.
-    if (authClient) { stage = "google_sts"; await authClient.getAccessToken(); }
     const client = new CloudTasksClient(authClient ? { authClient } : undefined);
     const parent = client.queuePath(c.project, c.region, c.queue);
     const name = client.taskPath(c.project, c.region, c.queue, `inspection-${job.inspectionId}`);
     const taskUrl = `${c.workerUrl}/tasks/inspect-media`;
-    const rawWorkerUrl = process.env.MEDIA_INSPECTION_WORKER_URL || "";
-    let parsedTaskUrl: URL | undefined;
-    try { parsedTaskUrl = new URL(taskUrl); } catch { /* Logged below without changing task creation. */ }
-    if (authClient) {
-      const effectiveAuthClient = await client.auth.getClient();
-      console.info("media_inspection_cloud_tasks_request", {
-        usesProvidedAuthClient: effectiveAuthClient === authClient,
-        project: c.project,
-        location: c.region,
-        queue: c.queue,
-        parent,
-        taskName: name,
-        taskOidcServiceAccount: c.serviceAccount,
-        rawWorkerUrl: safeUrlForLog(rawWorkerUrl),
-        rawWorkerUrlLength: rawWorkerUrl.length,
-        taskUrl: safeUrlForLog(taskUrl),
-        taskUrlLength: taskUrl.length,
-        taskUrlValid: !!parsedTaskUrl,
-        ...(parsedTaskUrl ? { taskUrlProtocol: parsedTaskUrl.protocol, taskUrlHostname: parsedTaskUrl.hostname, taskUrlPathname: parsedTaskUrl.pathname, taskUrlPort: parsedTaskUrl.port } : {}),
-      });
-    }
     stage = "cloud_tasks_create";
     const [created] = await client.createTask({ parent, task: { name, httpRequest: { httpMethod: "POST", url: taskUrl, headers: { "Content-Type": "application/json" }, body: Buffer.from(JSON.stringify({ inspectionId: job.inspectionId })), oidcToken: { serviceAccountEmail: c.serviceAccount, audience: c.workerUrl } } } });
     return created.name;
@@ -121,7 +76,7 @@ export async function enqueueMediaInspection(job: MediaInspectionTask, request?:
       const c = config()!;
       return `projects/${c.project}/locations/${c.region}/queues/${c.queue}/tasks/inspection-${job.inspectionId}`;
     }
-    console.error("media_inspection_queue_failed", { stage: failureStage(stage, error), inspectionId: job.inspectionId, ...safeErrorDetails(error) });
+    console.error("media_inspection_queue_failed", { stage, inspectionId: job.inspectionId, ...safeErrorDetails(error) });
     throw error;
   }
 }

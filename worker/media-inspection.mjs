@@ -9,46 +9,8 @@ if (!baseUrl || !serviceKey) throw new Error("NEXT_PUBLIC_SUPABASE_URL and SUPAB
 const db = createClient(baseUrl, serviceKey, { auth: { persistSession: false } });
 const MAX_JOX_BYTES = 10 * 1024 * 1024;
 const TTL_HOURS = 24;
+const PROCESSING_STALE_MS = 15 * 60 * 1000;
 const log = (event, fields = {}) => console.info(JSON.stringify({ event, ...fields }));
-
-function sanitizeDiagnosticMessage(value) {
-  return String(value || "")
-    .replace(/authorization\s*[:=]\s*(?:bearer\s+)?[^\s,;]+/gi, "Authorization: [REDACTED]")
-    .replace(/bearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
-    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED_JWT]")
-    .replace(/\b(?:sb_secret|sbp|service_role)[A-Za-z0-9._-]+\b/gi, "[REDACTED_API_KEY]")
-    .replace(/(api[_-]?key|service[_-]?role(?:[_-]?key)?)\s*[:=]\s*[^\s,;]+/gi, "$1=[REDACTED]")
-    .replace(/(https?:\/\/[^\s?#]+)[?#][^\s]*/gi, "$1?[REDACTED_QUERY_OR_FRAGMENT]")
-    .slice(0, 500);
-}
-
-function serviceKeyMetadata(value) {
-  const key = typeof value === "string" ? value : "";
-  return {
-    keyPresent: Boolean(key),
-    keyLength: typeof value === "string" ? key.length : null,
-    keyHasLeadingWhitespace: /^\s/.test(key),
-    keyHasTrailingWhitespace: /\s$/.test(key),
-    keyHasNewline: key.includes("\n"),
-    keyHasCarriageReturn: key.includes("\r"),
-    keyLooksJwtThreeSegment: /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(key),
-  };
-}
-
-function lookupDetailsMetadata(details) {
-  const detailsType = details === null || details === undefined ? null : Array.isArray(details) ? "Array" : typeof details === "object" ? details.constructor?.name || "Object" : typeof details;
-  if (typeof details !== "string") return { lookupDetailsPresent: details !== null && details !== undefined, lookupDetailsType: detailsType, lookupFailureCategory: null, lookupSafeErrorCode: null };
-  const safeCode = details.match(/\(([A-Z0-9_]{2,64})\)/)?.[1] || null;
-  const lookupFailureCategory = /\bHeaders\.(?:append|set)\b|invalid header value/i.test(details) ? "header_validation"
-    : /\bAbortError\b|\bABORT_ERR\b|Request was aborted/i.test(details) ? "abort"
-      : /\bENOTFOUND\b|\bEAI_AGAIN\b|\bENODATA\b/i.test(details) ? "dns"
-        : /\bETIMEDOUT\b|\bUND_ERR_CONNECT_TIMEOUT\b|\bConnectTimeoutError\b|\btimeout\b/i.test(details) ? "timeout"
-          : /\bECONNREFUSED\b|\bECONNRESET\b|\bEHOSTUNREACH\b|\bENETUNREACH\b|\bUND_ERR_SOCKET\b|\bSocketError\b/i.test(details) ? "connection"
-            : /\bERR_TLS_[A-Z0-9_]+\b|\bCERT_[A-Z0-9_]+\b|\bUNABLE_TO_VERIFY\b|\bSELF_SIGNED\b|\bTLS\b/i.test(details) ? "tls"
-              : /\bfetch failed\b|\bTypeError\b/i.test(details) ? "transport"
-                : "unknown";
-  return { lookupDetailsPresent: true, lookupDetailsType: detailsType, lookupFailureCategory, lookupSafeErrorCode: safeCode };
-}
 
 function safeLookupErrorCode(value) {
   return typeof value === "string" && /^[A-Z0-9_]{2,64}$/.test(value) ? value : null;
@@ -56,90 +18,6 @@ function safeLookupErrorCode(value) {
 
 function safeHttpStatus(value) {
   return Number.isInteger(value) && value >= 100 && value <= 599 ? value : null;
-}
-
-function safeLookupError(error) {
-  if (!error) return { lookupErrorName: null, lookupErrorMessage: null, lookupErrorStatus: null, lookupErrorDetailsType: null, lookupDetailsPresent: false, lookupDetailsType: null, lookupFailureCategory: null, lookupSafeErrorCode: null, lookupErrorCauseName: null, lookupErrorCauseCode: null, lookupErrorCauseMessage: null, lookupErrorCauseErrno: null, lookupErrorCauseSyscall: null, lookupErrorCauseHostname: null };
-  const details = error.details;
-  const cause = error.cause;
-  return {
-    lookupErrorName: typeof error.name === "string" ? error.name : "Error",
-    lookupErrorMessage: error.message === "TypeError: fetch failed" ? "TypeError: fetch failed" : null,
-    lookupErrorStatus: typeof error.status === "number" || typeof error.statusCode === "number" ? (error.status ?? error.statusCode) : null,
-    lookupErrorDetailsType: details === null || details === undefined ? null : Array.isArray(details) ? "Array" : typeof details === "object" ? details.constructor?.name || "Object" : typeof details,
-    ...lookupDetailsMetadata(details),
-    lookupErrorCauseName: typeof cause?.name === "string" ? cause.name : null,
-    lookupErrorCauseCode: typeof cause?.code === "string" || typeof cause?.code === "number" ? cause.code : null,
-    lookupErrorCauseMessage: null,
-    lookupErrorCauseErrno: typeof cause?.errno === "string" || typeof cause?.errno === "number" ? cause.errno : null,
-    lookupErrorCauseSyscall: typeof cause?.syscall === "string" ? cause.syscall.slice(0, 80) : null,
-    lookupErrorCauseHostname: typeof cause?.hostname === "string" && /^[A-Za-z0-9.-]+$/.test(cause.hostname) ? cause.hostname : null,
-  };
-}
-
-async function probeSupabaseTransport() {
-  let parsed;
-  try {
-    parsed = new URL(baseUrl);
-  } catch {
-    log("media_inspection_supabase_transport_probe", {
-      urlValid: false,
-      protocol: null,
-      hostname: null,
-      port: null,
-      pathname: null,
-      queryExists: null,
-      fragmentExists: null,
-      probeHttpStatus: null,
-      directFetchErrorName: null,
-      directFetchCauseName: null,
-      directFetchCauseCode: null,
-      directFetchErrorMessage: null,
-      directFetchCauseMessage: null,
-      directFetchCauseErrno: null,
-      directFetchCauseSyscall: null,
-      directFetchCauseHostname: null,
-    });
-    return;
-  }
-
-  const metadata = {
-    urlValid: true,
-    protocol: parsed.protocol,
-    hostname: parsed.hostname,
-    port: parsed.port || null,
-    pathname: parsed.pathname === "/" ? "root" : "non_root",
-    queryExists: Boolean(parsed.search),
-    fragmentExists: Boolean(parsed.hash),
-  };
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-  try {
-    const response = await fetch(new URL("/rest/v1/", parsed.origin), {
-      method: "GET",
-      signal: controller.signal,
-    });
-    log("media_inspection_supabase_transport_probe", {
-      ...metadata,
-      probeHttpStatus: response.status,
-    });
-  } catch (error) {
-    const cause = error?.cause;
-    log("media_inspection_supabase_transport_probe", {
-      ...metadata,
-      probeHttpStatus: null,
-      directFetchErrorName: typeof error?.name === "string" ? error.name : "Error",
-      directFetchCauseName: typeof cause?.name === "string" ? cause.name : null,
-      directFetchCauseCode: typeof cause?.code === "string" || typeof cause?.code === "number" ? cause.code : null,
-      directFetchErrorMessage: sanitizeDiagnosticMessage(error?.message) || null,
-      directFetchCauseMessage: cause ? sanitizeDiagnosticMessage(cause.message) || null : null,
-      directFetchCauseErrno: typeof cause?.errno === "string" || typeof cause?.errno === "number" ? cause.errno : null,
-      directFetchCauseSyscall: typeof cause?.syscall === "string" ? cause.syscall.slice(0, 80) : null,
-      directFetchCauseHostname: typeof cause?.hostname === "string" && /^[A-Za-z0-9.-]+$/.test(cause.hostname) ? cause.hostname : null,
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 function run(command, args, timeout = 30000) {
@@ -164,13 +42,24 @@ function joxProbeAccepted(value, size) {
 }
 
 export async function inspectMedia(inspectionId) {
-  log("media_inspection_supabase_credential_metadata", serviceKeyMetadata(serviceKey));
-  await probeSupabaseTransport();
-  const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status").eq("id", inspectionId).maybeSingle();
-  const inspection = lookup.data;
-  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupHttpStatus: safeHttpStatus(lookup.status), lookupErrorCode: safeLookupErrorCode(lookup.error?.code), status: inspection?.status || null, ...safeLookupError(lookup.error) });
+  const lookup = await db.from("media_inspections").select("id,uploader_user_id,bucket,storage_path,purpose,status,updated_at").eq("id", inspectionId).maybeSingle();
+  let inspection = lookup.data;
+  log("media_inspection_lookup", { inspectionId, found: !!inspection, lookupHttpStatus: safeHttpStatus(lookup.status), lookupErrorCode: safeLookupErrorCode(lookup.error?.code), status: inspection?.status || null });
   if (!inspection) { log("media_inspection_early_return", { inspectionId, reason: lookup.error ? "lookup_error" : "row_not_found" }); return { status: 204 }; }
   if (inspection.status === "ready" || inspection.status === "rejected") { log("media_inspection_early_return", { inspectionId, reason: `already_${inspection.status}` }); return { status: 204 }; }
+  if (inspection.status === "processing") {
+    const staleBefore = new Date(Date.now() - PROCESSING_STALE_MS).toISOString();
+    const recovered = await db.from("media_inspections").update({ status: "pending", updated_at: new Date().toISOString() }).eq("id", inspectionId).eq("status", "processing").lt("updated_at", staleBefore).select("id,uploader_user_id,bucket,storage_path,purpose,status,updated_at").maybeSingle();
+    if (!recovered.data) { log("media_inspection_early_return", { inspectionId, reason: recovered.error ? "recovery_error" : "already_processing" }); return { status: 503 }; }
+    inspection = recovered.data;
+    log("media_inspection_processing_recovered", { inspectionId });
+  }
+  if (inspection.status === "failed") {
+    const recovered = await db.from("media_inspections").update({ status: "pending", rejection_code: null, updated_at: new Date().toISOString() }).eq("id", inspectionId).eq("status", "failed").select("id,uploader_user_id,bucket,storage_path,purpose,status,updated_at").maybeSingle();
+    if (!recovered.data) { log("media_inspection_early_return", { inspectionId, reason: recovered.error ? "recovery_error" : "recovery_not_applied" }); return { status: recovered.error ? 500 : 204 }; }
+    inspection = recovered.data;
+    log("media_inspection_failed_recovered", { inspectionId });
+  }
   if (inspection.purpose !== "jox_audio" || inspection.bucket !== "post-media" || inspection.storage_path !== `users/${inspection.uploader_user_id}/jox-temp/${inspection.id}/source.webm`) {
     if (inspection.status === "pending" || inspection.status === "processing") await reject(inspection, "invalid_inspection_target");
     log("media_inspection_early_return", { inspectionId, reason: "invalid_inspection_target" });
@@ -179,7 +68,7 @@ export async function inspectMedia(inspectionId) {
   const claim = await db.from("media_inspections").update({ status: "processing", updated_at: new Date().toISOString(), rejection_code: null }).eq("id", inspectionId).eq("status", "pending").select("id").maybeSingle();
   const claimed = claim.data;
   log("media_inspection_claim", { inspectionId, attempted: true, claimed: !!claimed, claimErrorCode: claim.error?.code || null });
-  if (!claimed) { log("media_inspection_early_return", { inspectionId, reason: claim.error ? "claim_error" : inspection.status === "processing" ? "already_processing" : "claim_not_applied" }); return { status: inspection.status === "processing" ? 503 : 204 }; }
+  if (!claimed) { log("media_inspection_early_return", { inspectionId, reason: claim.error ? "claim_error" : "claim_not_applied" }); return { status: claim.error ? 500 : 204 }; }
   log("media_inspection_processing_started", { inspectionId });
   const work = await mkdtemp(join(tmpdir(), "media-inspection-"));
   try {
@@ -191,10 +80,11 @@ export async function inspectMedia(inspectionId) {
     const output = await run("ffprobe", ["-v", "error", "-show_entries", "format=format_name,duration,size:stream=codec_type,codec_name", "-of", "json", source]);
     const probe = joxProbeAccepted(JSON.parse(output), size);
     if (!probe.accepted) { await reject(inspection, !Number.isFinite(probe.duration) || probe.duration <= 0 ? "duration_unavailable" : probe.duration > 27 ? "duration_exceeded" : probe.container !== "webm" ? "invalid_container" : probe.codec !== "opus" ? "invalid_codec" : "invalid_audio_streams", { detected_container: probe.container, detected_audio_codec: probe.codec, detected_duration_seconds: Number.isFinite(probe.duration) ? probe.duration : null, detected_size_bytes: size }); return { status: 204 }; }
-    await db.from("media_inspections").update({ status: "ready", detected_container: probe.container, detected_audio_codec: probe.codec, detected_duration_seconds: probe.duration, detected_size_bytes: size, rejection_code: null, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", inspection.id).eq("status", "processing");
+    const ready = await db.from("media_inspections").update({ status: "ready", detected_container: probe.container, detected_audio_codec: probe.codec, detected_duration_seconds: probe.duration, detected_size_bytes: size, rejection_code: null, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", inspection.id).eq("status", "processing").select("id").maybeSingle();
+    if (ready.error || !ready.data) throw new Error("ready_update_failed");
     log("media_inspection_ready", { inspectionId, purpose: inspection.purpose }); return { status: 204 };
   } catch (error) {
-    await db.from("media_inspections").update({ status: "failed", rejection_code: String(error.message || "inspection_failed").slice(0, 120), completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", inspection.id).eq("status", "processing");
+    await db.from("media_inspections").update({ status: "pending", rejection_code: null, updated_at: new Date().toISOString() }).eq("id", inspection.id).eq("status", "processing");
     log("media_inspection_failed", { inspectionId }); return { status: 500 };
   } finally { await rm(work, { recursive: true, force: true }); }
 }
