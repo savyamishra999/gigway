@@ -9,29 +9,36 @@ const SIZE = 184, RADIUS = 78, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export default function VijoxCircularProgress({ currentTimeMs, durationMs, energy = 0, summary, playing, onToggle, onSeek, onSeekStart, onSeekEnd, center, label }: { currentTimeMs: number; durationMs: number; energy?: number; summary?: VijoxTimedReactionSummary | null; playing?: boolean; onToggle?: () => void; onSeek?: (timeMs: number) => void; onSeekStart?: () => void; onSeekEnd?: () => void; center?: ReactNode; label: string }) {
   const progress = Math.max(0, Math.min(1, currentTimeMs / Math.max(1, durationMs))), offset = CIRCUMFERENCE * (1 - progress);
   const gradientId = useId().replace(/:/g, "");
-  const dragging = useRef(false);
+  const knobDrag = useRef<{ pointerId: number; startX: number; startY: number; previousAngle: number; accumulatedAngle: number; startProgress: number; active: boolean } | null>(null), ringTap = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
   const point = (fraction: number, radius = 88) => { const angle = fraction * Math.PI * 2 - Math.PI / 2; return { x: SIZE / 2 + Math.cos(angle) * radius, y: SIZE / 2 + Math.sin(angle) * radius }; };
   const leading = point(progress), activeBucket = Math.floor(currentTimeMs / 500) * 500;
-  const seekFromPointer = (event: PointerEvent<SVGCircleElement>) => {
-    if (!onSeek || !Number.isFinite(durationMs) || durationMs <= 0) return;
+  const angleForPointer = (event: PointerEvent<SVGCircleElement>) => {
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
-    if (!rect?.width || !rect.height) return;
+    if (!rect?.width || !rect.height) return null;
     const x = (event.clientX - rect.left) * SIZE / rect.width - SIZE / 2, y = (event.clientY - rect.top) * SIZE / rect.height - SIZE / 2;
-    const fraction = ((Math.atan2(y, x) + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2);
+    return Math.atan2(y, x);
+  };
+  const seekToAngle = (event: PointerEvent<SVGCircleElement>) => {
+    if (!onSeek || !Number.isFinite(durationMs) || durationMs <= 0) return;
+    const angle = angleForPointer(event); if (angle === null) return;
+    const fraction = ((angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2);
     onSeek(fraction * durationMs);
   };
-  const startSeek = (event: PointerEvent<SVGCircleElement>) => { if (!onSeek || !Number.isFinite(durationMs) || durationMs <= 0) return; event.preventDefault(); dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); onSeekStart?.(); seekFromPointer(event); };
-  const moveSeek = (event: PointerEvent<SVGCircleElement>) => { if (!dragging.current) return; event.preventDefault(); seekFromPointer(event); };
-  const endSeek = (event: PointerEvent<SVGCircleElement>) => { if (!dragging.current) return; dragging.current = false; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onSeekEnd?.(); };
+  const startKnobDrag = (event: PointerEvent<SVGCircleElement>) => { if (!onSeek || !Number.isFinite(durationMs) || durationMs <= 0) return; const angle = angleForPointer(event); if (angle === null) return; knobDrag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, previousAngle: angle, accumulatedAngle: 0, startProgress: progress, active: false }; event.currentTarget.setPointerCapture(event.pointerId); };
+  const moveKnobDrag = (event: PointerEvent<SVGCircleElement>) => { const drag = knobDrag.current; if (!drag || drag.pointerId !== event.pointerId) return; const angle = angleForPointer(event); if (angle === null) return; const delta = Math.atan2(Math.sin(angle - drag.previousAngle), Math.cos(angle - drag.previousAngle)); drag.previousAngle = angle; drag.accumulatedAngle += delta; if (!drag.active && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 4) { drag.active = true; onSeekStart?.(); } if (!drag.active || !onSeek || !Number.isFinite(durationMs) || durationMs <= 0) return; event.preventDefault(); onSeek(Math.max(0, Math.min(1, drag.startProgress + drag.accumulatedAngle / (Math.PI * 2))) * durationMs); };
+  const endKnobDrag = (event: PointerEvent<SVGCircleElement>) => { const drag = knobDrag.current; if (!drag || drag.pointerId !== event.pointerId) return; knobDrag.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (drag.active) onSeekEnd?.(); };
+  const startRingTap = (event: PointerEvent<SVGCircleElement>) => { if (!onSeek || !Number.isFinite(durationMs) || durationMs <= 0) return; ringTap.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); };
+  const endRingTap = (event: PointerEvent<SVGCircleElement>) => { const tap = ringTap.current; if (!tap || tap.pointerId !== event.pointerId) return; ringTap.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (Math.hypot(event.clientX - tap.startX, event.clientY - tap.startY) <= 4) seekToAngle(event); };
   return <div className="relative mx-auto h-[min(58vw,220px)] w-[min(58vw,220px)] min-h-[175px] min-w-[175px] max-h-[220px] max-w-[220px]">
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full overflow-visible" role="img" aria-label={label}>
       <defs><linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#ec4899"/><stop offset=".38" stopColor="#8b5cf6"/><stop offset=".7" stopColor="#4f46e5"/><stop offset="1" stopColor="#06b6d4"/></linearGradient></defs>
       <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="#ede9fe" strokeWidth="7"/>
       <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke={`url(#${gradientId})`} strokeWidth="7" strokeLinecap="round" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={offset} transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`} className="motion-reduce:transition-none"/>
-      {onSeek && <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="transparent" strokeWidth="30" className="cursor-pointer touch-none" onPointerDown={startSeek} onPointerMove={moveSeek} onPointerUp={endSeek} onPointerCancel={endSeek} aria-label="Seek Jox playback"/>}
+      {onSeek && <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="transparent" strokeWidth="16" className="cursor-pointer" onPointerDown={startRingTap} onPointerUp={endRingTap} onPointerCancel={() => { ringTap.current = null; }} aria-label="Seek Jox playback"/>}
       <circle cx={SIZE / 2} cy={SIZE / 2} r="63" fill="none" stroke="#c4b5fd" strokeWidth="1.5" opacity={.25 + energy * .35}/>
       {summary?.moments.map(moment => { const fraction = Math.max(0, Math.min(1, moment.timestampMs / Math.max(1, durationMs))), dot = point(fraction), active = moment.timestampMs === activeBucket, strength = Math.min(1, moment.total / 6), radius = active ? 4.8 : 2.6 + strength; return <g key={moment.timestampMs} className="pointer-events-none"><circle cx={dot.x} cy={dot.y} r={radius + 2} fill="#a78bfa" opacity={active ? .35 : .12 + strength * .14}/><circle cx={dot.x} cy={dot.y} r={radius} fill="#6d28d9" stroke="white" strokeWidth="1.5" opacity={.58 + strength * .38}/></g>; })}
       <circle cx={leading.x} cy={leading.y} r="7" fill="#c4b5fd" opacity=".34"/><circle cx={leading.x} cy={leading.y} r="3.8" fill="#fff" stroke="#8b5cf6" strokeWidth="2" className="motion-reduce:transition-none"/>
+      {onSeek && <circle cx={leading.x} cy={leading.y} r="16" fill="transparent" className="cursor-grab active:cursor-grabbing" onPointerDown={startKnobDrag} onPointerMove={moveKnobDrag} onPointerUp={endKnobDrag} onPointerCancel={endKnobDrag} aria-label="Drag Jox playback position"/>}
     </svg>
     <div className="absolute inset-[18px] grid place-items-center rounded-full bg-gradient-to-br from-white via-violet-50/65 to-cyan-50/70 shadow-[inset_0_0_0_1px_rgba(139,92,246,.14),0_10px_28px_rgba(124,58,237,.13)] motion-reduce:transform-none" style={{ transform: `scale(${1 + energy * .055})` }}>
       {center}
