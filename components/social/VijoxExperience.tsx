@@ -11,9 +11,9 @@ import type { VijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactio
 import JoxCompanionImages, { type JoxImage } from "@/components/social/JoxCompanionImages";
 
 const clock = (seconds: number) => `00:${Math.max(0, Math.floor(seconds)).toString().padStart(2, "0")}`;
-export type VijoxExperienceProps = { src: string; duration?: number | null; avatar?: string | null; name?: string; transcript?: VijoxTranscriptData | null; images?: JoxImage[]; postId?: string | null; compact?: boolean; initialTimedReactionSummary?: VijoxTimedReactionSummary };
+export type VijoxExperienceProps = { src: string; duration?: number | null; avatar?: string | null; name?: string; transcript?: VijoxTranscriptData | null; cover?: JoxImage | null; images?: JoxImage[]; postId?: string | null; compact?: boolean; initialTimedReactionSummary?: VijoxTimedReactionSummary };
 
-export default function VijoxExperience({ src, duration, avatar, name = "GigWay member", transcript, images = [], postId, compact = false, initialTimedReactionSummary }: VijoxExperienceProps) {
+export default function VijoxExperience({ src, duration, avatar, name = "GigWay member", transcript, cover: suppliedCover = null, images = [], postId, compact = false, initialTimedReactionSummary }: VijoxExperienceProps) {
   const audio = useRef<HTMLAudioElement>(null), id = useRef(postId ? `jox-${postId}` : `vijox-${crypto.randomUUID()}`), context = useRef<AudioContext | null>(null), source = useRef<MediaElementAudioSourceNode | null>(null), analyser = useRef<AnalyserNode | null>(null), gain = useRef<GainNode | null>(null), nodes = useRef<AudioNode[]>([]), frame = useRef<number | null>(null), assist = useRef(1);
   const [playing, setPlaying] = useState(false), [current, setCurrent] = useState(0), [total, setTotal] = useState(duration || 27), [energy, setEnergy] = useState(0), [volume, setVolume] = useState(1.1), [muted, setMuted] = useState(false), [audioError, setAudioError] = useState(""), [reactionSummary, setReactionSummary] = useState<VijoxTimedReactionSummary | null>(initialTimedReactionSummary || null);
   const stopVisualizing = () => { if (frame.current) cancelAnimationFrame(frame.current); frame.current = null; setEnergy(0); };
@@ -40,7 +40,7 @@ export default function VijoxExperience({ src, duration, avatar, name = "GigWay 
     if (audio.current && Number.isFinite(next)) audio.current.currentTime = next;
   };
   const finishScrub = () => { dragging.current = false; };
-  const scene = images[0], sceneUrl = scene?.url?.trim() || null, avatarUrl = avatar?.trim() || null;
+  const scene = suppliedCover, sceneUrl = scene?.url?.trim() || null, avatarUrl = avatar?.trim() || null;
   const [sceneFailed, setSceneFailed] = useState(false), [avatarFailed, setAvatarFailed] = useState(false);
   useEffect(() => { setSceneFailed(false); setAvatarFailed(false); }, [sceneUrl, avatarUrl]);
   const cover = sceneUrl && !sceneFailed ? { url: sceneUrl, alt: scene?.alt || "Jox scene", kind: "scene" as const } : avatarUrl && !avatarFailed ? { url: avatarUrl, alt: name, kind: "avatar" as const } : null;
