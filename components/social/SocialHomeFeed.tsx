@@ -137,7 +137,7 @@ function relativePostTime(value: string) {
     ? date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
     : date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
-function JoxCaption({ body, mentions }: { body: string; mentions?: string[] }) { const [expanded, setExpanded] = useState(false), long = body.length > 180; return <div className="mt-3 border-t border-violet-100 pt-3 text-body-sm text-brand-slate"><div className={expanded ? "" : "line-clamp-3"}><PostText body={body} mentions={mentions} /></div>{long && <button type="button" onClick={() => setExpanded(value => !value)} className="mt-1 min-h-10 text-caption font-bold text-violet-700">{expanded ? "Show less" : "more"}</button>}</div>; }
+function JoxCaption({ body, mentions }: { body: string; mentions?: string[] }) { const [expanded, setExpanded] = useState(false), long = body.length > 180; return <section className="mt-4 border-t border-violet-100 pt-4"><p className="mb-1 text-[10px] font-extrabold tracking-[.13em] text-violet-700">JOX NOTE</p><div className={`max-w-[62ch] font-sans text-[15px] font-medium leading-7 tracking-[-.012em] text-brand-midnight sm:text-body-sm ${expanded ? "" : "line-clamp-3"}`}><PostText body={body} mentions={mentions} /></div>{long && <button type="button" onClick={() => setExpanded(value => !value)} className="mt-1 min-h-10 text-caption font-bold text-violet-700">{expanded ? "Show less" : "Read more"}</button>}</section>; }
 function Rail({
   title,
   items,
