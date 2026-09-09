@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export type JoxImage = { id: string; url: string; alt: string; width?: number | null; height?: number | null };
+export type JoxImage = { id: string; url: string; alt: string; width?: number | null; height?: number | null; scale?: number; positionX?: number; positionY?: number };
 export default function JoxCompanionImages({ images }: { images: JoxImage[] }) {
   const [open, setOpen] = useState<JoxImage | null>(null);
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(null); }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);

@@ -101,7 +101,7 @@ function Avatar({ a }: { a: Author }) {
 export default function CreatePostComposer({ profile, organizations, mode = "post" }: Props) {
   const router = useRouter(),
     params = useSearchParams(),
-    input = useRef<HTMLInputElement>(null), uploadInput = useRef<HTMLInputElement>(null),
+    input = useRef<HTMLInputElement>(null), uploadInput = useRef<HTMLInputElement>(null), coverCrop = useRef<HTMLDivElement>(null),
     textarea = useRef<HTMLTextAreaElement>(null),
     picker = useRef<HTMLDivElement>(null),
     rec = useRef<MediaRecorder | null>(null),
@@ -114,7 +114,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     start = useRef(0),
     quality = useRef({ meaningful: 0, quiet: 0, total: 0, updatedAt: 0 }),
     chunks = useRef<Blob[]>([]),
-    preview = useRef<HTMLAudioElement>(null), uploadRun = useRef(0);
+    preview = useRef<HTMLAudioElement>(null), uploadRun = useRef(0), coverDrag = useRef<{ x: number; y: number; positionX: number; positionY: number } | null>(null);
   const [body, setBody] = useState(""),
     [cursor, setCursor] = useState(0),
     [closed, setClosed] = useState(false),
@@ -131,6 +131,8 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     [playing, setPlaying] = useState(false),
     [current, setCurrent] = useState(0),
     [coverFile, setCoverFile] = useState<File | null>(null),
+    [coverPresentation, setCoverPresentation] = useState({ scale: 1, positionX: 0, positionY: 0 }),
+    [editingCover, setEditingCover] = useState(false),
     [vijoxTranscriptText, setVijoxTranscriptText] = useState(""),
     [editingVijoxTranscript, setEditingVijoxTranscript] = useState(false),
     [inspectionId, setInspectionId] = useState<string | null>(null);
@@ -139,6 +141,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     images = files.filter((f) => kind(f) === "image"),
     vijox = files.find((f) => kind(f) === "audio"),
     urls = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]),
+    coverUrl = useMemo(() => coverFile ? URL.createObjectURL(coverFile) : undefined, [coverFile]),
     vijoxUrl = vijox ? urls[files.indexOf(vijox)] : undefined;
   const cleanup = () => {
     if (timeout.current) clearTimeout(timeout.current);
@@ -161,15 +164,18 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     [],
   );
   useEffect(() => () => urls.forEach(URL.revokeObjectURL), [urls]);
+  useEffect(() => () => { if (coverUrl) URL.revokeObjectURL(coverUrl); }, [coverUrl]);
   const stop = () => {
     if (rec.current?.state === "recording") rec.current.stop();
     else cleanup();
     setRecording(false);
   };
-  const choose = (k: Exclude<Kind, "audio">) => {
+  const choose = (k: Exclude<Kind, "audio">, imageAction?: "cover" | "attachment") => {
     if (!busy && !recording) {
       input.current?.setAttribute("accept", accept[k].join(","));
       input.current?.setAttribute("data-kind", k);
+      input.current?.setAttribute("data-image-action", imageAction || "attachment");
+      input.current?.toggleAttribute("multiple", k === "image" && imageAction !== "cover");
       input.current?.click();
     }
   };
@@ -200,7 +206,8 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
   };
   const add = (e: ChangeEvent<HTMLInputElement>) => {
     const next = Array.from(e.target.files || []),
-      wanted = e.target.dataset.kind as Exclude<Kind, "audio">;
+      wanted = e.target.dataset.kind as Exclude<Kind, "audio">,
+      imageAction = e.target.dataset.imageAction as "cover" | "attachment";
     e.target.value = "";
     if (!next.length) return;
     if (
@@ -224,11 +231,15 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       );
     if (wanted !== "image" && files.length)
       return setError("Only one attachment is allowed.");
-    const imageLimit = isJoxCreator || vijox ? 4 : 5;
+    if (isJoxCreator && wanted === "image" && imageAction === "cover") {
+      const cover = next[0];
+      setError(""); setCoverFile(cover); setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 }); setEditingCover(true);
+      return;
+    }
+    const imageLimit = isJoxCreator || vijox ? 3 : 5;
     if (images.length + next.length > imageLimit)
       return setError(`You can attach up to ${imageLimit} images.`);
     setError("");
-    if (isJoxCreator && wanted === "image" && !coverFile) setCoverFile(next[0]);
     setFiles((f) => [...f, ...next]);
   };
   const record = async () => {
@@ -340,10 +351,10 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
   const submit = async () => {
     if (busy || recording) return;
     if (isJoxCreator && (!vijox || (inspectionId && status !== "idle"))) return setError("Jox your voice or upload audio before publishing.");
-    if (!body.trim() && !files.length)
+    if (!body.trim() && !files.length && !coverFile)
       return setError("Add text or an attachment before posting.");
     try {
-      setStatus(files.length ? "uploading" : "publishing");
+      setStatus(files.length || coverFile ? "uploading" : "publishing");
       const created = await fetch("/api/social/posts", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -351,7 +362,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
             body,
             visibility,
             organizationId: author === "personal" ? undefined : author,
-            draft: files.length > 0,
+            draft: files.length > 0 || !!coverFile,
             contentDomain: isJoxCreator ? "jox" : "post",
             momentSlug: params.get("moment") || undefined,
             vijoxTranscriptText:
@@ -362,7 +373,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         }),
         cb = await created.json();
       if (!created.ok) throw Error(cb.error || "Could not create post.");
-      for (const file of files.filter(file => !(inspectionId && kind(file) === "audio"))) {
+      for (const file of [...files.filter(file => !(inspectionId && kind(file) === "audio")), ...(coverFile ? [coverFile] : [])]) {
         const init = await fetch(
             `/api/social/posts/${cb.post.id}/media/upload`,
             {
@@ -400,7 +411,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         if (!final.ok)
           throw Error(fb.error || "Could not attach uploaded media.");
         if (isJoxCreator && file === coverFile) {
-          const cover = await fetch(`/api/social/posts/${cb.post.id}/jox-cover`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mediaId: fb.media?.id }) }), coverBody = await cover.json();
+          const cover = await fetch(`/api/social/posts/${cb.post.id}/jox-cover`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mediaId: fb.media?.id, ...coverPresentation }) }), coverBody = await cover.json();
           if (!cover.ok) throw Error(coverBody.error || "Could not set Jox cover.");
         }
       }
@@ -409,7 +420,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         if (!attached.ok) throw Error(result.error || "Could not attach your Jox.");
         setInspectionId(null);
       }
-      if (files.length) {
+      if (files.length || coverFile) {
         setStatus("publishing");
         const p = await fetch(`/api/social/posts/${cb.post.id}/publish`, {
             method: "POST",
@@ -444,6 +455,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       textarea.current?.setSelectionRange(x.cursor, x.cursor),
     );
   };
+  const coverEditor = coverFile && coverUrl && editingCover ? <div className="mt-4 rounded-2xl border border-violet-200 bg-white/85 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold text-brand-midnight">Adjust cover</p><p className="mt-1 text-caption text-brand-slate">Drag the photo to position it inside your Jox circle.</p></div><button type="button" onClick={() => setEditingCover(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button></div><div ref={coverCrop} className="relative mx-auto mt-4 h-44 w-44 touch-none overflow-hidden rounded-full border-4 border-violet-100 bg-violet-50 shadow-soft" onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); coverDrag.current={x:event.clientX,y:event.clientY,positionX:coverPresentation.positionX,positionY:coverPresentation.positionY}; }} onPointerMove={event => { const drag=coverDrag.current, rect=coverCrop.current?.getBoundingClientRect(); if(!drag||!rect)return; const room=Math.max(.2,coverPresentation.scale-1); setCoverPresentation(value=>({...value,positionX:Math.max(-1,Math.min(1,drag.positionX+(event.clientX-drag.x)/rect.width/room)),positionY:Math.max(-1,Math.min(1,drag.positionY+(event.clientY-drag.y)/rect.height/room))})); }} onPointerUp={() => { coverDrag.current=null; }} onPointerCancel={() => { coverDrag.current=null; }}><img src={coverUrl} alt="Adjust Jox cover" draggable={false} className="h-full w-full select-none object-cover" style={{ transform: `translate(${coverPresentation.positionX * (coverPresentation.scale - 1) * 50}%, ${coverPresentation.positionY * (coverPresentation.scale - 1) * 50}%) scale(${coverPresentation.scale})` }} /></div><label className="mt-4 block text-caption font-bold text-brand-midnight">Zoom<input aria-label="Cover zoom" type="range" min="1" max="3" step="0.05" value={coverPresentation.scale} onChange={event => setCoverPresentation(value=>({ ...value, scale:Number(event.target.value) }))} className="mt-2 block w-full accent-violet-600" /></label><button type="button" onClick={() => setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 })} className="mt-3 text-caption font-bold text-violet-700">Reset</button></div> : null;
   return (
     <section className="rounded-3xl border border-brand-borderLight bg-white p-4 pb-24 text-brand-midnight shadow-elevated sm:p-7 sm:pb-7">
       <div className="flex items-center justify-between">
@@ -529,6 +541,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       </div>
       <input ref={input} type="file" className="hidden" onChange={add} />
       <input ref={uploadInput} type="file" accept="audio/webm,.webm" className="hidden" aria-label="Upload audio for your Jox" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadJox(file); }} />
+      {isJoxCreator && coverFile && !vijox && coverEditor}
       {isJoxCreator && recording && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-5 text-center">
           <p className="text-[10px] font-extrabold tracking-[.16em] text-violet-700">
@@ -570,15 +583,17 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       )}
       {isJoxCreator && vijox && (
         <div className="mt-4 rounded-3xl border border-violet-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50 p-4">
-          <VijoxExperience src={vijoxUrl || ""} duration={seconds || MAX} avatar={profile.avatar} name={profile.name} cover={coverFile ? { id: `cover-${coverFile.name}`, url: urls[files.indexOf(coverFile)], alt: "Selected Jox cover" } : null} images={images.filter(image => image !== coverFile).map((image, index) => ({ id: `${image.name}-${index}`, url: urls[files.indexOf(image)], alt: "Selected Jox companion image" }))} transcript={vijoxTranscriptText.trim() ? { text: vijoxTranscriptText.trim() } : null} />
+          <VijoxExperience src={vijoxUrl || ""} duration={seconds || MAX} avatar={profile.avatar} name={profile.name} cover={coverFile && coverUrl ? { id: `cover-${coverFile.name}`, url: coverUrl, alt: "Selected Jox cover", ...coverPresentation } : null} images={images.map((image, index) => ({ id: `${image.name}-${index}`, url: urls[files.indexOf(image)], alt: "Selected Jox companion image" }))} transcript={vijoxTranscriptText.trim() ? { text: vijoxTranscriptText.trim() } : null} />
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={record} className="rounded-xl border border-brand-indigo/20 bg-white px-3 py-2 text-caption font-bold text-brand-indigo">Jox Again</button>
-            {coverFile && <button onClick={() => setCoverFile(null)} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700">Remove cover</button>}
+            {coverFile && <><button type="button" onClick={() => choose("image", "cover")} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700">Change cover</button><button type="button" onClick={() => { setCoverFile(null); setEditingCover(false); setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 }); }} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700">Remove cover</button></>}
             <button onClick={removeVijox} aria-label="Remove VIJOX" className="flex items-center gap-1 px-2 py-2 text-caption font-bold text-brand-coral"><Trash2 className="h-3.5 w-3.5" />Remove</button>
             <button onClick={() => setEditingVijoxTranscript(true)} aria-label={vijoxTranscriptText.trim() ? "Edit VIJOX transcript" : "Add VIJOX transcript"} className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-caption font-bold text-violet-700">{vijoxTranscriptText.trim() ? "Edit transcript" : "Add transcript"}</button>
           </div>
+          {coverEditor}
           {quietJox && <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-caption text-violet-800">Your voice sounds a little quiet. Jox Again for better clarity.</p>}
           {editingVijoxTranscript && <div className="mt-3 rounded-2xl border border-violet-100 bg-white/80 p-3"><label htmlFor="vijox-transcript" className="text-caption font-bold text-brand-midnight">Add the words spoken in your VIJOX</label><textarea id="vijox-transcript" value={vijoxTranscriptText} onChange={event => setVijoxTranscriptText(event.target.value)} maxLength={2000} rows={3} className="mt-2 w-full resize-none rounded-xl border border-brand-borderLight bg-white p-3 text-body-sm text-brand-midnight outline-none focus:border-brand-indigo" aria-describedby="vijox-transcript-count" /><div className="mt-2 flex flex-wrap items-center justify-between gap-2"><span id="vijox-transcript-count" className="text-caption text-brand-slate">{vijoxTranscriptText.length} / 2000 characters</span><div className="flex gap-2"><button type="button" onClick={() => setEditingVijoxTranscript(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button><button type="button" onClick={() => { setVijoxTranscriptText(""); setEditingVijoxTranscript(false); }} aria-label="Remove VIJOX transcript" className="rounded-lg px-3 py-1.5 text-caption font-bold text-brand-coral">Remove transcript</button></div></div></div>}
+          {images.length > 0 && <div className="mt-4"><p className="text-caption font-bold text-brand-midnight">Companion images</p><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{images.map((image,index) => { const fileIndex=files.indexOf(image); return <div key={`${image.name}-${fileIndex}`} className="relative overflow-hidden rounded-xl border border-violet-100 bg-white"><img src={urls[fileIndex]} alt="Selected companion image" className="h-24 w-full object-cover"/><button type="button" onClick={() => setFiles(value=>value.filter(file=>file!==image))} aria-label={`Remove companion image ${index+1}`} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-brand-coral shadow-sm"><X className="h-4 w-4"/></button></div>})}</div></div>}
         </div>
       )}
       {images.length > 0 && !vijox && (
@@ -623,14 +638,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         </div>
       )}
       <div className="mt-5 flex flex-wrap gap-2 border-y border-brand-borderLight py-3">
-        <button
-          disabled={disabled("image")}
-          onClick={() => choose("image")}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"
-        >
-          <ImagePlus className="h-4 w-4" />
-          {isJoxCreator ? (coverFile ? "Add companion image" : "Add cover") : "Photo"}
-        </button>
+        {isJoxCreator ? <><button disabled={disabled("image")} onClick={() => choose("image", "cover")} className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />{coverFile ? "Change cover" : "Add cover"}</button>{coverFile && <button type="button" onClick={() => { setCoverFile(null); setEditingCover(false); setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 }); }} className="rounded-xl px-3 py-2 text-caption font-bold text-brand-coral">Remove cover</button>}<button disabled={disabled("image")} onClick={() => choose("image", "attachment")} className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />Add image</button></> : <button disabled={disabled("image")} onClick={() => choose("image")} className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />Photo</button>}
         {isJoxCreator ? <><button
           disabled={disabled("audio")}
           onClick={record}
@@ -658,7 +666,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         </>}
       </div>
       <p className="mt-2 text-caption text-brand-slate">
-        {isJoxCreator ? "Jox your voice in up to 27 seconds. Your cover appears inside the Jox player; add up to three companion images." : "Choose Post-native attachments, or use a dedicated creator for Jox and GLIMPS."}
+        {isJoxCreator ? "Jox your voice in up to 27 seconds. Cover and companion images are separate; add up to three companion images." : "Choose Post-native attachments, or use a dedicated creator for Jox and GLIMPS."}
       </p>
       <div className="mt-5 rounded-xl bg-brand-ivory/65 p-3">
         <p className="text-caption font-bold text-brand-slate">

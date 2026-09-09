@@ -51,7 +51,7 @@ export type Post = {
   vijoxTranscriptText?: string | null;
   vijoxTranscriptSegments?: { startMs: number; endMs: number; text: string }[] | null;
   vijoxTimedReactionSummary?: VijoxTimedReactionSummary;
-  joxCover?: { id: string; url: string; fileName: string } | null;
+  joxCover?: { id: string; url: string; fileName: string; scale: number; positionX: number; positionY: number } | null;
   author: {
     type: string;
     id: string;
@@ -540,7 +540,7 @@ export function PostCard({
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
             ) : post.contentDomain === "jox" && m.type === "audio" ? (
-              <VijoxPlayer key={m.id} postId={post.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} cover={post.joxCover ? { id:post.joxCover.id,url:post.joxCover.url,alt:"Jox cover" } : null} images={post.media.filter(item => item.type === "image" && item.id !== post.joxCover?.id).map(item => ({ id:item.id,url:item.url,alt:"Jox companion image",width:item.width,height:item.height }))} transcript={post.vijoxTranscriptText ? { text: post.vijoxTranscriptText, segments: post.vijoxTranscriptSegments || undefined } : null} initialTimedReactionSummary={post.vijoxTimedReactionSummary} />
+              <VijoxPlayer key={m.id} postId={post.id} src={m.url} duration={m.durationSeconds} avatar={post.author?.avatar} name={post.author?.name} cover={post.joxCover ? { id:post.joxCover.id,url:post.joxCover.url,alt:"Jox cover",scale:post.joxCover.scale,positionX:post.joxCover.positionX,positionY:post.joxCover.positionY } : null} images={post.media.filter(item => item.type === "image" && item.id !== post.joxCover?.id).map(item => ({ id:item.id,url:item.url,alt:"Jox companion image",width:item.width,height:item.height }))} transcript={post.vijoxTranscriptText ? { text: post.vijoxTranscriptText, segments: post.vijoxTranscriptSegments || undefined } : null} initialTimedReactionSummary={post.vijoxTimedReactionSummary} />
             ) : post.contentDomain === "jox" && m.type === "image" ? null : (
               <a
                 key={m.id}
