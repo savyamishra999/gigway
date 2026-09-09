@@ -63,11 +63,12 @@ export async function POST(req: NextRequest) {
   const contentFormat = toPersistedContentFormat(contentDomain);
   if (contentDomain === "jox" && rawBody !== null && rawBody.length > MAX_JOX_CAPTION_LENGTH) return NextResponse.json({ error: `A Jox caption can be up to ${MAX_JOX_CAPTION_LENGTH} characters.` }, { status: 400 });
   if (contentDomain === "glimps" && rawBody !== null && rawBody.length > MAX_GLIMPS_CAPTION_LENGTH) return NextResponse.json({ error: `A GLIMPS caption can be up to ${MAX_GLIMPS_CAPTION_LENGTH} characters.` }, { status: 400 });
-  const body = rawBody === null ? null : plainText(rawBody, contentDomain === "jox" ? MAX_JOX_CAPTION_LENGTH : contentDomain === "glimps" ? MAX_GLIMPS_CAPTION_LENGTH : 5000, 0);
+  if (contentDomain === "post" && rawBody !== null && rawBody.length > 280) return NextResponse.json({ error: "A post can be up to 280 characters." }, { status: 400 });
+  const body = rawBody === null ? null : plainText(rawBody, contentDomain === "jox" ? MAX_JOX_CAPTION_LENGTH : contentDomain === "glimps" ? MAX_GLIMPS_CAPTION_LENGTH : 280, 0);
   if (contentDomain !== "post" && !draft) return NextResponse.json({ error: "A media format must be created as a draft before publishing." }, { status: 400 });
   if (typeof b.vijoxTranscriptText !== "undefined" && (contentDomain !== "jox" || !draft || transcript === null)) return NextResponse.json({ error: `A Jox transcript must be plain text of up to ${MAX_VIJOX_TRANSCRIPT_LENGTH} characters and attached while creating a Jox draft.` }, { status: 400 });
   const momentSlug = typeof b.momentSlug === "string" && specialMoments.some((moment) => moment.slug === b.momentSlug) ? b.momentSlug : null;
-  if (body === null || !visibility || (!body && !draft)) return NextResponse.json({ error: "Enter a plain-text post of up to 5,000 characters." }, { status: 400 });
+  if (body === null || !visibility || (!body && !draft)) return NextResponse.json({ error: "Enter a plain-text post of up to 280 characters." }, { status: 400 });
 
   const db = socialDb();
   let author_profile_id: string | null = null;

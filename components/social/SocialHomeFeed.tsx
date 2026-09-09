@@ -3,6 +3,8 @@ import Link from "next/link";
 import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
 import GlimpsRail from "@/components/social/GlimpsRail";
+import JoxOrbitRail from "@/components/social/JoxOrbitRail";
+import QualifiedPostView from "@/components/social/QualifiedPostView";
 import PostText from "@/components/social/PostText";
 import ExternalPostPreview from "@/components/social/ExternalPostPreview";
 import { externalPreviewFor, urlsInText } from "@/lib/social/external-links";
@@ -27,6 +29,7 @@ import {
   Send,
   Users,
   X,
+  Eye,
 } from "lucide-react";
 type Item = {
   id: string;
@@ -52,6 +55,7 @@ export type Post = {
   vijoxTranscriptSegments?: { startMs: number; endMs: number; text: string }[] | null;
   vijoxTimedReactionSummary?: VijoxTimedReactionSummary;
   joxCover?: { id: string; url: string; fileName: string; scale: number; positionX: number; positionY: number } | null;
+  viewCount?: number;
   author: {
     type: string;
     id: string;
@@ -107,7 +111,9 @@ type Props = {
   opportunities: OpportunityItem[];
   network: NetworkItem[];
   glimps: Post[];
+  jox: Post[];
 };
+const compactCount=(value:number)=>value>=1000000?`${(value/1000000).toFixed(value>=10000000?0:1)}M`:value>=1000?`${(value/1000).toFixed(value>=10000?0:1)}K`:`${value}`;
 const PROFESSIONAL_TOOLS: Item[] = [
   {
     id: "resume-intelligence",
@@ -199,10 +205,12 @@ export function PostCard({
   post,
   onRefresh = () => {},
   authHref,
+  viewCountOverride,
 }: {
   post: Post;
   onRefresh?: () => void;
   authHref?: string;
+  viewCountOverride?: number;
 }) {
   const [menu, setMenu] = useState(false),
     [editing, setEditing] = useState(false),
@@ -404,7 +412,7 @@ export function PostCard({
   const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
   const preview = comments, richPreviewUrls = post.contentDomain === "post" && post.body ? urlsInText(post.body).filter(url => !!externalPreviewFor(url)) : [];
   return (
-    <article className={`relative min-w-0 max-w-full rounded-2xl border bg-white p-4 shadow-soft ${post.momentSlug === "raksha-bandhan" ? "border-brand-coral/35" : "border-brand-borderLight"}`}>
+    <article className={`relative min-w-0 max-w-full border bg-white p-4 ${post.contentDomain === "post" ? "rounded-xl shadow-none" : "rounded-2xl shadow-soft"} ${post.momentSlug === "raksha-bandhan" ? "border-brand-coral/35" : "border-brand-borderLight"}`}>
       {post.momentSlug === "raksha-bandhan" && <p className="mb-3 text-caption font-bold tracking-[.12em] text-brand-coral">RAKSHA BANDHAN · GIGWAY MOMENT</p>}
       <div className="flex gap-3">
         {authorHref ? (
@@ -535,7 +543,7 @@ export function PostCard({
                 key={m.id}
                 src={m.url}
                 alt={m.fileName}
-                className={`mt-4 max-h-[620px] w-full max-w-full rounded-xl bg-brand-ivory object-contain ${m.height && m.width && m.height > m.width ? "mx-auto" : ""}`}
+                className={`mt-3 max-h-[400px] w-full max-w-full rounded-xl bg-brand-ivory object-contain sm:max-h-[500px] ${m.height && m.width && m.height > m.width ? "mx-auto" : ""}`}
               />
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
@@ -573,6 +581,7 @@ export function PostCard({
         >
           <Heart className={`inline h-4 w-4 ${liked ? "fill-current" : ""}`} /> {likeCount}
         </button>
+        {post.contentDomain === "post" && <span className="flex items-center gap-1" aria-label={`${viewCountOverride ?? post.viewCount ?? 0} views`}><Eye className="h-4 w-4" />{compactCount(viewCountOverride ?? post.viewCount ?? 0)}</span>}
         <div className="relative">
           <button onClick={share} className="flex items-center gap-1">
             <Send className="h-4 w-4" />
@@ -637,15 +646,22 @@ export function PostCard({
     </article>
   );
 }
+function ViewedPostCard({ post, onRefresh }: { post: Post; onRefresh: () => void }) {
+  const [viewCount, setViewCount] = useState(post.viewCount || 0);
+  useEffect(() => setViewCount(post.viewCount || 0), [post.id, post.viewCount]);
+  return <QualifiedPostView postId={post.id} onQualified={setViewCount}><PostCard post={post} onRefresh={onRefresh} viewCountOverride={viewCount} /></QualifiedPostView>;
+}
 export default function SocialHomeFeed({
   opportunities,
   network,
   glimps,
+  jox,
 }: Props) {
   const [feed, setFeed] = useState<"discover" | "following">("discover"),
     [posts, setPosts] = useState<FeedItem[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(false),
+    [tuneOpen, setTuneOpen] = useState(false),
     [cursor, setCursor] = useState<string | null>(null);
   const load = async (reset = false) => {
     setLoading(true);
@@ -694,7 +710,7 @@ export default function SocialHomeFeed({
   const insertedRailCount = posts.length < 3 ? 0 : Math.floor((posts.length - 3) / 4) + 1;
   const activeMoment = getActiveMoment();
   return (
-    <section className="mt-8 w-full min-w-0 max-w-3xl">
+    <section className="mt-6 w-full min-w-0 max-w-3xl">
       <MomentHomeCard moment={activeMoment} />
       <Link
         href="/social/create"
@@ -705,20 +721,24 @@ export default function SocialHomeFeed({
         </span>
         <Plus className="text-brand-coral" />
       </Link>
-      <div className="mt-5 flex rounded-xl bg-white p-1">
+      <div className="mt-4 flex min-w-0 gap-5 overflow-x-auto border-b border-brand-borderLight px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setFeed("discover")}
-          className={`flex-1 rounded-lg py-2 font-bold ${feed === "discover" ? "bg-brand-indigo text-white" : "text-brand-slate"}`}
+          className={`shrink-0 border-b-2 py-2 text-caption font-extrabold ${feed === "discover" ? "border-brand-indigo text-brand-indigo" : "border-transparent text-brand-slate"}`}
         >
-          For You
+          FOR YOU
         </button>
         <button
           onClick={() => setFeed("following")}
-          className={`flex-1 rounded-lg py-2 font-bold ${feed === "following" ? "bg-brand-indigo text-white" : "text-brand-slate"}`}
+          className={`shrink-0 border-b-2 py-2 text-caption font-extrabold ${feed === "following" ? "border-brand-indigo text-brand-indigo" : "border-transparent text-brand-slate"}`}
         >
-          Following
+          FOLLOWING
         </button>
+        <span className="shrink-0 py-2 text-caption font-bold text-brand-slate" aria-disabled="true">NEAR YOU</span>
+        <button type="button" onClick={() => setTuneOpen(value => !value)} aria-expanded={tuneOpen} className="shrink-0 border-b-2 border-transparent py-2 text-caption font-extrabold text-brand-indigo">✦ TUNE</button>
       </div>
+      {tuneOpen && <p className="mt-2 text-caption text-brand-slate" role="status">Tune preferences are not available yet. Your current feed remains unchanged.</p>}
+      <JoxOrbitRail items={jox} />
       <GlimpsRail items={glimps} />
       <div className="mt-5">
         {posts.map((item, i) => {
@@ -753,7 +773,7 @@ export default function SocialHomeFeed({
                   <span className="shrink-0">reposted</span>
                 </p>
               )}
-              <PostCard post={post} onRefresh={() => load(true)} />
+              {post.contentDomain === "post" ? <ViewedPostCard post={post} onRefresh={() => load(true)} /> : <PostCard post={post} onRefresh={() => load(true)} />}
               {feed === "discover" && i + 1 >= 3 && (i + 1 - 3) % 4 === 0
                 ? discoveryRails[Math.floor((i - 2) / 4)]
                 : null}

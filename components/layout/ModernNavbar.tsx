@@ -41,11 +41,13 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const supabase = createClient()
   const pathname = usePathname()
   const focusedGlimpsCreator = pathname === "/social/glimps/create"
+  const homeExperience = pathname === "/home"
   const router = useRouter()
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [profile, setProfile] = useState<{ full_name?: string | null; username?: string | null; avatar_url?: string | null } | null>(null)
   const [open, setOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [mobileChromeHidden, setMobileChromeHidden] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -56,6 +58,18 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
       }
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let previous = window.scrollY
+    const onScroll = () => {
+      const current = window.scrollY, focused = document.activeElement?.matches("input,textarea,[contenteditable=true]")
+      if (!homeExperience || focused || open || current < 48) { setMobileChromeHidden(false); previous=current; return }
+      if (current - previous > 18) setMobileChromeHidden(true)
+      if (previous - current > 8) setMobileChromeHidden(false)
+      previous=current
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [homeExperience, open])
 
   const homeHref = user ? "/home" : "/"
   const resolveHref = (href: string) => (href === "/" ? homeHref : href)
@@ -78,7 +92,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
+      <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl transition-transform duration-200 ${homeExperience && mobileChromeHidden ? "max-lg:-translate-y-full" : "max-lg:translate-y-0"} ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
           <Link href="/" className="shrink-0">
             <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-10 w-auto" />
@@ -174,7 +188,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
       </header>
 
       {user && (
-        <nav className={`fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-brand-borderLight bg-white/95 px-2 py-2 backdrop-blur lg:hidden ${focusedGlimpsCreator ? "hidden" : ""}`}>
+        <nav className={`fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-brand-borderLight bg-white/95 px-2 py-2 backdrop-blur transition-transform duration-200 lg:hidden ${homeExperience && mobileChromeHidden ? "translate-y-full" : "translate-y-0"} ${focusedGlimpsCreator ? "hidden" : ""}`}>
           {MOBILE_TABS.map(item => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")

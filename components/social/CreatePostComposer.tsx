@@ -498,7 +498,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         ref={textarea}
         value={body}
         onChange={(e) => {
-          setBody(e.target.value.slice(0, isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000));
+          setBody(e.target.value.slice(0, isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 280));
           setCursor(e.target.selectionStart);
           setClosed(false);
         }}
@@ -523,7 +523,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         }}
         disabled={busy || recording}
         rows={7}
-        maxLength={isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000}
+        maxLength={isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 280}
         placeholder={isJoxCreator ? "Add a short note…" : "Share something useful with your professional network..."}
         className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
@@ -537,7 +537,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         </div>
       )}
       <div className="mt-1 text-right text-caption text-brand-slate">
-        {body.length}/{isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 5000}
+        <span className={(!isJoxCreator && body.length >= 240) ? "font-bold text-brand-coral" : ""}>{body.length}/{isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 280}</span>
       </div>
       <input ref={input} type="file" className="hidden" onChange={add} />
       <input ref={uploadInput} type="file" accept="audio/webm,.webm" className="hidden" aria-label="Upload audio for your Jox" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadJox(file); }} />
