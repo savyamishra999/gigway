@@ -22,6 +22,7 @@ import type { VideoMetadata } from "@/lib/social/video";
 import VijoxExperience from "@/components/social/VijoxExperience";
 import VijoxCircularProgress from "@/components/social/VijoxCircularProgress";
 import { MAX_JOX_CAPTION_LENGTH } from "@/lib/social/content-domain";
+import type { PostHighlight } from "@/lib/social/gigthought";
 type Author = { id?: string; name: string; avatar?: string | null };
 type Props = { profile: Author; organizations: Author[]; mode?: "post" | "jox" };
 type Kind = "image" | "video" | "document" | "audio";
@@ -114,8 +115,9 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     start = useRef(0),
     quality = useRef({ meaningful: 0, quiet: 0, total: 0, updatedAt: 0 }),
     chunks = useRef<Blob[]>([]),
-    preview = useRef<HTMLAudioElement>(null), uploadRun = useRef(0), coverDrag = useRef<{ x: number; y: number; positionX: number; positionY: number } | null>(null);
+    preview = useRef<HTMLAudioElement>(null), uploadRun = useRef(0), coverDrag = useRef<{ x: number; y: number; positionX: number; positionY: number } | null>(null), highlightSelection = useRef({ start: 0, end: 0 });
   const [body, setBody] = useState(""),
+    [highlights, setHighlights] = useState<PostHighlight[]>([]),
     [cursor, setCursor] = useState(0),
     [closed, setClosed] = useState(false),
     [visibility, setVisibility] = useState("public"),
@@ -369,6 +371,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
               vijox && vijoxTranscriptText.trim()
                 ? vijoxTranscriptText.trim()
                 : undefined,
+            highlights: isJoxCreator ? undefined : highlights,
           }),
         }),
         cb = await created.json();
@@ -443,6 +446,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       : !!files.length && !(k === "audio" && images.length));
   const update = () => {
     const n = textarea.current?.selectionStart ?? cursor;
+    highlightSelection.current = { start: n, end: textarea.current?.selectionEnd ?? n };
     if (n !== cursor) setClosed(false);
     setCursor(n);
   };
@@ -499,10 +503,12 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         value={body}
         onChange={(e) => {
           setBody(e.target.value.slice(0, isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 280));
+          if (!isJoxCreator) setHighlights([]);
           setCursor(e.target.selectionStart);
           setClosed(false);
         }}
         onSelect={update}
+        onBlur={() => textarea.current?.setSelectionRange(highlightSelection.current.start, highlightSelection.current.end)}
         onClick={update}
         onKeyUp={update}
         onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -527,6 +533,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         placeholder={isJoxCreator ? "Add a short note…" : "Share something useful with your professional network..."}
         className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
+      {!isJoxCreator && <div className="mt-2 flex flex-wrap items-center gap-2"><button type="button" onClick={() => { const start=textarea.current?.selectionStart??0,end=textarea.current?.selectionEnd??0;if(end<=start||end-start>80)return;setHighlights(value=>[...value.filter(item=>end<=item.start||start>=item.end),{start,end}].sort((a,b)=>a.start-b.start).slice(0,8)); }} className="rounded-lg border border-brand-coral/30 px-2.5 py-1 text-caption font-bold text-brand-coral">Highlight selection</button>{highlights.map((range,index)=><button key={`${range.start}-${range.end}`} type="button" onClick={()=>setHighlights(value=>value.filter((_,i)=>i!==index))} className="max-w-full truncate text-caption font-semibold text-brand-coral underline underline-offset-2">Remove “{body.slice(range.start,range.end)}”</button>)}</div>}
       {active && !closed && (
         <div ref={picker} className="relative z-10 mt-2">
           <MentionPicker

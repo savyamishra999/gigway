@@ -110,7 +110,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
             ))}
           </nav>
 
-          <form onSubmit={(e) => { e.preventDefault(); const value = new FormData(e.currentTarget).get("q")?.toString().trim(); router.push(`/explore${value ? `?q=${encodeURIComponent(value)}` : ""}`) }} className="group hidden md:flex ml-auto max-w-xl flex-1 items-center gap-3 rounded-pill border-2 border-brand-indigo/20 bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.04),0_10px_26px_-8px_rgba(79,70,229,.22),0_6px_18px_-10px_rgba(255,107,53,.15)] transition-all duration-200 hover:border-brand-indigo/35">
+  <form onSubmit={(e) => { e.preventDefault(); const value = new FormData(e.currentTarget).get("q")?.toString().trim(); router.push(`/social/explore${value ? `?q=${encodeURIComponent(value)}` : ""}`) }} className="group hidden md:flex ml-auto max-w-xl flex-1 items-center gap-3 rounded-pill border-2 border-brand-indigo/20 bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_0_0_1px_rgba(79,70,229,.04),0_10px_26px_-8px_rgba(79,70,229,.22),0_6px_18px_-10px_rgba(255,107,53,.15)] transition-all duration-200 hover:border-brand-indigo/35">
             <Search className="h-4 w-4 text-brand-indigo flex-shrink-0" />
             <input name="q" className="min-w-0 flex-1 bg-transparent text-body-sm font-medium text-brand-midnight outline-none placeholder:text-brand-slate" placeholder="Search people, skills, jobs, projects, or services..." />
             <button aria-label="Submit search" className="ml-auto flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-indigo/10 text-brand-indigo transition-colors group-hover:bg-brand-indigo group-hover:text-white">
@@ -119,7 +119,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
           </form>
 
           <div className="ml-auto flex items-center gap-1 md:ml-0">
-            <Link href="/explore" aria-label="Search"
+            <Link href="/social/explore" aria-label="Search"
               className="flex md:hidden rounded-full p-2.5 text-brand-indigo bg-brand-indigo/10 hover:bg-brand-indigo/15">
               <Search className="h-5 w-5" />
             </Link>

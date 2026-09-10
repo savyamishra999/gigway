@@ -3,6 +3,7 @@ import { canViewPost, enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_L
 import { parseContentDomain, toContentDomain, toPersistedContentFormat } from "@/lib/social/content-domain";
 import { MAX_GLIMPS_CAPTION_LENGTH, MAX_JOX_CAPTION_LENGTH } from "@/lib/social/content-domain";
 import { specialMoments } from "@/lib/moments";
+import { validPostHighlights } from "@/lib/social/gigthought";
 
 const PAGE_SIZE = 15;
 const FETCH_SIZE = PAGE_SIZE * 4 + 1;
@@ -65,6 +66,8 @@ export async function POST(req: NextRequest) {
   if (contentDomain === "glimps" && rawBody !== null && rawBody.length > MAX_GLIMPS_CAPTION_LENGTH) return NextResponse.json({ error: `A GLIMPS caption can be up to ${MAX_GLIMPS_CAPTION_LENGTH} characters.` }, { status: 400 });
   if (contentDomain === "post" && rawBody !== null && rawBody.length > 280) return NextResponse.json({ error: "A post can be up to 280 characters." }, { status: 400 });
   const body = rawBody === null ? null : plainText(rawBody, contentDomain === "jox" ? MAX_JOX_CAPTION_LENGTH : contentDomain === "glimps" ? MAX_GLIMPS_CAPTION_LENGTH : 280, 0);
+  const highlights = contentDomain === "post" && body ? validPostHighlights(b.highlights, body) : [];
+  if (contentDomain === "post" && typeof b.highlights !== "undefined" && (!Array.isArray(b.highlights) || highlights.length !== b.highlights.length)) return NextResponse.json({ error: "Invalid post highlights." }, { status: 400 });
   if (contentDomain !== "post" && !draft) return NextResponse.json({ error: "A media format must be created as a draft before publishing." }, { status: 400 });
   if (typeof b.vijoxTranscriptText !== "undefined" && (contentDomain !== "jox" || !draft || transcript === null)) return NextResponse.json({ error: `A Jox transcript must be plain text of up to ${MAX_VIJOX_TRANSCRIPT_LENGTH} characters and attached while creating a Jox draft.` }, { status: 400 });
   const momentSlug = typeof b.momentSlug === "string" && specialMoments.some((moment) => moment.slug === b.momentSlug) ? b.momentSlug : null;
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
     if (!readiness?.profile_completed) return NextResponse.json({ error: "Complete your minimum GigWay identity before posting." }, { status: 403 });
     author_profile_id = profile.id;
   }
-  const { data, error } = await db.from("posts").insert({ author_user_id: user.id, author_profile_id, author_organization_id, post_type: "text", content_format: contentFormat, body: body || null, visibility, status: draft ? "hidden" : "published", moment_slug: momentSlug, vijox_transcript_text: transcript || null, vijox_transcript_segments: null }).select(POST_FIELDS).single();
+  const { data, error } = await db.from("posts").insert({ author_user_id: user.id, author_profile_id, author_organization_id, post_type: "text", content_format: contentFormat, body: body || null, visibility, status: draft ? "hidden" : "published", moment_slug: momentSlug, vijox_transcript_text: transcript || null, vijox_transcript_segments: null, post_highlights: highlights }).select(POST_FIELDS).single();
   if (error || !data) return NextResponse.json({ error: "We could not publish your post." }, { status: 503 });
   const mentions = [...new Set((body || "").match(/(^|\s)@([a-zA-Z0-9_]{1,32})/g)?.map((x) => x.trim().slice(1).toLowerCase()) || [])].slice(0, 5);
   if (mentions.length) {

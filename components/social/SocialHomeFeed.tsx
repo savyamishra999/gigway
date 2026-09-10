@@ -13,6 +13,7 @@ import { usePostLike } from "@/components/social/usePostEngagement";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
 import { useEffect, useState } from "react";
 import type { VijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions";
+import type { PostHighlight } from "@/lib/social/gigthought";
 import {
   Bookmark,
   BriefcaseBusiness,
@@ -56,6 +57,7 @@ export type Post = {
   vijoxTimedReactionSummary?: VijoxTimedReactionSummary;
   joxCover?: { id: string; url: string; fileName: string; scale: number; positionX: number; positionY: number } | null;
   viewCount?: number;
+  highlights?: PostHighlight[];
   author: {
     type: string;
     id: string;
@@ -536,7 +538,7 @@ export function PostCard({
         </div>
       ) : (
         <>
-          {post.body && post.contentDomain !== "jox" && <><PostText body={post.body} mentions={post.mentions} hiddenUrls={richPreviewUrls} />{post.contentDomain === "post" && <ExternalPostPreview body={post.body} />}</>}
+          {post.body && post.contentDomain !== "jox" && <><PostText body={post.body} mentions={post.mentions} highlights={post.highlights} hiddenUrls={richPreviewUrls} gigThought={post.contentDomain === "post"} />{post.contentDomain === "post" && <ExternalPostPreview body={post.body} />}</>}
           {post.media.map((m) =>
             m.type === "image" && post.contentDomain !== "jox" ? (
               <img
