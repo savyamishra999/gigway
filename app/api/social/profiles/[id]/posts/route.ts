@@ -6,12 +6,18 @@ const fields = SOCIAL_POST_FIELDS
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params, viewer = await requireSocialUser(), db = socialDb(), tab = req.nextUrl.searchParams.get("tab") === "reposts" ? "reposts" : "posts"
-    if (tab === "posts") {
-      const { data, error } = await db.from("posts").select(fields).eq("author_profile_id", id).eq("status", "published").order("created_at", { ascending: false }).limit(PAGE_SIZE + 1)
+    const { id } = await params, viewer = await requireSocialUser(), db = socialDb()
+    const requestedTab = req.nextUrl.searchParams.get("tab")
+    const tab = requestedTab === "jox" || requestedTab === "glimps" || requestedTab === "reposts" ? requestedTab : "gigthoughts"
+    if (tab !== "reposts") {
+      const cursor = req.nextUrl.searchParams.get("cursor"), [createdAt, cursorId] = cursor?.split("|") || []
+      let query = db.from("posts").select(fields).eq("author_profile_id", id).eq("status", "published").eq("content_format", tab === "gigthoughts" ? "standard" : tab === "jox" ? "vijox" : "glimps").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(PAGE_SIZE * 4 + 1)
+      if (createdAt && cursorId) query = query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${cursorId})`)
+      const { data, error } = await query
       if (error) throw error
-      const visible: any[] = []; for (const post of data || []) if (await canViewPost(post, viewer?.id)) visible.push(post)
-      return NextResponse.json({ items: await Promise.all(visible.slice(0, PAGE_SIZE).map(post => safePost(post, viewer?.id))), nextCursor: visible.length > PAGE_SIZE ? visible[PAGE_SIZE - 1].created_at : null })
+      const visible: any[] = []; for (const post of data || []) { if (await canViewPost(post, viewer?.id)) visible.push(post); if (visible.length > PAGE_SIZE) break }
+      const page = visible.slice(0, PAGE_SIZE), marker = page.at(-1)
+      return NextResponse.json({ items: await Promise.all(page.map(post => safePost(post, viewer?.id))), nextCursor: visible.length > PAGE_SIZE && marker ? `${marker.created_at}|${marker.id}` : null })
     }
     const [repostsRes, sharesRes] = await Promise.all([db.from("post_reposts").select("post_id,created_at").eq("user_id", id).order("created_at", { ascending: false }).limit(30), db.from("marketplace_shares").select("id,job_id,project_id,service_id,created_at").eq("actor_user_id", id).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(30)])
     if (repostsRes.error || sharesRes.error) throw repostsRes.error || sharesRes.error
