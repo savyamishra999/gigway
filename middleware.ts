@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import { safeReturnTo } from "@/lib/auth/return-to"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
   .split(",").map(e => e.trim().toLowerCase())
@@ -46,7 +47,7 @@ export async function middleware(req: NextRequest) {
 
   if (needsAuth && !session) {
     const loginUrl = new URL("/login", req.url)
-    loginUrl.searchParams.set("next", pathname)
+    loginUrl.searchParams.set("next", safeReturnTo(`${pathname}${req.nextUrl.search}`, "/"))
     return NextResponse.redirect(loginUrl)
   }
 

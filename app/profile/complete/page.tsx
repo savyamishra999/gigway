@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import IdentityOnboarding from "@/components/identity/IdentityOnboarding"
-import { resolveRoles } from "@/lib/roles"
+import { safeReturnTo } from "@/lib/auth/return-to"
 
-export default async function ProfileCompletePage() {
+export default async function ProfileCompletePage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const next = safeReturnTo((await searchParams).next, "")
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -16,12 +17,11 @@ export default async function ProfileCompletePage() {
     .eq("id", user.id)
     .single()
 
-  const roles = resolveRoles(profile)
   // "Done" now also requires a configured role/work-intent — closes the gap where a
   // user could finish identity setup (username + profile_completed) without ever
   // getting a find_work/hire_talent role, which the legacy-gated pages depend on.
-  const onboardingDone = profile?.profile_completed === true && !!profile?.username && roles.isConfigured
-  if (onboardingDone) redirect("/home")
+  const onboardingDone = profile?.profile_completed === true && !!profile?.username
+  if (onboardingDone) redirect(next || "/home")
 
   const { data: intents } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true)
 
@@ -39,7 +39,7 @@ export default async function ProfileCompletePage() {
         </div>
 
         <div className="bg-white border border-brand-borderLight rounded-2xl p-6 shadow-soft sm:p-8">
-          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} rolesConfigured={roles.isConfigured} />
+          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} next={next} />
         </div>
 
         <p className="text-center text-brand-slate text-xs mt-6">

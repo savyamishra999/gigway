@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
-import { resolveRoles } from "@/lib/roles"
+import { safeReturnTo } from "@/lib/auth/return-to"
 
 const adminDb = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,9 +12,10 @@ const adminDb = createServiceClient(
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
+  const next = safeReturnTo(searchParams.get("next"), "")
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=no_code`)
+    return NextResponse.redirect(`${origin}/login?error=no_code${next ? `&next=${encodeURIComponent(next)}` : ""}`)
   }
 
   const cookieStore = await cookies()
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
 
   if (error || !user) {
     console.error("[auth/callback] exchangeCodeForSession error:", error?.message)
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    return NextResponse.redirect(`${origin}/login?error=auth_failed${next ? `&next=${encodeURIComponent(next)}` : ""}`)
   }
 
   // Admin shortcut
@@ -59,14 +60,18 @@ export async function GET(request: Request) {
 
   if (!profile) {
     // New user — use service role so RLS cannot block this insert
-    await adminDb.from("profiles").insert({
+    const { error: ensureError } = await adminDb.from("profiles").upsert({
       id:               user.id,
       email:            user.email,
       full_name:        user.user_metadata?.full_name   ?? null,
       avatar_url:       user.user_metadata?.avatar_url  ?? null,
       profile_completed: false,
       user_roles:       [],
-    }).then(() => null, (e) => console.error("[auth/callback] profile insert:", e))
+    }, { onConflict: "id", ignoreDuplicates: true })
+    if (ensureError) {
+      console.error("[auth/callback] profile ensure failed:", ensureError.code)
+      return NextResponse.redirect(`${origin}/login?error=profile_setup_failed${next ? `&next=${encodeURIComponent(next)}` : ""}`)
+    }
 
     // Referral bonus
     const refCookie = cookieStore.get("gigway_ref")?.value
@@ -91,14 +96,14 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${origin}/profile/complete`)
+    return NextResponse.redirect(`${origin}/profile/complete${next ? `?next=${encodeURIComponent(next)}` : ""}`)
   }
 
   // profile exists — but if user_roles is empty, onboarding was never finished
-  const onboardingDone = profile.profile_completed && !!profile.username && resolveRoles(profile).isConfigured
+  const onboardingDone = profile.profile_completed && !!profile.username
   if (!onboardingDone) {
-    return NextResponse.redirect(`${origin}/profile/complete`)
+    return NextResponse.redirect(`${origin}/profile/complete${next ? `?next=${encodeURIComponent(next)}` : ""}`)
   }
 
-  return NextResponse.redirect(`${origin}/home`)
+  return NextResponse.redirect(`${origin}${next || "/home"}`)
 }

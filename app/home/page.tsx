@@ -6,6 +6,7 @@ import { scoreOpportunity } from "@/lib/recommendations";
 import { scoreIntentAwareOpportunity, scoreNetworkCandidate } from "@/lib/recommendations/intentRanking";
 import { accessibleGlimpsPage, accessibleJoxPage, safePost } from "@/lib/social/server";
 import type { Post } from "@/components/social/SocialHomeFeed";
+import { compactIntentLabels } from "@/lib/identity";
 
 const CANONICAL_INTENTS = new Set(["looking_for_work", "looking_for_project", "offering_services", "hiring_talent", "grow_network"]);
 
@@ -39,6 +40,13 @@ export default async function HomeHub() {
     db.from("proposals").select("id", { count: "exact", head: true }).eq("freelancer_id", user.id),
   ]);
 
+  const peopleIds = (people || []).map((person) => person.id)
+  const { data: peopleIntents } = peopleIds.length
+    ? await db.from("profile_intents").select("profile_id,intent_type").in("profile_id", peopleIds).eq("is_active", true)
+    : { data: [] as { profile_id: string; intent_type: string }[] }
+  const intentsByProfile = new Map<string, string[]>()
+  for (const intent of peopleIntents || []) intentsByProfile.set(intent.profile_id, [...(intentsByProfile.get(intent.profile_id) || []), intent.intent_type])
+
   const activeIntents = new Set((intents || []).map((intent) => intent.intent_type).filter((intent) => CANONICAL_INTENTS.has(intent)));
   const signals = !!(profile?.skills?.length || profile?.location || profile?.job_function);
   const currentProfile = profile || {};
@@ -59,7 +67,7 @@ export default async function HomeHub() {
     ...(people || []).filter((item) => !followed.has(item.id)).map((item) => { const relevance = networkBaseScore(currentProfile, item); return { item, kind: "person" as const, ...scoreNetworkCandidate({ ...relevance, kind: "person", intents: activeIntents }) }; }),
     ...(organizations || []).filter((item) => !followedEntities.has(item.id)).map((item) => { const kind = item.entity_type === "company" ? "company" as const : "organization" as const; return { item, kind, ...scoreNetworkCandidate({ baseScore: 0, hasRelevantProfileSignal: false, kind, intents: activeIntents }) }; }),
   ].sort((a, b) => compareRanked({ ...a, id: a.item.id, created_at: a.item.created_at }, { ...b, id: b.item.id, created_at: b.item.created_at })).slice(0, 12);
-  const network = rankedNetwork.map(({ item, kind }) => kind === "person" ? { id: item.id, actorId: item.id, kind, name: item.full_name || "Professional", subtitle: item.tagline || item.skills?.slice(0, 2).join(" · "), href: `/u/${item.username}`, image: item.avatar_url } : { id: item.id, actorId: item.id, kind, name: item.name, subtitle: item.tagline || item.industry || (kind === "company" ? "Company" : "Organization"), href: `/u/${item.username}`, image: item.logo_url });
+  const network = rankedNetwork.map(({ item, kind }) => kind === "person" ? { id: item.id, actorId: item.id, kind, name: item.full_name || "Professional", subtitle: [item.tagline || item.skills?.slice(0, 2).join(" · "), compactIntentLabels(intentsByProfile.get(item.id)).join(" · ")].filter(Boolean).join(" · "), href: `/u/${item.username}`, image: item.avatar_url } : { id: item.id, actorId: item.id, kind, name: item.name, subtitle: item.tagline || item.industry || (kind === "company" ? "Company" : "Organization"), href: `/u/${item.username}`, image: item.logo_url });
 
   const first = profile?.full_name?.split(" ")[0] || "there";
   const [glimpsPage,joxPage] = await Promise.all([accessibleGlimpsPage(user.id, undefined, 8),accessibleJoxPage(user.id, undefined, 10)]), [glimps,jox] = await Promise.all([Promise.all(glimpsPage.posts.map((post) => safePost(post, user.id))),Promise.all(joxPage.posts.map((post) => safePost(post, user.id)))]) as [Post[],Post[]];

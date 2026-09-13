@@ -144,7 +144,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 <Link href="/login" className="hidden sm:block rounded-xl px-4 py-2 text-body-sm font-semibold text-brand-slate hover:text-brand-midnight">
                   Log in
                 </Link>
-                <Link href="/login" className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
+                <Link href="/login?mode=join" className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
                   Join GigWay
                 </Link>
               </div>

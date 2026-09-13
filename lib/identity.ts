@@ -8,6 +8,20 @@ export const WORK_MODES = [
 
 export type WorkMode = (typeof WORK_MODES)[number]["value"]
 
+const INTENT_LABELS: Record<WorkMode, string> = {
+  looking_for_work: "Open to Jobs",
+  looking_for_project: "Open to Freelance",
+  offering_services: "Offers Services",
+  hiring_talent: "Hiring Talent",
+  grow_network: "Open to Connect",
+}
+
+export function compactIntentLabels(values: string[] | null | undefined, maximum = 2) {
+  const labels = [...new Set((values ?? []).filter((value): value is WorkMode => value in INTENT_LABELS).map((value) => INTENT_LABELS[value]))]
+  if (labels.length <= maximum) return labels
+  return [...labels.slice(0, maximum), `+${labels.length - maximum}`]
+}
+
 export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._]{2,29}$/
 export const RESERVED_USERNAMES = new Set([
   "admin", "api", "auth", "dashboard", "login", "profile", "settings", "support",

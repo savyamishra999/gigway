@@ -16,7 +16,7 @@ export default function FinalCTA() {
               Build your identity. Find work. Find people. Grow.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/login"
+              <Link href="/login?mode=join"
                 className="group flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-white text-brand-indigo font-bold text-body-lg hover:bg-white/90 transition-colors">
                 Join GigWay
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />

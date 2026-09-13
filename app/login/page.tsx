@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { safeReturnTo } from "@/lib/auth/return-to"
 import Image from "next/image"
 import Link from "next/link"
 import { Mail, Loader2, ArrowRight, ChevronLeft, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Briefcase, Users } from "lucide-react"
@@ -30,6 +32,9 @@ function friendlyAuthError(raw: string): string {
 }
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+  const join = searchParams.get("mode") === "join"
+  const next = safeReturnTo(searchParams.get("next"), "")
   const [email, setEmail]   = useState("")
   const [otp, setOtp]       = useState("")
   const [step, setStep]     = useState<"entry" | "otp">("entry")
@@ -43,7 +48,7 @@ export default function LoginPage() {
     setLoading(true); setMsg(null)
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
     })
     if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }) }
     else        { setStep("otp") }
@@ -55,7 +60,7 @@ export default function LoginPage() {
     setLoading(true); setMsg(null)
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" })
     if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }); setLoading(false); return }
-    window.location.href = "/auth/post-login"
+    window.location.href = `/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`
     setLoading(false)
   }
 
@@ -63,7 +68,7 @@ export default function LoginPage() {
     setLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
     })
     if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }); setLoading(false) }
   }
@@ -126,8 +131,8 @@ export default function LoginPage() {
           {step === "entry" ? (
             <>
               <div className="mb-7">
-                <h2 className="text-h2 font-extrabold text-brand-midnight mb-1.5">Welcome back</h2>
-                <p className="text-brand-slate text-body-sm">Continue building your professional identity and discover your next opportunity.</p>
+                <h2 className="text-h2 font-extrabold text-brand-midnight mb-1.5">{join ? "Create your GigWay identity" : "Welcome back"}</h2>
+                <p className="text-brand-slate text-body-sm">{join ? "Join the professional network built around work, talent and opportunity." : "Continue building your professional identity and discover your next opportunity."}</p>
               </div>
 
               {/* Google */}
@@ -168,7 +173,7 @@ export default function LoginPage() {
                   className="w-full flex items-center justify-center gap-2 bg-brand-indigo hover:bg-brand-indigoDark text-white font-semibold px-5 py-3.5 rounded-xl transition-all text-sm shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none">
                   {loading
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending code...</>
-                    : <><span>Send login code</span><ArrowRight className="h-4 w-4" /></>
+                    : <><span>{join ? "Continue with Email" : "Send login code"}</span><ArrowRight className="h-4 w-4" /></>
                   }
                 </button>
               </form>
@@ -243,7 +248,7 @@ export default function LoginPage() {
           {/* Bottom note */}
           <p className="text-center text-brand-slate/70 text-caption mt-8 leading-relaxed">
             By continuing, you agree to GigWay&apos;s Terms of Service.<br />
-            Choose your username and what you&apos;re open to after signing in.
+            {join ? <>Already on GigWay? <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-brand-indigo hover:underline">Sign in</Link></> : <>New to GigWay? <Link href={`/login?mode=join${next ? `&next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-brand-indigo hover:underline">Join GigWay</Link></>} · Choose your username and what you&apos;re open to after signing in.
           </p>
 
           {/* Lightweight footer */}

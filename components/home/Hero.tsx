@@ -21,35 +21,37 @@ export default function Hero() {
             </div>
 
             <h1 className="text-h2 leading-tight sm:text-display font-extrabold text-brand-midnight mb-6">
-              Your Work. Your Network.{" "}
-              <span className="text-brand-indigo">Your Next</span>{" "}
-              <span className="text-brand-coral">Opportunity.</span>
+              Your Professional Identity.<br />
+              <span className="text-brand-indigo">Work. Hire. Connect.</span>{" "}
+              <span className="text-brand-coral">Grow.</span>
             </h1>
 
             <p className="text-body-lg text-brand-slate mb-8 max-w-lg">
-              Build your professional identity, showcase your work, discover opportunities,
-              find talent and connect with the world — all in one place.
+              Find jobs, get freelance projects, offer your services, hire talent and build your professional network.
             </p>
 
             <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 mb-9 text-body-sm font-medium text-brand-slate">
-              <span>0% Platform Commission</span>
+              <span>Find Jobs</span>
               <span className="text-brand-borderLight">·</span>
-              <span>Free to Join</span>
+              <span>Freelance Projects</span>
               <span className="text-brand-borderLight">·</span>
-              <span>Built for the Global Workforce</span>
+              <span>Offer Services · Hire Talent</span>
             </div>
 
+            <p className="mb-5 text-caption font-semibold text-brand-indigo">Free to join · 0% platform commission</p>
+
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/login"
+              <Link href="/login?mode=join"
                 className="group flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-brand-indigo text-white font-bold text-body-lg shadow-elevated hover:bg-brand-indigoDark transition-colors">
-                Join GigWay
+                Create Your Professional Identity — Free
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link href="/explore"
+              <Link href="/work"
                 className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-brand-borderLight bg-white text-brand-midnight font-semibold text-body-lg hover:border-brand-indigo/30 hover:bg-brand-indigo/5 transition-colors">
-                Explore Opportunities
+                Explore Work
               </Link>
             </div>
+            <p className="mt-5 max-w-lg text-caption text-brand-slate">Share what you know and what you build through GigThoughts, JOX &amp; GLIMPS.</p>
           </div>
 
           {/* Right: product-led composition — identity + work + opportunity */}

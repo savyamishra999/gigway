@@ -1,21 +1,42 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeUsername, usernameError, WORK_MODES, mapModesToLegacyRoles, type HireAs } from "@/lib/identity"
 import { resolveRoles } from "@/lib/roles"
+
+const adminDb = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   // profile_intents.profile_id references public.profiles.id. Resolve the existing
   // personal profile first; never assume an auth UUID is a profile UUID.
-  const { data: profile, error: profileError } = await supabase.from("profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+  let { data: profile, error: profileError } = await supabase.from("profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
   if (profileError) return NextResponse.json({ error: `Could not find your personal profile: ${profileError.message}` }, { status: 500 })
-  if (!profile) return NextResponse.json({ error: "Your personal profile is unavailable. Work Modes were not changed; please contact support." }, { status: 409 })
+  if (!profile) {
+    const { error: ensureError } = await adminDb.from("profiles").upsert({
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name ?? null,
+      avatar_url: user.user_metadata?.avatar_url ?? null,
+      profile_completed: false,
+      user_roles: [],
+    }, { onConflict: "id", ignoreDuplicates: true })
+    if (ensureError) return NextResponse.json({ error: "Your professional profile could not be prepared. Please try again." }, { status: 503 })
+    const recovered = await supabase.from("profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+    profile = recovered.data
+    profileError = recovered.error
+  }
+  if (profileError || !profile) return NextResponse.json({ error: "Your personal profile is unavailable. Please try again." }, { status: 409 })
   const profileId = profile.id
   const body = await request.json()
   const requestedModes = Array.isArray(body.modes) ? body.modes : []
   const modes = requestedModes.filter((mode: unknown) => WORK_MODES.some(item => item.value === mode))
   if (modes.length !== requestedModes.length) return NextResponse.json({ error: "Invalid interest selection." }, { status: 400 })
+  if (body.completingSetup === true && modes.length === 0) return NextResponse.json({ error: "Choose at least one way you want to use GigWay." }, { status: 400 })
   if (body.interestsOnly === true) {
     const { data: existingIntents, error: existingError } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", profileId)
     if (existingError) return NextResponse.json({ error: `Work Modes could not be read: ${existingError.message}` }, { status: 403 })
