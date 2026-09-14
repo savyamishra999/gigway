@@ -104,7 +104,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
                   <div className="flex items-center gap-1.5">
                     {employerHref ? <Link href={employerHref} className="text-brand-slate hover:text-brand-indigo">{companyDisplay}</Link> : <p className="text-brand-slate">{companyDisplay}</p>}
                     {(organization?.is_verified || poster?.is_verified) && <CheckCircle2 className="h-4 w-4 text-brand-indigo flex-shrink-0" />}
-                    {organization && <span className="text-caption font-bold text-brand-slate">{organization.entity_type === "company" ? "Company" : "Organization"}</span>}
+                    {organization && <span className="text-caption font-bold text-brand-slate">{organization.entity_type === "company" ? "Workplace / Company" : "Workplace"}</span>}
                   </div>
                 </div>
                 {job.job_type && (

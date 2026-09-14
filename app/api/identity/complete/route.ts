@@ -1,3 +1,4 @@
+import { checkUsernameClaim, USERNAME_UNAVAILABLE } from "@/lib/identity/username-server"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
@@ -82,8 +83,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (updatePayload.username !== undefined) {
+    const check = await checkUsernameClaim(updatePayload.username, { table: "profiles", id: profileId })
+    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    updatePayload.username = check.username
+  }
   const { error: saveError } = await supabase.from("profiles").update(updatePayload).eq("id", profileId)
-  if (saveError) return NextResponse.json({ error: saveError.code === "23505" ? "That username is already taken." : saveError.message }, { status: 409 })
+  if (saveError) return NextResponse.json({ error: saveError.code === "23505" ? USERNAME_UNAVAILABLE : saveError.message }, { status: 409 })
 
   // Replace only this user's explicit preferences; no legacy fields are touched.
   const { data: existingIntents, error: existingError } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", profileId)

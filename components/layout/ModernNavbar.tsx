@@ -22,18 +22,16 @@ const MOBILE_TABS = [
   { href: "/explore", label: "Network", icon: Compass },
   { href: "/create", label: "Create", icon: CirclePlus },
   { href: "/work", label: "Work", icon: Package },
-  { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/profile", label: "Account", icon: UserRound },
 ]
 
 const MENU_ITEMS = [
-  { href: "/social/vijox", label: "VIJOX", icon: Volume2 },
-  { href: "/social/glimps", label: "GLIMPS", icon: Video },
+  { href: "/profile/edit", label: "Edit Professional Identity", icon: UserRound },
+  { href: "/workplaces", label: "My Workplaces", icon: Building2 },
   { href: "/subscribe", label: "GigWay Pro", icon: Package },
   { href: "/ai-tools", label: "Professional Tools", icon: Sparkles },
-  { href: "/profile", label: "View Profile", icon: UserRound },
-  { href: "/profile/edit", label: "Edit Profile", icon: UserRound },
-  { href: "/profile", label: "My Organizations", icon: Building2 },
   { href: "/saved", label: "Saved", icon: Package },
+  { href: "/profile", label: "My Account", icon: UserRound },
   { href: "/contact", label: "Help & Support", icon: LifeBuoy },
 ]
 
@@ -93,9 +91,9 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   return (
     <>
       <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl transition-transform duration-200 ${homeExperience && mobileChromeHidden ? "max-lg:-translate-y-full" : "max-lg:translate-y-0"} ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:gap-4 sm:px-4">
           <Link href="/" className="shrink-0">
-            <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-10 w-auto" />
+            <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-auto w-16 sm:h-10 sm:w-auto" />
           </Link>
           <MomentHeader moment={moment} />
 
@@ -120,7 +118,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
 
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <Link href="/social/explore" aria-label="Search"
-              className="flex md:hidden rounded-full p-2.5 text-brand-indigo bg-brand-indigo/10 hover:bg-brand-indigo/15">
+              className="flex md:hidden rounded-full p-2 sm:p-2.5 text-brand-indigo bg-brand-indigo/10 hover:bg-brand-indigo/15">
               <Search className="h-5 w-5" />
             </Link>
             {user ? (
@@ -128,14 +126,14 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 <Link aria-label="Create" href="/create" className="hidden sm:flex rounded-lg p-2.5 text-brand-coral hover:bg-brand-coral/10">
                   <CirclePlus className="h-5 w-5" />
                 </Link>
-                <Link aria-label="Messages" href="/messages" className="rounded-lg p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
+                <Link aria-label="Messages" href="/messages" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
                   <MessageSquare className="h-5 w-5" />
                 </Link>
-                <Link aria-label="Notifications" href="/notifications" className="rounded-lg p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
+                <Link aria-label="Notifications" href="/notifications" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
                   <Bell className="h-5 w-5" />
                 </Link>
-                <button onClick={() => setOpen(!open)} aria-label="Account menu"
-                  className="h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-brand-indigo to-brand-coral text-sm font-bold text-white">
+                <button onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open} aria-controls="account-menu"
+                  className="h-8 w-8 shrink-0 overflow-hidden rounded-full sm:h-9 sm:w-9 bg-gradient-to-br from-brand-indigo to-brand-coral text-sm font-bold text-white">
                   {avatar}
                 </button>
               </>
@@ -149,14 +147,14 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 </Link>
               </div>
             )}
-            <button onClick={() => setOpen(!open)} className="lg:hidden rounded-lg p-2 text-brand-slate" aria-label="Menu">
+            <button onClick={() => setOpen(!open)} className="lg:hidden rounded-lg p-1.5 sm:p-2 text-brand-slate" aria-label="Menu" aria-expanded={open} aria-controls="account-menu">
               {open ? <X /> : <Menu />}
             </button>
           </div>
         </div>
 
         {open && (
-          <div className="border-t border-brand-borderLight bg-white px-4 py-3 lg:absolute lg:right-4 lg:top-14 lg:w-60 lg:rounded-xl lg:border lg:shadow-elevated">
+          <div id="account-menu" className="max-h-[calc(100dvh-9rem)] overflow-y-auto border-t border-brand-borderLight bg-white px-4 py-3 lg:absolute lg:right-4 lg:top-14 lg:w-72 lg:rounded-xl lg:border lg:shadow-elevated">
             <div className="lg:hidden grid gap-1 mb-2">
               {links.map(({ href, label }) => (
                 <Link key={href} href={resolveHref(href)} onClick={() => setOpen(false)}
@@ -168,6 +166,10 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
             {user ? (
               <div className="lg:mt-0 mt-2 border-t border-brand-borderLight pt-2 lg:border-t-0 lg:pt-0">
                 <p className="px-3 py-1.5 text-body-sm font-semibold text-brand-midnight truncate">{profile?.full_name || "My account"}</p>
+                {profile?.username && <p className="truncate px-3 pb-2 text-caption text-brand-slate">@{profile.username}</p>}
+                <Link href={profile?.username ? `/u/${profile.username}` : "/profile/complete"} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-50 hover:text-brand-midnight">
+                  {profile?.username ? "View Professional Identity" : "Complete Professional Identity"}
+                </Link>
                 {MENU_ITEMS.map(item => (
                   <Link key={item.label} href={item.href} onClick={() => setOpen(false)}
                     className="block rounded-lg px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-50 hover:text-brand-midnight">

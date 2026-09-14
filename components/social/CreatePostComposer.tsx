@@ -493,7 +493,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
           <option value="personal">{profile.name} · Personal profile</option>
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
-              {o.name} · Organization
+              {o.name} · Workplace
             </option>
           ))}
         </select>

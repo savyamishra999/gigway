@@ -25,7 +25,7 @@ const COLUMNS = [
     links: [
       { href: "/freelancers",     label: "Find Talent" },
       { href: "/jobs/new",        label: "Post a Job" },
-      { href: "/organizations/new", label: "Create Organization" },
+      { href: "/organizations/new", label: "Create Workplace" },
     ],
   },
   {

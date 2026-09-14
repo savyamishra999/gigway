@@ -36,7 +36,7 @@ export default async function EditProfilePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-10 pb-24">
       <div className="container mx-auto max-w-3xl px-4">
-        <div className="mb-8"><p className="text-xs font-bold tracking-[.16em] text-[#A99FFF]">YOUR PROFESSIONAL IDENTITY</p><h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Edit your profile</h1><p className="mt-2 text-sm text-[#98A1B3]">Make it easy for the right people and opportunities to find you.</p></div>
+        <div className="mb-8"><p className="text-xs font-bold tracking-[.16em] text-[#A99FFF]">YOUR PROFESSIONAL IDENTITY</p><h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Edit Professional Identity</h1><p className="mt-2 text-sm text-[#98A1B3]">Make it easy for the right people and opportunities to find you.</p></div>
         <div className="mb-6 rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/8"><WorkModesEditor initialModes={activeModes} /></div>
         <div className="rounded-3xl bg-[#15151d] p-4 sm:p-7 ring-1 ring-white/8"><EditProfileForm profile={profile} userId={user.id} activeModes={activeModes} organizations={organizations} /></div>
       </div>

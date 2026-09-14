@@ -84,7 +84,7 @@ export default function JobForm({ userId, organizations = [], initialOrganizatio
             </div>
           )}
 
-          {organizations.length > 0 && <div className="space-y-2"><Label className="text-gray-300">Post as</Label><Select value={organizationId || "personal"} onValueChange={value => setOrganizationId(value === "personal" ? "" : value)}><SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger><SelectContent className="bg-[#1a1a1a] border-white/10 text-white"><SelectItem value="personal">Personal account</SelectItem>{organizations.map(org => <SelectItem key={org.id} value={org.id}>{org.name} · {org.entity_type === "company" ? "Company" : "Organization"}</SelectItem>)}</SelectContent></Select></div>}
+          {organizations.length > 0 && <div className="space-y-2"><Label className="text-gray-300">Post as</Label><Select value={organizationId || "personal"} onValueChange={value => setOrganizationId(value === "personal" ? "" : value)}><SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger><SelectContent className="bg-[#1a1a1a] border-white/10 text-white"><SelectItem value="personal">Personal account</SelectItem>{organizations.map(org => <SelectItem key={org.id} value={org.id}>{org.name} · {org.entity_type === "company" ? "Workplace / Company" : "Workplace"}</SelectItem>)}</SelectContent></Select></div>}
 
           <div className="space-y-2">
             <Label className="text-gray-300">Job Title *</Label>

@@ -119,7 +119,7 @@ const AVAILABILITY_OPTIONS = [
   { value: "not-available", label: "Not Available" },
 ]
 
-const TABS = ["Profile", "About", "Skills", "Work", "Portfolio", "Preferences", "Organizations"] as const
+const TABS = ["Profile", "About", "Skills", "Work", "Portfolio", "Preferences", "Workplaces"] as const
 type Tab = (typeof TABS)[number]
 
 function normalizeJobFunction(value: string | string[] | null | undefined): string[] {
@@ -444,7 +444,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
             <Section title="Hiring">
               {hasOrganizations ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-[#94A3B8]">You&apos;re hiring through the organization(s) below — manage their jobs, projects and details there.</p>
+                  <p className="text-sm text-[#94A3B8]">You&apos;re hiring through the Workplaces below — manage their jobs, projects and details there.</p>
                   {organizations.map(org => (
                     <div key={org.username} className="flex items-center gap-3 bg-[#0F172A] border border-[#334155] rounded-xl p-3.5">
                       <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/15 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -461,11 +461,11 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
                       )}
                     </div>
                   ))}
-                  <Link href="/organizations/new" className="text-xs font-semibold text-[#818CF8] hover:text-white">+ Create another organization</Link>
+                  <Link href="/organizations/new" className="text-xs font-semibold text-[#818CF8] hover:text-white">+ Create another Workplace</Link>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-[#94A3B8]">Hiring on your own, without a company page yet? Fill this in — or <Link href="/organizations/new" className="text-[#818CF8] hover:text-white font-semibold">create an organization</Link> instead.</p>
+                  <p className="text-sm text-[#94A3B8]">Hiring on your own, without a company page yet? Fill this in — or <Link href="/organizations/new" className="text-[#818CF8] hover:text-white font-semibold">create a Workplace</Link> instead.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[#CBD5E1]">{htType === "company" ? "Company Name" : "Organisation / Name"}</Label>
@@ -552,8 +552,9 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
       )}
 
       {/* ── Organizations ── */}
-      {tab === "Organizations" && (
-        <Section title="Organizations" sub="Companies and teams you're part of.">
+      {tab === "Workplaces" && (
+        <Section title="Workplaces" sub="Companies and teams you're part of.">
+          <Link href="/workplaces" className="inline-block text-sm font-semibold text-[#818CF8] hover:text-white">Manage Workplaces</Link>
           {hasOrganizations ? (
             <div className="space-y-2">
               {organizations.map(org => (
@@ -572,9 +573,9 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
               ))}
             </div>
           ) : (
-            <p className="text-sm text-[#64748B]">You&apos;re not part of any organization yet.</p>
+            <p className="text-sm text-[#64748B]">You&apos;re not part of any Workplace yet.</p>
           )}
-          <Link href="/organizations/new" className="inline-block text-sm font-semibold text-[#818CF8] hover:text-white">+ Create an organization</Link>
+          <Link href="/organizations/new" className="inline-block text-sm font-semibold text-[#818CF8] hover:text-white">+ Create Workplace</Link>
         </Section>
       )}
 

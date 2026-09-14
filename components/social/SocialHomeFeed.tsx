@@ -801,7 +801,7 @@ export default function SocialHomeFeed({
           <div className="rounded-xl border border-brand-borderLight bg-white p-4 text-body-sm text-brand-slate">
             {feed === "following" ? (
               <>
-                <p>Follow professionals and organizations to build your feed.</p>
+                <p>Follow professionals and workplaces to build your feed.</p>
                 <Link href="/explore" className="mt-3 inline-block font-bold text-brand-indigo">
                   Explore professionals
                 </Link>
