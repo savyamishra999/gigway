@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import ProjectForm from "@/components/projects/ProjectForm"
 
-export default async function NewProjectPage() {
+export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ organization?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -10,10 +10,12 @@ export default async function NewProjectPage() {
 
   const { data: memberships } = await supabase.from("organization_members").select("organization_id, member_role, organizations(id,name,entity_type)").eq("profile_id", user.id).eq("status", "active").in("member_role", ["owner", "admin"])
   const organizations = (memberships || []).map((membership: any) => membership.organizations).filter(Boolean)
+  const requested = (await searchParams).organization
+  const initialOrganizationId = organizations.some((org: any) => org.id === requested) ? requested : ""
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#1a1a1a] py-10">
       <div className="container mx-auto px-4 max-w-2xl">
-        <ProjectForm userId={user.id} organizations={organizations} />
+        <ProjectForm userId={user.id} organizations={organizations} initialOrganizationId={initialOrganizationId} />
       </div>
     </div>
   )

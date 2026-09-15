@@ -8,8 +8,8 @@ import ProfileConnectionActions from "@/components/connections/ProfileConnection
 import { connectionRow, resolveConnectionState } from "@/lib/connections/server"
 import { socialDb } from "@/lib/social/server"
 import ProfileSocialFeed from "@/components/social/ProfileSocialFeed"
-import OrganizationSocialFeed from "@/components/social/OrganizationSocialFeed"
-import OrganizationFollowButton from "@/components/organizations/OrganizationFollowButton"
+import PublicWorkplace from "@/components/organizations/PublicWorkplace"
+import { WORKPLACE_FIELDS, workplaceSection, workplacePage } from "@/lib/organizations/public"
 
 function portfolioTitle(url: string) {
   try {
@@ -20,7 +20,7 @@ function portfolioTitle(url: string) {
   }
 }
 
-export default async function PublicIdentity({ params }: { params: Promise<{ username: string }> }) {
+export default async function PublicIdentity({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ section?: string; page?: string }> }) {
   const { username } = await params
   const supabase = await createClient()
   const { data: { user: viewer } } = await supabase.auth.getUser()
@@ -175,9 +175,8 @@ export default async function PublicIdentity({ params }: { params: Promise<{ use
     )
   }
 
-  const { data: organization } = await supabase.from("organizations").select("*").eq("username", username.toLowerCase()).maybeSingle()
+  const { data: organization } = await supabase.from("organizations").select(WORKPLACE_FIELDS).eq("username", username.toLowerCase()).maybeSingle()
   if (!organization) notFound()
-  const [{ count: followerCount }, { data: membership }, { data: following }] = await Promise.all([socialDb().from("organization_follows").select("organization_id", { count: "exact", head: true }).eq("organization_id", organization.id), viewer ? socialDb().from("organization_members").select("member_role").eq("organization_id", organization.id).eq("profile_id", viewer.id).eq("status", "active").maybeSingle() : Promise.resolve({ data: null }), viewer ? socialDb().from("organization_follows").select("organization_id").eq("organization_id", organization.id).eq("follower_user_id", viewer.id).maybeSingle() : Promise.resolve({ data: null })])
-  const isAdmin = !!membership && ["owner", "admin"].includes(membership.member_role)
-  return <main className="min-h-screen bg-brand-ivory pb-24"><div className="h-40 bg-gradient-to-br from-brand-indigo via-brand-indigoDark to-brand-coral/70">{organization.cover_url && <img src={organization.cover_url} alt="" className="h-full w-full object-cover" />}</div><section className="mx-auto max-w-4xl px-4"><div className="-mt-12 rounded-3xl border border-brand-borderLight bg-white p-5 shadow-elevated sm:p-8"><div className="flex flex-col gap-5 sm:flex-row sm:items-end"><div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-brand-ivory text-brand-indigo ring-4 ring-white">{organization.logo_url ? <img src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-9 w-9" />}</div><div className="min-w-0 flex-1"><p className="text-caption font-bold tracking-[.14em] text-brand-coral">Workplace</p><div className="mt-1 flex flex-wrap items-center gap-2"><h1 className="break-words text-2xl font-extrabold text-brand-midnight">{organization.name}</h1>{organization.is_verified && <CheckCircle2 className="h-5 w-5 text-brand-indigo" />}</div><p className="mt-1 break-all text-brand-slate">@{organization.username}</p>{organization.tagline && <p className="mt-2 text-body-sm text-brand-slate">{organization.tagline}</p>}</div><div className="flex flex-wrap gap-2">{viewer && <OrganizationFollowButton organizationId={organization.id} initialFollowing={!!following} />}{organization.website && <a href={organization.website} target="_blank" rel="noreferrer" className="rounded-xl border border-brand-borderLight px-4 py-2 text-sm font-bold text-brand-indigo">Website</a>}</div></div><div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-brand-slate"><span>{followerCount || 0} Followers</span>{organization.industry && <span>{organization.industry}</span>}{organization.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{organization.location}</span>}{organization.company_size && <span>{organization.company_size}</span>}</div>{organization.description && <section className="mt-7 border-t border-brand-borderLight pt-6"><h2 className="font-extrabold text-brand-midnight">About {organization.name}</h2><p className="mt-2 max-w-2xl text-body-sm leading-relaxed text-brand-slate">{organization.description}</p></section>}<OrganizationSocialFeed organizationId={organization.id} isAdmin={isAdmin} /></div></section></main>
+  const query = await searchParams
+  return <PublicWorkplace organization={organization} viewerId={viewer?.id} section={workplaceSection(query.section)} page={workplacePage(query.page)} />
 }

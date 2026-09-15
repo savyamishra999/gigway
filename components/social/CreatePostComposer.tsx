@@ -121,7 +121,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     [cursor, setCursor] = useState(0),
     [closed, setClosed] = useState(false),
     [visibility, setVisibility] = useState("public"),
-    [author, setAuthor] = useState("personal"),
+    [author, setAuthor] = useState(() => { const requested = params.get("organization"); return organizations.some(org => org.id === requested) ? requested! : "personal" }),
     [files, setFiles] = useState<File[]>([]),
     [error, setError] = useState(""),
     [status, setStatus] = useState<Status>("idle"),

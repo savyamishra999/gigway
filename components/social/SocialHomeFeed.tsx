@@ -428,6 +428,7 @@ export function PostCard({
         )}
         <div className="relative min-w-0 flex-1">
           {authorHref ? <Link href={authorHref} className="block truncate font-bold text-brand-midnight hover:text-brand-indigo">{post.author?.name || "GigWay member"}</Link> : <p className="truncate font-bold text-brand-midnight">{post.author?.name || "GigWay member"}</p>}
+          {post.author?.type === "organization" && <p className="text-caption font-semibold text-brand-indigo">Workplace</p>}
           <p className="truncate text-caption text-brand-slate">
             {post.author?.username ? `@${post.author.username} · ` : ""}
             <time dateTime={post.createdAt} title={new Date(post.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}>{relativePostTime(post.createdAt)}</time>

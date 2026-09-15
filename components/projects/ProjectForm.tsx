@@ -30,7 +30,7 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ]
 
-export default function ProjectForm({ userId, organizations = [] }: { userId: string; organizations?: { id: string; name: string; entity_type: "company" | "organization" }[] }) {
+export default function ProjectForm({ userId, organizations = [], initialOrganizationId = "" }: { userId: string; initialOrganizationId?: string; organizations?: { id: string; name: string; entity_type: "company" | "organization" }[] }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [category, setCategory] = useState("")
@@ -41,7 +41,7 @@ export default function ProjectForm({ userId, organizations = [] }: { userId: st
   const [skillsRequired, setSkillsRequired] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [organizationId, setOrganizationId] = useState("")
+  const [organizationId, setOrganizationId] = useState(initialOrganizationId)
   const [createdId, setCreatedId] = useState<string | null>(null)
   const router = useRouter()
 
