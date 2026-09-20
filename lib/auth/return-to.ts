@@ -30,3 +30,7 @@ export function completionHref(next?: string | null) {
   const destination = safeReturnTo(next, "")
   return `/profile/complete${destination ? `?next=${encodeURIComponent(destination)}` : ""}`
 }
+
+export function authenticatedRootDestination(pathname: string, authenticated: boolean) {
+  return authenticated && pathname === "/" ? "/auth/post-login" : null
+}

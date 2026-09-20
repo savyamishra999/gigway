@@ -1,9 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public"
-import { getViewer } from "@/lib/auth/server"
 import { Suspense } from "react"
 import { withDeadline } from "@/lib/async"
 import { SectionLoading, SectionUnavailable } from "@/components/layout/SectionStatus"
-import { redirect } from "next/navigation"
 import Hero from "@/components/home/Hero"
 import LiveStats from "@/components/home/LiveStats"
 import ProfessionalIdentity from "@/components/home/ProfessionalIdentity"
@@ -15,13 +13,6 @@ import TrustVerification from "@/components/home/TrustVerification"
 import HomePricing from "@/components/home/HomePricing"
 import WhyGigway from "@/components/home/WhyGigway"
 import FinalCTA from "@/components/home/FinalCTA"
-
-async function LandingRedirect() {
-  let user
-  try { user = await getViewer() } catch { return null }
-  if (user) redirect("/home")
-  return null
-}
 
 async function LandingData({ kind }: { kind: "stats" | "opportunities" }) {
   try {
@@ -48,7 +39,6 @@ async function LandingData({ kind }: { kind: "stats" | "opportunities" }) {
 
 export default function HomePage() {
   return <main>
-    <Suspense fallback={null}><LandingRedirect /></Suspense>
     <Hero />
     <Suspense fallback={<SectionLoading label="Loading community stats..." />}><LandingData kind="stats" /></Suspense>
     <ProfessionalIdentity />

@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { withDeadline } from "@/lib/async"
 import { safeReturnTo } from "@/lib/auth/return-to"
@@ -40,8 +40,17 @@ function LoginForm() {
   const [otp, setOtp]       = useState("")
   const [step, setStep]     = useState<"entry" | "otp">("entry")
   const [loading, setLoading] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ email?: string } | null>(null)
   const [msg, setMsg]       = useState<{ type: "success" | "error"; text: string } | null>(searchParams.get("error") ? { type: "error", text: "Sign-in could not be completed. Please try again. If you already signed in, continue below." } : null)
   const supabase = createClient()
+
+  useEffect(() => {
+    let active = true
+    void withDeadline(supabase.auth.getUser()).then(({ data }) => {
+      if (active) setCurrentUser(data.user)
+    }).catch(() => {})
+    return () => { active = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const runAuth = async (operation: () => Promise<void>) => {
     setLoading(true); setMsg(null)
@@ -67,8 +76,15 @@ function LoginForm() {
       window.location.assign(`/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`)
     })
   }
-  const handleGoogle = () => runAuth(async () => {
-    const { data, error } = await withDeadline(supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: callback(), skipBrowserRedirect: true } }))
+  const handleGoogle = (switchAccount = false) => runAuth(async () => {
+    const { data, error } = await withDeadline(supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: callback(),
+        skipBrowserRedirect: true,
+        queryParams: switchAccount ? { prompt: "select_account" } : undefined,
+      },
+    }))
     if (error) throw error
     if (!data.url) throw new Error("Sign-in could not be started")
     window.location.assign(data.url)
@@ -136,8 +152,13 @@ function LoginForm() {
                 <p className="text-brand-slate text-body-sm">{join ? "Join the professional network built around work, talent and opportunity." : "Continue building your professional identity and discover your next opportunity."}</p>
               </div>
 
+              {currentUser && <div className="mb-4 rounded-xl border border-brand-indigo/20 bg-brand-indigo/[.04] p-4">
+                <p className="text-sm font-semibold text-brand-midnight">Signed in as {currentUser.email || "your current account"}</p>
+                <a href={`/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="mt-3 inline-flex font-semibold text-brand-indigo">Continue as current user</a>
+              </div>}
+
               {/* Google */}
-              <button onClick={handleGoogle} disabled={loading}
+              <button onClick={() => handleGoogle(false)} disabled={loading}
                 className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-brand-borderLight text-brand-midnight font-semibold px-5 py-3.5 rounded-xl transition-colors mb-4 text-sm disabled:opacity-60 disabled:pointer-events-none">
                 <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -147,6 +168,11 @@ function LoginForm() {
                 </svg>
                 Continue with Google
               </button>
+
+              {currentUser && <button onClick={() => handleGoogle(true)} disabled={loading}
+                className="mb-4 w-full rounded-xl border border-brand-indigo px-5 py-3 text-sm font-semibold text-brand-indigo transition-colors hover:bg-brand-indigo/5 disabled:pointer-events-none disabled:opacity-60">
+                Sign in with another Google account
+              </button>}
 
               {/* Divider */}
               <div className="flex items-center gap-3 my-5">

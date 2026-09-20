@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { boundedFetch, withDeadline } from "@/lib/async"
-import { safeReturnTo } from "@/lib/auth/return-to"
+import { authenticatedRootDestination, safeReturnTo } from "@/lib/auth/return-to"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
   .split(",").map(e => e.trim().toLowerCase())
@@ -21,9 +21,12 @@ export async function middleware(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-  // Public identity/content and login must not wait for token refresh. Their
-  // optional viewer controls validate independently; protected APIs still do so.
-  const publicRoute = pathname === "/" || pathname === "/login" || pathname.startsWith("/u/") || pathname.startsWith("/@") ||
+  // Public identity/content and login must not wait for token refresh. The root
+  // route is the exception: it owns the guest-vs-authenticated product choice,
+  // so middleware must refresh/read its cookie session before any landing HTML
+  // can be served. Authenticated root requests continue through the existing
+  // post-login profile/onboarding gate.
+  const publicRoute = pathname === "/login" || pathname.startsWith("/u/") || pathname.startsWith("/@") ||
     ["/social/explore", "/social/vijox", "/social/glimps"].includes(pathname) || /^\/social\/posts\/[^/]+$/.test(pathname)
   let session = null
   if (!publicRoute) {
@@ -55,6 +58,11 @@ export async function middleware(req: NextRequest) {
         status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "5" },
       })
     }
+  }
+
+  const rootDestination = authenticatedRootDestination(pathname, !!session)
+  if (rootDestination) {
+    return redirectWithCookies(new URL(rootDestination, req.url))
   }
 
   // ── Protected routes — must be logged in ────────────────────────────────────

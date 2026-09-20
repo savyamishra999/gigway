@@ -43,7 +43,7 @@ export default async function ProfileCompletePage({ searchParams }: { searchPara
         </div>
 
         <div className="bg-white border border-brand-borderLight rounded-2xl p-6 shadow-soft sm:p-8">
-          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} next={next} requiresWorkRole={requiresWorkRole} />
+          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} avatarUrl={profile?.avatar_url} googleAvatarUrl={user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} next={next} requiresWorkRole={requiresWorkRole} />
         </div>
 
         <p className="text-center text-brand-slate text-xs mt-6">

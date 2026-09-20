@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       id: user.id,
       email: user.email,
       full_name: user.user_metadata?.full_name ?? null,
-      avatar_url: user.user_metadata?.avatar_url ?? null,
+      avatar_url: null,
       profile_completed: false,
       user_roles: [],
     }, { onConflict: "id", ignoreDuplicates: true })
@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
   const requestedModes = Array.isArray(body.modes) ? body.modes : []
   const modes = requestedModes.filter((mode: unknown) => WORK_MODES.some(item => item.value === mode))
   if (modes.length !== requestedModes.length) return NextResponse.json({ error: "Invalid interest selection." }, { status: 400 })
-  if (body.completingSetup === true && modes.length === 0) return NextResponse.json({ error: "Choose at least one way you want to use GigWay." }, { status: 400 })
   if (body.interestsOnly === true) {
     const { data: existingIntents, error: existingError } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", profileId)
     if (existingError) return NextResponse.json({ error: `Work Modes could not be read: ${existingError.message}` }, { status: 403 })

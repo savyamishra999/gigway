@@ -31,6 +31,9 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     for (const value of [undefined, {}, '', 'https://evil.example', '//evil.example', 'javascript:alert(1)', 'data:text/html,a', '/\\evil.example', '/\t/evil.example', '/\n/evil.example', '/%09/evil.example', '/%2f/evil.example', '/%255c/evil.example', '/login', '/auth/callback?next=/workplaces', '/onboarding', '/profile/complete', '/x/../login']) assert.equal(destination.safeReturnTo(value), '/home', String(value));
     assert.equal(new URL(destination.loginHref('/workplaces?tab=active'), 'https://gigway.invalid').searchParams.get('next'), '/workplaces?tab=active');
     assert.equal(destination.completionHref('/workplaces'), '/profile/complete?next=%2Fworkplaces');
+    assert.equal(destination.authenticatedRootDestination('/', true), '/auth/post-login');
+    assert.equal(destination.authenticatedRootDestination('/', false), null);
+    assert.equal(destination.authenticatedRootDestination('/u/member', true), null);
   });
   await check('post-login default, next, onboarding, missing session, and profile failure have deterministic outcomes', async () => {
     let user = { id: 'viewer', email: 'viewer@example.invalid' }, profile = { profile_completed: true, username: 'viewer' }, error = null;
@@ -58,7 +61,7 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     assert.equal(await auth.loginForCurrent(), '/login?next=%2Ftools%2Fopportunity-match%3Fjob%3Dabc');
     path = 'https://evil.example'; assert.equal(await auth.loginForCurrent(), '/login?next=%2Fhome');
   });
-  await check('middleware skips public auth; protected next and refreshed cookies survive redirects and downstream rendering', async () => {
+  await check('middleware owns root auth decision; protected next and refreshed cookies survive redirects and downstream rendering', async () => {
     const { NextRequest, NextResponse } = require('next/server');
     let calls = 0, session = null, fail = false;
     const middleware = load('middleware.ts', {
@@ -71,9 +74,17 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
         } } };
       } },
     }).middleware;
-    for (const path of ['/', '/login', '/u/person', '/social/vijox']) await middleware(new NextRequest(`https://gigway.invalid${path}`));
+    for (const path of ['/login', '/u/person', '/social/vijox']) await middleware(new NextRequest(`https://gigway.invalid${path}`));
     assert.equal(calls, 0);
-    let response = await middleware(new NextRequest('https://gigway.invalid/workplaces?tab=active'));
+    let response = await middleware(new NextRequest('https://gigway.invalid/'));
+    assert.equal(response.headers.get('location'), null);
+    assert.equal(calls, 1);
+    session = { user: { id: 'viewer' } };
+    response = await middleware(new NextRequest('https://gigway.invalid/'));
+    assert.equal(new URL(response.headers.get('location')).pathname, '/auth/post-login');
+    assert.equal(response.cookies.get('audit-session').value, 'refreshed');
+    session = null;
+    response = await middleware(new NextRequest('https://gigway.invalid/workplaces?tab=active'));
     assert.equal(new URL(response.headers.get('location')).searchParams.get('next'), '/workplaces?tab=active');
     assert.equal(response.cookies.get('audit-session').value, 'refreshed');
     session = { user: { id: 'viewer' } };
@@ -102,24 +113,46 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     const controller = new AbortController(); controller.abort();
     await assert.rejects(transport.boundedFetch('https://audit.invalid', { signal: controller.signal }), /aborted/);
   });
-  await check('landing shell returns Hero without invoking auth or any database query', () => {
+  await check('landing component is guest-only and returns Hero without auth or database work', () => {
     let calls = 0;
     const noop = () => null;
     const dependencies = { react: React, 'next/navigation': { redirect }, '@/lib/async': asyncTools,
       '@/lib/supabase/public': { createPublicClient: () => { calls++; throw Error('must not block shell'); } },
-      '@/lib/auth/server': { getViewer: () => { calls++; return new Promise(() => {}); } },
       '@/components/layout/SectionStatus': { SectionLoading: noop, SectionUnavailable: noop },
     };
     for (const name of ['Hero','LiveStats','ProfessionalIdentity','WhatYouCanDo','RealOpportunities','FeaturedFreelancers','OrganizationsPreview','TrustVerification','HomePricing','WhyGigway','FinalCTA']) dependencies[`@/components/home/${name}`] = { default: name === 'Hero' ? () => React.createElement('h1', null, 'Meaningful landing hero') : noop, __esModule: true };
     const page = load('app/page.tsx', dependencies).default();
     assert.equal(typeof page.then, 'undefined'); assert.equal(calls, 0);
     const children = React.Children.toArray(page.props.children);
-    assert.match(renderToStaticMarkup(children[1]), /Meaningful landing hero/);
-    assert.ok(children.filter(child => child.type === React.Suspense).length >= 5);
+    assert.match(renderToStaticMarkup(children[0]), /Meaningful landing hero/);
+    assert.ok(children.filter(child => child.type === React.Suspense).length >= 4);
+  });
+  await check('authenticated browser session cannot coexist with a root landing response', async () => {
+    // The browser navbar and server share Supabase SSR cookies. Model the
+    // production hybrid explicitly: the browser sees a user and the root request
+    // carries that session. Root middleware must redirect before app/page renders.
+    const browserUser = { id: 'viewer' };
+    let pageRendered = false;
+    const { NextRequest, NextResponse } = require('next/server');
+    const middleware = load('middleware.ts', {
+      'next/server': { NextRequest, NextResponse }, '@/lib/auth/return-to': destination, '@/lib/async': asyncTools,
+      '@supabase/ssr': { createServerClient: () => ({ auth: { getSession: async () => ({ data: { session: { user: browserUser } }, error: null }) } }) },
+    }).middleware;
+    const response = await middleware(new NextRequest('https://gigway.invalid/', { headers: { cookie: 'sb-project-auth-token=fixture' } }));
+    if (!response.headers.get('location')) pageRendered = true;
+    assert.equal(browserUser.id, 'viewer');
+    assert.equal(pageRendered, false);
+    assert.equal(new URL(response.headers.get('location')).pathname, '/auth/post-login');
+    // Cached navigation HTML can bypass middleware. The authenticated navbar
+    // uses the same decision and replaces the document as reconciliation.
+    assert.equal(destination.authenticatedRootDestination('/', !!browserUser), '/auth/post-login');
+    const navbar = fs.readFileSync('components/layout/ModernNavbar.tsx', 'utf8');
+    assert.match(navbar, /authenticatedRootDestination\(pathname, !!user\)/);
+    assert.match(navbar, /window\.location\.replace\(rootDestination\)/);
   });
   await check('Google login rejection clears actual component loading state and exposes an error', async () => {
     const states = []; let cursor = 0;
-    const hooks = { ...React, useState: initial => { const i = cursor++; states[i] = initial; return [initial, value => { states[i] = value; }]; } };
+    const hooks = { ...React, useEffect: () => {}, useState: initial => { const i = cursor++; states[i] = initial; return [initial, value => { states[i] = value; }]; } };
     const form = load('app/login/page.tsx', {
       react: hooks, 'next/navigation': { useSearchParams: () => new URLSearchParams('next=/workplaces') },
       '@/lib/async': asyncTools, '@/lib/auth/return-to': destination,
@@ -130,7 +163,34 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     const wrapper = form(), tree = wrapper.props.children.type();
     function find(node) { if (!React.isValidElement(node)) return null; if (node.type === 'button' && node.props.onClick) return node; for (const child of React.Children.toArray(node.props.children)) { const found = find(child); if (found) return found; } return null; }
     await find(tree).props.onClick();
-    assert.equal(states[3], false); assert.equal(states[4].type, 'error');
+    assert.equal(states[3], false); assert.equal(states[5].type, 'error');
+  });
+  await check('explicit Google account switching requests the chooser and preserves account isolation', () => {
+    const login = fs.readFileSync('app/login/page.tsx', 'utf8');
+    const callback = fs.readFileSync('app/auth/callback/route.ts', 'utf8');
+    assert.match(login, /queryParams:\s*switchAccount \? \{ prompt: "select_account" \} : undefined/);
+    assert.match(login, /Continue as current user/);
+    assert.match(login, /Sign in with another Google account/);
+    assert.match(callback, /exchangeCodeForSession\(code\)/);
+    assert.match(callback, /onConflict: "id", ignoreDuplicates: true/);
+    assert.doesNotMatch(callback, /update\([^)]*user\.user_metadata/);
+    assert.match(callback, /\/auth\/post-login/);
+  });
+  await check('new identity onboarding keeps photo optional and never auto-overwrites a returning avatar', () => {
+    const onboarding = fs.readFileSync('components/identity/IdentityOnboarding.tsx', 'utf8');
+    const callback = fs.readFileSync('app/auth/callback/route.ts', 'utf8');
+    const complete = fs.readFileSync('app/api/identity/complete/route.ts', 'utf8');
+    const googleAvatar = fs.readFileSync('app/api/identity/google-avatar/route.ts', 'utf8');
+    const homePrompt = fs.readFileSync('components/home/IdentityCompletionPrompt.tsx', 'utf8');
+    assert.match(onboarding, /Skip photo and enter GigWay/);
+    assert.match(onboarding, /router\.replace\(next \|\| "\/home"\)/);
+    assert.match(onboarding, /Use Google Photo/);
+    assert.doesNotMatch(complete, /completingSetup === true && modes\.length === 0/);
+    assert.match(callback, /avatar_url:\s+null/);
+    assert.match(googleAvatar, /if \(profile\?\.avatar_url\).*existing GigWay photo was kept/);
+    assert.match(googleAvatar, /storage\.from\("avatars"\)\.upload/);
+    assert.match(homePrompt, /67% complete/);
+    assert.match(homePrompt, /if \(error \|\| !data \|\| data\.avatar_url/);
   });
   console.log(`${passed} P0 check groups passed. Isolated/mocked; no live auth, database, or browser.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Bell, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, Video, Volume2, X } from "lucide-react"
-import { loginHref } from "@/lib/auth/return-to"
+import { authenticatedRootDestination, loginHref } from "@/lib/auth/return-to"
 import { withDeadline } from "@/lib/async"
 import { createClient } from "@/lib/supabase/client"
 import type { Moment } from "@/lib/moments"
@@ -57,6 +57,13 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
         const { data: { user }, error } = await withDeadline(supabase.auth.getUser())
         if (!active || run !== revision || error) return
         setUser(user); setProfile(null)
+        const rootDestination = authenticatedRootDestination(pathname, !!user)
+        if (rootDestination) {
+          // Reconcile a cached/streamed guest shell with the authenticated cookie
+          // session. A document replacement also lets middleware refresh cookies.
+          window.location.replace(rootDestination)
+          return
+        }
         if (user) {
           const { data } = await withDeadline(supabase.from("profiles").select("full_name,username,avatar_url").eq("id", user.id).maybeSingle())
           if (active && run === revision) setProfile(data)
@@ -197,6 +204,9 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                     {item.label}
                   </Link>
                 ))}
+                <Link href="/login?switch=1" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-indigo hover:bg-brand-indigo/5">
+                  Switch Google account
+                </Link>
                 <button onClick={logout} disabled={signingOut} className="w-full rounded-lg px-3 py-2 text-left text-body-sm text-brand-coral hover:bg-brand-coral/5 disabled:opacity-60">
                   {signingOut ? "Signing out…" : "Sign out"}
                 </button>

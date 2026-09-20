@@ -10,7 +10,7 @@ const message = (error: { message?: string } | null, maxMb: number) => {
   if (value.includes("size") || value.includes("large")) return `Image storage rejected this file's size. Try a smaller image (under ${maxMb} MB).`
   return "Upload failed. Check your connection and try again."
 }
-export function ImageUploader({ value, onChange, kind = "avatar", label, maxMb = 5, guidance, workplacePreview = false, onBusyChange, disabled = false }: { value?: string; onChange: (url: string) => void; kind?: "avatar" | "cover" | "logo"; label: string; maxMb?: number; guidance?: string; workplacePreview?: boolean; onBusyChange?: (busy: boolean) => void; disabled?: boolean }) {
+export function ImageUploader({ value, onChange, kind = "avatar", label, maxMb = 5, guidance, workplacePreview = false, prominent = false, onBusyChange, disabled = false }: { value?: string; onChange: (url: string) => void; kind?: "avatar" | "cover" | "logo"; label: string; maxMb?: number; guidance?: string; workplacePreview?: boolean; prominent?: boolean; onBusyChange?: (busy: boolean) => void; disabled?: boolean }) {
   const ref = useRef<HTMLInputElement>(null), busy = useRef(false), id = useId()
   const [loading, setLoading] = useState(false), [error, setError] = useState("")
   const cover = kind === "cover", blocked = loading || disabled
@@ -36,7 +36,7 @@ export function ImageUploader({ value, onChange, kind = "avatar", label, maxMb =
       {value && <img src={value} alt="Cover preview" className="h-full w-full object-cover" />}
       {!workplacePreview && <button type="button" disabled={blocked} onClick={() => ref.current?.click()} className={`absolute inset-0 grid place-items-center bg-black/25 text-sm font-semibold text-white ${focus}`}><span className="flex items-center gap-2"><ImagePlus className="h-4 w-4" />{loading ? "Uploading..." : value ? "Change cover" : label}</span></button>}
       {workplacePreview && <span aria-hidden="true" className="pointer-events-none absolute inset-x-[30%] inset-y-3 rounded border border-dashed border-white/70" />}
-    </div> : <div className="flex min-w-0 flex-wrap items-center gap-4"><button type="button" aria-label={value ? `Change ${kind}` : label} disabled={blocked} onClick={() => ref.current?.click()} className={`relative grid shrink-0 place-items-center overflow-hidden rounded-2xl bg-brand-indigo/10 text-brand-indigo ${workplacePreview ? "h-24 w-24" : "h-20 w-20"} ${focus}`}>
+    </div> : <div className="flex min-w-0 flex-wrap items-center gap-4"><button type="button" aria-label={value ? `Change ${kind}` : label} disabled={blocked} onClick={() => ref.current?.click()} className={`relative grid shrink-0 place-items-center overflow-hidden ${prominent ? "rounded-full" : "rounded-2xl"} bg-brand-indigo/10 text-brand-indigo ${prominent ? "h-32 w-32" : workplacePreview ? "h-24 w-24" : "h-20 w-20"} ${focus}`}>
       {value ? <img src={value} alt={`${kind === "logo" ? "Workplace logo" : "Image"} preview`} className="h-full w-full object-cover" /> : <Camera className="h-6 w-6" />}
       {loading && <span className="absolute inset-0 grid place-items-center bg-black/50"><Loader2 className="h-5 w-5 animate-spin text-white" /></span>}
     </button><button type="button" disabled={blocked} onClick={() => ref.current?.click()} className={`text-sm font-semibold text-brand-midnight ${focus}`}>{value ? `Change ${kind === "logo" ? "logo" : "image"}` : label}</button></div>}

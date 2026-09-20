@@ -12,6 +12,7 @@ import { scoreIntentAwareOpportunity, scoreNetworkCandidate } from "@/lib/recomm
 import { accessibleGlimpsPage, accessibleJoxPage, safePost } from "@/lib/social/server";
 import type { Post } from "@/components/social/SocialHomeFeed";
 import { compactIntentLabels } from "@/lib/identity";
+import IdentityCompletionPrompt from "@/components/home/IdentityCompletionPrompt";
 
 const CANONICAL_INTENTS = new Set(["looking_for_work", "looking_for_project", "offering_services", "hiring_talent", "grow_network"]);
 
@@ -100,6 +101,7 @@ export default async function HomeHub() {
   if (!user) return <main className="min-h-screen bg-brand-ivory px-4 py-20 text-center"><h1 className="text-h1 font-extrabold text-brand-midnight">Your next opportunity starts here.</h1><Link href="/login?next=/home" className="mt-6 inline-block rounded-xl bg-brand-indigo px-5 py-3 font-bold text-white">Join GigWay</Link></main>
   return <main className="min-h-screen max-w-full overflow-x-clip bg-brand-ivory pb-24 lg:pb-16"><div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
     <header className="mx-auto max-w-3xl"><p className="text-caption font-bold tracking-[.16em] text-brand-coral">GIGWAY NETWORK</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight sm:text-h1">Welcome back.</h1><p className="mt-1 text-body-sm text-brand-slate sm:text-body-lg">Professional conversations and opportunities, in one place.</p></header>
+    <Suspense fallback={null}><IdentityCompletionPrompt userId={user.id} /></Suspense>
     <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><Suspense fallback={<SectionLoading label="Loading your feed..." />}><HomeFeed user={user} /></Suspense></div><aside className="mt-8 space-y-4"><section className="rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft"><h2 className="font-extrabold text-brand-midnight">Your activity</h2><Suspense fallback={<SectionLoading />}><Activity user={user} /></Suspense></section><section className="rounded-2xl border border-brand-indigo/20 bg-brand-indigo/[.04] p-4"><CheckCircle2 className="h-5 w-5 text-brand-indigo"/><h2 className="mt-2 font-extrabold text-brand-midnight">Build your professional edge.</h2><Link href="/ai-tools" className="mt-3 inline-flex items-center gap-1 text-caption font-bold text-brand-indigo">Explore tools <ArrowRight className="h-3.5 w-3.5"/></Link></section></aside></div>
   </div></main>
 }

@@ -8,8 +8,8 @@ const { spawn, spawnSync } = require('node:child_process');
 const assert = require('node:assert/strict');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gigway-p0-qa-'));
 const report = { mode: 'headless Chromium, development build, mocked local Supabase', viewports: [], scenarios: [], errors: [], temp };
-const user = { id: '11111111-1111-4111-8111-111111111111', email: 'qa@example.invalid', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() };
-const person = { id: user.id, username: 'qa-person', full_name: 'QA Professional', profile_completed: true, skills: [], portfolio_links: [], user_roles: ['find_work'], find_work_type: 'both', bio: 'Public identity fixture' };
+const user = { id: '11111111-1111-4111-8111-111111111111', email: 'qa@example.invalid', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: { full_name: 'QA New Professional', avatar_url: 'https://lh3.googleusercontent.com/qa-fixture' }, created_at: new Date().toISOString() };
+const person = { id: user.id, username: 'qa-person', full_name: 'QA Professional', avatar_url: 'https://example.invalid/avatar.jpg', profile_completed: true, skills: [], portfolio_links: [], user_roles: ['find_work'], find_work_type: 'both', bio: 'Public identity fixture' };
 const org = { id: '22222222-2222-4222-8222-222222222222', username: 'qa-workplace', name: 'QA Workplace', entity_type: 'company', description: 'Public Workplace fixture', website: 'https://example.invalid' };
 let databaseFailure = false;
 const mock = http.createServer(async (req, res) => {
@@ -31,8 +31,16 @@ const mock = http.createServer(async (req, res) => {
   if (databaseFailure) { res.statusCode = 503; res.end(JSON.stringify({ message: 'Injected query failure', code: 'QA503' })); return; }
   const table = url.pathname.split('/').pop();
   let rows = [];
-  if (table === 'profiles') rows = url.searchParams.get('username') === 'eq.qa-workplace' ? [] : [person];
-  if (table === 'organizations') rows = [org];
+  if (table === 'profiles') {
+    if (req.method === 'PATCH') {
+      let body = ''; for await (const chunk of req) body += chunk;
+      Object.assign(person, JSON.parse(body || '{}')); rows = [person];
+    } else {
+      const username = url.searchParams.get('username') || '';
+      rows = username === 'eq.qa-workplace' || username.startsWith('ilike.') ? [] : [person];
+    }
+  }
+  if (table === 'organizations') rows = (url.searchParams.get('username') || '').startsWith('ilike.') ? [] : [org];
   if (table === 'organization_members') rows = [{ organization_id: org.id, profile_id: person.id, member_role: 'owner', status: 'active', organizations: org }];
   if (table === 'profile_intents') rows = [{ profile_id: person.id, intent_type: 'looking_for_work' }];
   res.setHeader('content-range', rows.length ? `0-${rows.length - 1}/${rows.length}` : '*/0');
@@ -64,7 +72,7 @@ function stop(child) {
   // instead of its own freshly-spawned one and then hung driving a dead page.
   const browserDir = path.join(temp, 'browser');
   fs.mkdirSync(browserDir, { recursive: true });
-  browser = spawn(process.env.P0_BROWSER || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${browserDir}`], { windowsHide: true, stdio: 'ignore' });
+  browser = spawn(process.env.P0_BROWSER || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-allow-origins=*','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0',`--user-data-dir=${browserDir}`], { windowsHide: true, stdio: 'ignore' });
   const portFile = path.join(browserDir, 'DevToolsActivePort');
   const debugPort = await eventually(async () => {
     if (!fs.existsSync(portFile)) return null;
@@ -75,7 +83,10 @@ function stop(child) {
   await eventually(async () => (await fetch(`${devtools}/json/version`)).ok);
   const tab = await (await fetch(`${devtools}/json/new?about:blank`, { method: 'PUT' })).json();
   socket = new WebSocket(tab.webSocketDebuggerUrl);
-  await new Promise(resolve => socket.addEventListener('open', resolve, { once: true }));
+  await Promise.race([
+    new Promise(resolve => socket.addEventListener('open', resolve, { once: true })),
+    new Promise((_, reject) => setTimeout(() => reject(Error('Chrome DevTools WebSocket did not open')), 10000)),
+  ]);
   let sequence = 0; const pending = new Map();
   function cdp(method, params = {}) { const id = ++sequence; socket.send(JSON.stringify({ id, method, params })); return new Promise((resolve, reject) => pending.set(id, { resolve, reject })); }
   socket.addEventListener('message', async event => {
@@ -155,9 +166,30 @@ function stop(child) {
   console.log('... refresh ok');
   await navigate('/', 'Welcome back'); await eventually(() => evaluate(`location.pathname === '/home'`)); report.scenarios.push({ name: 'authenticated root -> home', passed: true });
   console.log('... authenticated root -> home ok');
+  await navigate('/login', 'Welcome back');
+  await eventually(() => evaluate(`document.body.innerText.includes('Continue as current user') && document.body.innerText.includes('Sign in with another Google account')`));
+  report.scenarios.push({ name: 'authenticated login offers continue or explicit account switch', passed: true });
+  console.log('... authenticated login account choices ok');
   await cdp('Network.clearBrowserCookies'); await evaluate('localStorage.clear()');
   await navigate('/login', 'Welcome back'); await login(); await eventually(() => evaluate(`location.pathname === '/home'`)); report.scenarios.push({ name: 'direct login -> home', passed: true });
   console.log('... direct login -> home ok');
+  await cdp('Network.clearBrowserCookies'); await evaluate('localStorage.clear()');
+  Object.assign(person, { username: null, full_name: null, avatar_url: null, profile_completed: false, user_roles: [] });
+  await navigate('/login', 'Welcome back'); await login();
+  await eventually(() => evaluate(`location.pathname === '/profile/complete' && document.body.innerText.includes('Complete your Professional Identity')`));
+  for (const width of [320,360,375,390,412,430,1280]) {
+    await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
+    assert.equal(await evaluate(`document.documentElement.scrollWidth > innerWidth`), false, `Onboarding overflow at ${width}`);
+  }
+  assert.equal(await evaluate(`document.querySelector('input[placeholder="Full name"]').value`), 'QA New Professional');
+  await evaluate(`document.querySelector('input[placeholder="Username"]').focus()`); await cdp('Input.insertText', { text: 'qa_new_professional' });
+  await eventually(() => evaluate(`document.body.innerText.includes('@qa_new_professional is available')`));
+  assert.equal(await evaluate(`document.body.innerText.includes('Upload Photo') && document.body.innerText.includes('Use Google Photo')`), true);
+  await evaluate(`[...document.querySelectorAll('button')].find(button => button.innerText.includes('Skip photo and enter GigWay')).click()`);
+  await eventually(() => evaluate(`location.pathname === '/home' && document.body.innerText.includes('Complete your Professional Identity')`));
+  assert.equal(await evaluate(`document.body.innerText.includes('Add a profile photo so people can recognize you.')`), true);
+  report.scenarios.push({ name: 'new user name prefill + username + photo skip -> Home completion prompt', passed: true });
+  console.log('... new-user onboarding and photo completion prompt ok');
   databaseFailure = true; await navigate('/workplaces', 'We couldn'); report.scenarios.push({ name: 'query failure -> retry UI', passed: true }); databaseFailure = false;
   console.log('... query failure -> retry UI ok');
   await evaluate(`document.querySelector('main button').click()`);

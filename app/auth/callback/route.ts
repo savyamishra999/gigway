@@ -70,7 +70,9 @@ export async function GET(request: Request) {
       id:               user.id,
       email:            user.email,
       full_name:        user.user_metadata?.full_name   ?? null,
-      avatar_url:       user.user_metadata?.avatar_url  ?? null,
+      // Google imagery remains an explicit onboarding choice. Store only the
+      // canonical GigWay avatar URL after the user chooses/imports a photo.
+      avatar_url:       null,
       profile_completed: false,
       user_roles:       [],
     }, { onConflict: "id", ignoreDuplicates: true })
@@ -102,16 +104,11 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.redirect(`${origin}/profile/complete${next ? `?next=${encodeURIComponent(next)}` : ""}`)
+    return NextResponse.redirect(`${origin}/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`)
   }
 
-  // profile exists — but if user_roles is empty, onboarding was never finished
-  const onboardingDone = profile.profile_completed && !!profile.username
-  if (!onboardingDone) {
-    return NextResponse.redirect(`${origin}/profile/complete${next ? `?next=${encodeURIComponent(next)}` : ""}`)
-  }
-
-  return NextResponse.redirect(`${origin}${next || "/home"}`)
+  // Existing users also pass through the canonical identity/destination gate.
+  return NextResponse.redirect(`${origin}/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`)
   } catch {
     return NextResponse.redirect(`${origin}/login?error=auth_unavailable${next ? `&next=${encodeURIComponent(next)}` : ""}`)
   }
