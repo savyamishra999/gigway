@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -12,7 +13,7 @@ export default async function AffiliateDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect("/login?redirect=/affiliate/dashboard")
+  if (!user) redirect(await loginForCurrent("/affiliate/dashboard"))
 
   // Fetch affiliate row by user_id
   const { data: affiliate } = await supabase

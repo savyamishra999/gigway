@@ -1,3 +1,8 @@
+import { Suspense } from "react"
+import { createPublicClient } from "@/lib/supabase/public"
+import { getViewer } from "@/lib/auth/server"
+import { withDeadline } from "@/lib/async"
+import { SectionUnavailable } from "@/components/layout/SectionStatus"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Briefcase, Building2, CheckCircle2, ExternalLink, IndianRupee, Link2, MapPin, MessageSquare } from "lucide-react"
@@ -5,7 +10,7 @@ import { createClient } from "@/lib/supabase/server"
 import { WORK_MODES } from "@/lib/identity"
 import { intentMeta } from "@/lib/workIntents"
 import ProfileConnectionActions from "@/components/connections/ProfileConnectionActions"
-import { connectionRow, resolveConnectionState } from "@/lib/connections/server"
+import { connectionRow } from "@/lib/connections/server"
 import { socialDb } from "@/lib/social/server"
 import ProfileSocialFeed from "@/components/social/ProfileSocialFeed"
 import PublicWorkplace from "@/components/organizations/PublicWorkplace"
@@ -20,16 +25,60 @@ function portfolioTitle(url: string) {
   }
 }
 
+async function PersonActions({ id, username }: { id: string; username: string }) {
+  try {
+    const viewer = await getViewer()
+    if (!viewer) return null
+    if (viewer.id === id) return <Link href="/profile/edit" className="rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white">Edit Professional Identity</Link>
+    const [connection, follow] = await withDeadline(Promise.all([
+      connectionRow(viewer.id, id),
+      socialDb().from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewer.id).eq("followed_profile_id", id).maybeSingle(),
+    ]))
+    if (follow.error) throw Error()
+    const state = connection?.status === "accepted" ? "connected" : connection?.status === "pending" ? connection.requester_user_id === viewer.id ? "outgoing_pending" : "incoming_pending" : "none"
+    return <div className="flex flex-wrap gap-2"><ProfileConnectionActions profileId={id} connectionId={connection?.id} initialState={state} initialFollowing={!!follow.data}/><Link href={`/messages/${id}`} className="flex items-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white"><MessageSquare className="h-4 w-4" /> Message</Link></div>
+  } catch { return <SectionUnavailable href={`/u/${username}`} label="Account controls could not be loaded." /> }
+}
+async function PersonCounts({ id, username }: { id: string; username: string }) {
+  try {
+    const db = socialDb()
+    const counts = await withDeadline(Promise.all([
+      db.from("professional_connections").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_user_id.eq.${id},recipient_user_id.eq.${id}`),
+      db.from("profile_follows").select("followed_profile_id", { count: "exact", head: true }).eq("followed_profile_id", id),
+      db.from("profile_follows").select("followed_profile_id", { count: "exact", head: true }).eq("follower_user_id", id),
+    ]))
+    if (counts.some(result => result.error)) throw Error()
+    return <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><Link href={`/u/${username}/followers`}>{counts[1].count || 0} Followers</Link><Link href={`/u/${username}/following`}>{counts[2].count || 0} Following</Link><Link href="/network">{counts[0].count || 0} Connections</Link></div>
+  } catch { return <p className="text-sm text-[#9EA6B8]">Counts unavailable.</p> }
+}
+
 export default async function PublicIdentity({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ section?: string; page?: string }> }) {
   const { username } = await params
-  const supabase = await createClient()
-  const { data: { user: viewer } } = await supabase.auth.getUser()
+  const supabase = createPublicClient()
 
-  const { data: profile } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id,full_name,username,avatar_url,bio,location,tagline,skills,job_function,portfolio_links,hourly_rate,experience_years,experience_description,is_verified")
     .eq("username", username.toLowerCase())
     .maybeSingle()
+
+  if (profileError) throw new Error("This identity could not be loaded. Please try again.")
+  // Preserve authenticated-only profile visibility through the original RLS
+  // client when the anonymous lookup has no row. No service-role fallback.
+  if (!profile) {
+    const organization = await supabase.from("organizations").select(WORKPLACE_FIELDS).eq("username", username.toLowerCase()).maybeSingle()
+    if (organization.error) throw new Error("This Workplace could not be loaded.")
+    if (organization.data) {
+      const query = await searchParams
+      return <PublicWorkplace organization={organization.data} section={workplaceSection(query.section)} page={workplacePage(query.page)} />
+    }
+    const viewer = await getViewer()
+    if (!viewer) notFound()
+    const sessionDb = await createClient()
+    const result = await sessionDb.from("profiles").select("id,full_name,username,avatar_url,bio,location,tagline,skills,job_function,portfolio_links,hourly_rate,experience_years,experience_description,is_verified").eq("username", username.toLowerCase()).maybeSingle()
+    if (result.error) throw new Error("This identity could not be loaded.")
+    profile = result.data
+  }
 
   if (profile) {
     const [{ data: intents }, { data: memberships }] = await Promise.all([
@@ -44,13 +93,6 @@ export default async function PublicIdentity({ params, searchParams }: { params:
     const founderLine = primaryOrg
       ? `${(primaryOrg.member_role as string).charAt(0).toUpperCase()}${(primaryOrg.member_role as string).slice(1)} at ${(primaryOrg.organizations as any).name}`
       : null
-    const isSelf = viewer?.id === profile.id
-    const [connectionState, follow] = viewer && !isSelf ? await Promise.all([
-      resolveConnectionState(viewer.id, profile.id),
-      socialDb().from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewer.id).eq("followed_profile_id", profile.id).maybeSingle(),
-    ]) : ["none" as const, { data: null }]
-    const [{ count: connectionCount },{ count: followerCount },{ count: followingCount }]=await Promise.all([socialDb().from("professional_connections").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_user_id.eq.${profile.id},recipient_user_id.eq.${profile.id}`),socialDb().from("profile_follows").select("followed_profile_id",{count:"exact",head:true}).eq("followed_profile_id",profile.id),socialDb().from("profile_follows").select("followed_profile_id",{count:"exact",head:true}).eq("follower_user_id",profile.id)])
-    const connection = viewer && !isSelf ? await connectionRow(viewer.id, profile.id) : null
 
     return (
       <main className="min-h-screen bg-[#0A0A0F] pb-24">
@@ -75,11 +117,10 @@ export default async function PublicIdentity({ params, searchParams }: { params:
                     {profile.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{profile.location}</span>}
                     {isFreelancer && profile.hourly_rate && <span className="flex items-center gap-1 text-[#B9B3FF] font-semibold"><IndianRupee className="h-3.5 w-3.5" />{profile.hourly_rate}/hr</span>}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><Link href={`/u/${profile.username}/followers`} className="hover:text-[#B9B3FF]">{followerCount||0} Followers</Link><Link href={`/u/${profile.username}/following`} className="hover:text-[#B9B3FF]">{followingCount||0} Following</Link><Link href="/network" className="hover:text-[#B9B3FF]">{connectionCount||0} Connections</Link></div>
+                  <Suspense fallback={null}><PersonCounts id={profile.id} username={profile.username} /></Suspense>
                 </div>
               </div>
-              {isSelf && <Link href="/profile/edit" className="rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-center text-sm font-semibold text-white">Edit Professional Identity</Link>}
-              {!isSelf && viewer && <div className="flex flex-wrap gap-2"><ProfileConnectionActions profileId={profile.id} connectionId={connection?.id} initialState={connectionState} initialFollowing={!!follow.data}/><Link href={`/messages/${profile.id}`} className="flex items-center justify-center gap-2 rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#7d6ffc]"><MessageSquare className="h-4 w-4" /> Message</Link></div>}
+              <Suspense fallback={null}><PersonActions id={profile.id} username={profile.username} /></Suspense>
             </div>
 
             {modes.length > 0 && (
@@ -175,8 +216,5 @@ export default async function PublicIdentity({ params, searchParams }: { params:
     )
   }
 
-  const { data: organization } = await supabase.from("organizations").select(WORKPLACE_FIELDS).eq("username", username.toLowerCase()).maybeSingle()
-  if (!organization) notFound()
-  const query = await searchParams
-  return <PublicWorkplace organization={organization} viewerId={viewer?.id} section={workplaceSection(query.section)} page={workplacePage(query.page)} />
+  notFound()
 }

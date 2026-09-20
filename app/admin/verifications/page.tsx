@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
@@ -21,7 +22,7 @@ export default async function AdminVerificationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/admin/verifications"))
   if (!ADMIN_EMAILS.includes(user.email?.toLowerCase() ?? "")) redirect("/dashboard")
 
   const { data: pending } = await adminDb

@@ -7,7 +7,8 @@ import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ImageUploader } from "@/components/ui/image-uploader"
-import { WORK_MODES, normalizeUsername, usernameError, type WorkMode } from "@/lib/identity"
+import { WORK_MODES, normalizeUsername, usernameError, mapModesToLegacyRoles, type WorkMode } from "@/lib/identity"
+import { boundedFetch, withDeadline } from "@/lib/async"
 import { safeReturnTo } from "@/lib/auth/return-to"
 
 const choices: { value: WorkMode; label: string; sub: string }[] = [
@@ -32,9 +33,10 @@ type Props = {
   fullName?: string | null
   initialModes?: string[]
   next?: string
+  requiresWorkRole?: boolean
 }
 
-export default function IdentityOnboarding({ username: initialUsername, fullName: initialName, initialModes = [], next: nextValue }: Props) {
+export default function IdentityOnboarding({ username: initialUsername, fullName: initialName, initialModes = [], next: nextValue, requiresWorkRole = false }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [username, setUsername] = useState(initialUsername || "")
@@ -55,12 +57,15 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
       setAvailable(false)
       return
     }
+    let cancelled = false
     const timer = setTimeout(async () => {
-      const response = await fetch(`/api/identity/username?username=${encodeURIComponent(normalized)}`)
+      try {
+      const response = await boundedFetch(`/api/identity/username?username=${encodeURIComponent(normalized)}`)
       const data = await response.json().catch(() => ({}))
-      setAvailable(response.ok && !!data.available)
+      if (!cancelled) setAvailable(response.ok && !!data.available)
+      } catch { if (!cancelled) { setAvailable(false); setError("Username availability could not be checked. Please try again.") } }
     }, 350)
-    return () => clearTimeout(timer)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [normalized, initialUsername])
 
   const toggle = (mode: WorkMode) => setModes((current) => current.includes(mode) ? current.filter((item) => item !== mode) : [...current, mode])
@@ -73,13 +78,18 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
     setStep(2)
   }
   const finish = async () => {
+    if (requiresWorkRole && !mapModesToLegacyRoles(modes, modes.includes("hiring_talent") ? "individual" : null)?.user_roles.length) {
+      setError("To continue to this page, choose Find Jobs, Offer Services, or Hire Talent.")
+      return
+    }
     if (!modes.length) {
       setError("Choose at least one way you want to use GigWay.")
       return
     }
     setSaving(true)
     setError("")
-    const response = await fetch("/api/identity/complete", {
+    try {
+    const response = await withDeadline(boundedFetch("/api/identity/complete", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -90,7 +100,7 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
         hireAs: modes.includes("hiring_talent") ? "individual" : null,
         completingSetup: true,
       }),
-    })
+    }))
     const data = await response.json().catch(() => ({}))
     setSaving(false)
     if (!response.ok) {
@@ -103,6 +113,8 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
       return
     }
     setIdentityLive(true)
+    } catch { setError("Your identity could not be saved. Check your connection and try again.") }
+    finally { setSaving(false) }
   }
 
   if (identityLive) {

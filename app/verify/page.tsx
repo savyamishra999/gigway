@@ -1,3 +1,4 @@
+import { completionForCurrent, loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect }     from "next/navigation"
 import VerifyClient, { type VerifyRole } from "./VerifyClient"
@@ -22,7 +23,7 @@ function toVerifyRole(profile: RoleProfile): VerifyRole {
 export default async function VerifyPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/verify"))
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -32,7 +33,7 @@ export default async function VerifyPage() {
 
   // Previously an unconfigured profile silently guessed "freelancer" for the
   // document-type prompt on a paid, real-KYC flow. Route to setup instead.
-  if (!resolveRoles(profile).isConfigured) redirect("/profile/complete")
+  if (!resolveRoles(profile).isConfigured) redirect(await completionForCurrent())
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-12 px-4">

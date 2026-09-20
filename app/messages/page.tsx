@@ -1,4 +1,6 @@
 "use client"
+import { withDeadline } from "@/lib/async"
+import RequestFailure from "@/components/layout/RequestFailure"
 
 import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -11,10 +13,30 @@ function timeAgo(date: string) { const mins = Math.floor((Date.now() - new Date(
 export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]); const [loading, setLoading] = useState(true); const [search, setSearch] = useState("")
   const supabase = createClient()
-  useEffect(() => { const load = async () => { const { data: { user } } = await supabase.auth.getUser(); if (!user) { setLoading(false); return }
-    const { data } = await supabase.from("messages").select("content,created_at,is_read,sender_id,receiver_id").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order("created_at", { ascending: false })
-    const map: Record<string, Omit<Conversation, "profile">> = {}; (data || []).forEach(m => { const id = m.sender_id === user.id ? m.receiver_id : m.sender_id; if (!map[id]) map[id] = { userId: id, lastMessage: m.content, lastTime: m.created_at, unread: 0 }; if (m.receiver_id === user.id && !m.is_read) map[id].unread++ })
-    const list = await Promise.all(Object.values(map).map(async c => { const { data: profile } = await supabase.from("profiles").select("full_name,username,avatar_url").eq("id", c.userId).maybeSingle(); return { ...c, profile } })); setConversations(list); setLoading(false) }; load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const [loadError, setLoadError] = useState(false)
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) throw Error("Sign in to view your messages.")
+      const { data, error } = await supabase.from("messages").select("content,created_at,is_read,sender_id,receiver_id").or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order("created_at", { ascending: false })
+      if (error) throw error
+      const map: Record<string, Omit<Conversation, "profile">> = {}
+      for (const message of data || []) {
+        const id = message.sender_id === user.id ? message.receiver_id : message.sender_id
+        if (!map[id]) map[id] = { userId: id, lastMessage: message.content, lastTime: message.created_at, unread: 0 }
+        if (message.receiver_id === user.id && !message.is_read) map[id].unread++
+      }
+      const ids = Object.keys(map)
+      const profiles = ids.length ? await supabase.from("profiles").select("id,full_name,username,avatar_url").in("id", ids) : { data: [], error: null }
+      if (profiles.error) throw profiles.error
+      const byId = new Map((profiles.data || []).map(profile => [profile.id, profile]))
+      return Object.values(map).map(conversation => ({ ...conversation, profile: byId.get(conversation.userId) || null }))
+    }
+    void withDeadline(load()).then(list => { if (active) setConversations(list) }).catch(() => { if (active) setLoadError(true) }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const visible = useMemo(() => conversations.filter(c => `${c.profile?.full_name || ""} ${c.profile?.username || ""} ${c.lastMessage}`.toLowerCase().includes(search.toLowerCase())), [conversations, search])
+  if (loadError) return <RequestFailure />
   return <div className="min-h-screen bg-brand-ivory py-6 sm:py-10"><div className="mx-auto max-w-5xl px-4"><div className="mb-5 flex items-end justify-between"><div><p className="text-caption font-bold tracking-[.16em] text-brand-coral">COMMUNICATION</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight">Messages</h1><p className="mt-1 text-body-sm text-brand-slate">Professional conversations in one place.</p></div></div><section className="overflow-hidden rounded-card border border-brand-borderLight bg-white shadow-soft"><div className="border-b border-brand-borderLight p-4"><label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-slate" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search conversations" className="w-full rounded-xl border border-brand-borderLight bg-brand-ivory py-2.5 pl-10 pr-3 text-body-sm outline-none focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/10" /></label></div>{loading ? <div className="p-8 text-body-sm text-brand-slate">Loading conversations…</div> : visible.length === 0 ? <div className="px-6 py-20 text-center"><MessageSquare className="mx-auto mb-4 h-10 w-10 text-brand-slate/35" /><h2 className="font-bold text-brand-midnight">No conversations yet.</h2><p className="mt-2 text-body-sm text-brand-slate">Your conversations with professionals will appear here.</p></div> : <div>{visible.map(c => <Link key={c.userId} href={`/messages/${c.userId}`} className={`flex items-center gap-3 border-b border-brand-borderLight px-4 py-4 last:border-0 transition hover:bg-brand-ivory ${c.unread ? "bg-brand-indigo/[.035]" : ""}`}><div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo">{c.profile?.avatar_url ? <img src={c.profile.avatar_url} alt="" className="h-full w-full object-cover" /> : c.profile?.full_name?.[0]?.toUpperCase() || "G"}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><p className={`truncate text-body-sm ${c.unread ? "font-extrabold text-brand-midnight" : "font-semibold text-brand-midnight"}`}>{c.profile?.full_name || "GigWay member"}</p><span className="text-caption text-brand-slate">{timeAgo(c.lastTime)}</span></div>{c.profile?.username && <p className="text-caption text-brand-slate">@{c.profile.username}</p>}<p className={`mt-1 truncate text-body-sm ${c.unread ? "font-semibold text-brand-midnight" : "text-brand-slate"}`}>{c.lastMessage}</p></div>{c.unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-indigo px-1 text-[10px] font-bold text-white">{c.unread > 9 ? "9+" : c.unread}</span>}</Link>)}</div>}</section></div></div>
 }

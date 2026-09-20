@@ -1,4 +1,5 @@
 import "server-only"
+import { boundedFetch } from "@/lib/async"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
 export const WORKPLACE_FIELDS = "id,name,username,logo_url,cover_url,tagline,description,website,industry,company_size,founded_year,location,country,entity_type,is_verified"
@@ -13,7 +14,7 @@ export function workplacePage(value?: string) {
 }
 export function publicWorkplaceDb() {
   // No user session or service role: public panels cannot inherit admin access.
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: boundedFetch } })
 }
 export function workplaceWebsite(value?: string | null) {
   if (!value) return null

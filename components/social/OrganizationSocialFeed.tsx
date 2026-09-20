@@ -1,4 +1,5 @@
 "use client"
+import { boundedFetch } from "@/lib/async"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { PostCard, type Post } from "@/components/social/SocialHomeFeed"
@@ -13,7 +14,7 @@ export default function OrganizationSocialFeed({ organizationId, isAdmin, previe
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true); setError(false)
-    fetch(`/api/social/organizations/${organizationId}/posts${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`, { signal: controller.signal })
+    boundedFetch(`/api/social/organizations/${organizationId}/posts${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`, { signal: controller.signal })
       .then(async response => { if (!response.ok) throw Error(); return response.json() })
       .then(data => {
         if (controller.signal.aborted) return

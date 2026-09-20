@@ -2,11 +2,13 @@ import { createServerClient } from "@supabase/ssr"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+import { boundedFetch, withDeadline } from "@/lib/async"
 import { safeReturnTo } from "@/lib/auth/return-to"
 
 const adminDb = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { global: { fetch: boundedFetch } }
 )
 
 export async function GET(request: Request) {
@@ -18,12 +20,14 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=no_code${next ? `&next=${encodeURIComponent(next)}` : ""}`)
   }
 
+  try {
   const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: boundedFetch },
       cookies: {
         get(name: string) { return cookieStore.get(name)?.value },
         set(name: string, value: string, options: Record<string, unknown>) {
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
   )
 
   // Get user directly from the exchange — don't call getUser() separately
-  const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
+  const { data: { user }, error } = await withDeadline(supabase.auth.exchangeCodeForSession(code))
 
   if (error || !user) {
     console.error("[auth/callback] exchangeCodeForSession error:", error?.message)
@@ -52,11 +56,13 @@ export async function GET(request: Request) {
   }
 
   // Check profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("profile_completed, username, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
+
+  if (profileError) return NextResponse.redirect(`${origin}/login?error=profile_check_failed${next ? `&next=${encodeURIComponent(next)}` : ""}`)
 
   if (!profile) {
     // New user — use service role so RLS cannot block this insert
@@ -106,4 +112,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.redirect(`${origin}${next || "/home"}`)
+  } catch {
+    return NextResponse.redirect(`${origin}/login?error=auth_unavailable${next ? `&next=${encodeURIComponent(next)}` : ""}`)
+  }
 }

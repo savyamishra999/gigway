@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BriefcaseBusiness, Building2, Mic, PackagePlus, Send, UserRound, Video } from "lucide-react";
@@ -5,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function CreatePage({ searchParams }: { searchParams: Promise<{ organization?: string }> }) {
   const q = await searchParams, db = await createClient(), { data: { user } } = await db.auth.getUser();
-  if (!user) redirect("/login?next=/create");
+  if (!user) redirect(await loginForCurrent("/create"));
   const [{ data: profile }, { data: memberships }] = await Promise.all([
     db.from("profiles").select("full_name,username,avatar_url").eq("id", user.id).maybeSingle(),
     db.from("organization_members").select("organization_id,organizations(id,name,username,logo_url,entity_type)").eq("profile_id", user.id).eq("status", "active").in("member_role", ["owner", "admin"]),

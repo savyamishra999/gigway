@@ -1,3 +1,4 @@
+import { completionForCurrent, loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
@@ -75,7 +76,7 @@ function Empty({ message, cta, href }: { message: string; cta: string; href: str
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/dashboard"))
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -85,12 +86,12 @@ export default async function DashboardPage() {
 
   const rawRoles = (profile?.user_roles as string[] | null) ?? []
   // Must have completed onboarding and have a role assigned
-  if (!profile?.profile_completed || !profile?.username) redirect("/profile/complete")
+  if (!profile?.profile_completed || !profile?.username) redirect(await completionForCurrent())
 
   const roles = resolveRoles(profile)
   // Unconfigured roles must never silently render as "Hire Talent" (the old ternary
   // default) — send the user to finish the role/work-intent step instead.
-  if (!roles.isConfigured) redirect("/profile/complete")
+  if (!roles.isConfigured) redirect(await completionForCurrent())
 
   const adminDb = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
+import { boundedFetch } from "@/lib/async"
 import { cookies } from "next/headers"
 
 export const createClient = async () => {
@@ -7,6 +8,7 @@ export const createClient = async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: boundedFetch },
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value

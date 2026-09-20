@@ -1,3 +1,4 @@
+import { completionForCurrent, loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import GigForm from "@/components/gigs/GigForm"
@@ -5,7 +6,7 @@ import GigForm from "@/components/gigs/GigForm"
 export default async function NewGigPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/gigs/new"))
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -13,7 +14,7 @@ export default async function NewGigPage() {
     .eq("id", user.id)
     .single()
 
-  if (!profile?.profile_completed) redirect("/onboarding")
+  if (!profile?.profile_completed) redirect(await completionForCurrent())
 
   return (
     <div className="min-h-screen bg-brand-ivory py-10">

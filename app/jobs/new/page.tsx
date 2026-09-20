@@ -1,3 +1,4 @@
+import { completionForCurrent, loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import JobForm from "@/components/jobs/JobForm"
@@ -6,7 +7,7 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/jobs/new"))
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -14,7 +15,7 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
     .eq("id", user.id)
     .single()
 
-  if (!profile?.profile_completed) redirect("/onboarding")
+  if (!profile?.profile_completed) redirect(await completionForCurrent())
 
   const { data: memberships } = await supabase.from("organization_members").select("organization_id, member_role, organizations(id,name,entity_type)").eq("profile_id", user.id).eq("status", "active").in("member_role", ["owner", "admin"])
   const organizations = (memberships || []).map((membership: any) => membership.organizations).filter(Boolean)

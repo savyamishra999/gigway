@@ -2,26 +2,30 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import IdentityOnboarding from "@/components/identity/IdentityOnboarding"
-import { safeReturnTo } from "@/lib/auth/return-to"
+import { getViewer } from "@/lib/auth/server"
+import { safeReturnTo, loginHref } from "@/lib/auth/return-to"
+import { resolveRoles } from "@/lib/roles"
 
 export default async function ProfileCompletePage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const next = safeReturnTo((await searchParams).next, "")
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getViewer()
 
-  if (!user) redirect("/login")
+  if (!user) redirect(loginHref(next))
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("profile_completed, username, full_name, avatar_url, tagline, location, skills, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
 
-  // "Done" now also requires a configured role/work-intent — closes the gap where a
-  // user could finish identity setup (username + profile_completed) without ever
-  // getting a find_work/hire_talent role, which the legacy-gated pages depend on.
+  if (profileError) throw new Error("Your profile could not be checked. Please try again.")
+
+  // Legacy destinations require a work role; do not bounce a completed identity
+  // straight back into their role gate. General onboarding rules stay unchanged.
+  const requiresWorkRole = /^\/(?:dashboard|verify)(?:[/?#]|$)/.test(next) && !resolveRoles(profile).isConfigured
   const onboardingDone = profile?.profile_completed === true && !!profile?.username
-  if (onboardingDone) redirect(next || "/home")
+  if (onboardingDone && !requiresWorkRole) redirect(next || "/home")
 
   const { data: intents } = await supabase.from("profile_intents").select("intent_type").eq("profile_id", user.id).eq("is_active", true)
 
@@ -39,7 +43,7 @@ export default async function ProfileCompletePage({ searchParams }: { searchPara
         </div>
 
         <div className="bg-white border border-brand-borderLight rounded-2xl p-6 shadow-soft sm:p-8">
-          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} next={next} />
+          <IdentityOnboarding username={profile?.username} fullName={profile?.full_name ?? user.user_metadata?.full_name ?? null} initialModes={(intents ?? []).map(x => x.intent_type)} next={next} requiresWorkRole={requiresWorkRole} />
         </div>
 
         <p className="text-center text-brand-slate text-xs mt-6">

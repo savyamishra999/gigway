@@ -1,4 +1,6 @@
 "use client"
+import { withDeadline } from "@/lib/async"
+import RequestFailure from "@/components/layout/RequestFailure"
 
 import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -37,6 +39,7 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState("")
   const [sending, setSending] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [contactWarning, setContactWarning] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
@@ -49,19 +52,22 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
       const { userId: resolvedId } = await params
       setOtherId(resolvedId)
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError && authError.name !== "AuthSessionMissingError") throw authError
       if (!user) { setLoading(false); return }
       setMe(user)
 
-      const { data: otherProfile } = await supabase
+      const { data: otherProfile, error: profileError } = await supabase
         .from("profiles").select("id, full_name, username, avatar_url").eq("id", resolvedId).single()
+      if (profileError) throw profileError
       setOther(otherProfile)
 
-      const { data: msgs } = await supabase
+      const { data: msgs, error: messagesError } = await supabase
         .from("messages").select("*")
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${resolvedId}),and(sender_id.eq.${resolvedId},receiver_id.eq.${user.id})`)
         .order("created_at", { ascending: true })
 
+      if (messagesError) throw messagesError
       setMessages(msgs || [])
       setLoading(false)
       setTimeout(() => endRef.current?.scrollIntoView(), 100)
@@ -85,7 +91,7 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
       cleanup = () => { supabase.removeChannel(channel) }
     }
 
-    init()
+    void withDeadline(init()).catch(() => setLoadError(true)).finally(() => setLoading(false))
     return () => { cleanup?.() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -127,6 +133,8 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
     }
     setSending(false)
   }
+
+  if (loadError) return <RequestFailure />
 
   if (loading) {
     return (

@@ -1,4 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
+import { createPublicClient } from "@/lib/supabase/public"
+import { getViewer } from "@/lib/auth/server"
+import { Suspense } from "react"
+import { withDeadline } from "@/lib/async"
+import { SectionLoading, SectionUnavailable } from "@/components/layout/SectionStatus"
 import { redirect } from "next/navigation"
 import Hero from "@/components/home/Hero"
 import LiveStats from "@/components/home/LiveStats"
@@ -12,53 +16,49 @@ import HomePricing from "@/components/home/HomePricing"
 import WhyGigway from "@/components/home/WhyGigway"
 import FinalCTA from "@/components/home/FinalCTA"
 
-export default async function HomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+async function LandingRedirect() {
+  let user
+  try { user = await getViewer() } catch { return null }
   if (user) redirect("/home")
+  return null
+}
 
-  const [
-    { count: professionalCount },
-    { count: serviceCount },
-    { count: jobCount },
-    { count: projectCount },
-    { data: jobs },
-    { data: projects },
-    { data: gigs },
-  ] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("profile_completed", true),
-    supabase.from("gigs").select("*", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("jobs").select("*", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("projects").select("*", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("jobs")
-      .select("id, title, company_name, location, salary_min, salary_max, skills_required, created_at")
-      .eq("status", "active").order("created_at", { ascending: false }).limit(6),
-    supabase.from("projects")
-      .select("id, title, budget, category, skills_required, created_at")
-      .eq("status", "open").order("created_at", { ascending: false }).limit(6),
-    supabase.from("gigs")
-      .select("id, title, price, delivery_days, image_url, category, profiles:freelancer_id(full_name, avg_rating, is_verified)")
-      .eq("status", "active").order("orders_count", { ascending: false }).limit(6),
-  ])
+async function LandingData({ kind }: { kind: "stats" | "opportunities" }) {
+  try {
+    const db = createPublicClient()
+    if (kind === "stats") {
+      const results = await withDeadline(Promise.all([
+        db.from("profiles").select("*", { count: "exact", head: true }).eq("profile_completed", true),
+        db.from("gigs").select("*", { count: "exact", head: true }).eq("status", "active"),
+        db.from("jobs").select("*", { count: "exact", head: true }).eq("status", "active"),
+        db.from("projects").select("*", { count: "exact", head: true }).eq("status", "open"),
+      ]))
+      if (results.some(result => result.error)) throw Error()
+      return <LiveStats professionals={results[0].count ?? 0} services={results[1].count ?? 0} jobs={results[2].count ?? 0} projects={results[3].count ?? 0} />
+    }
+    const [jobs, projects, gigs] = await withDeadline(Promise.all([
+      db.from("jobs").select("id,title,company_name,location,salary_min,salary_max,skills_required,created_at").eq("status", "active").order("created_at", { ascending: false }).limit(6),
+      db.from("projects").select("id,title,budget,category,skills_required,created_at").eq("status", "open").order("created_at", { ascending: false }).limit(6),
+      db.from("gigs").select("id,title,price,delivery_days,image_url,category,profiles:freelancer_id(full_name,avg_rating,is_verified)").eq("status", "active").order("orders_count", { ascending: false }).limit(6),
+    ]))
+    if (jobs.error || projects.error || gigs.error) throw Error()
+    return <RealOpportunities jobs={jobs.data ?? []} projects={projects.data ?? []} gigs={gigs.data ?? []} />
+  } catch { return <SectionUnavailable href="/" /> }
+}
 
-  return (
-    <main>
-      <Hero />
-      <LiveStats
-        professionals={professionalCount ?? 0}
-        services={serviceCount ?? 0}
-        jobs={jobCount ?? 0}
-        projects={projectCount ?? 0}
-      />
-      <ProfessionalIdentity />
-      <WhatYouCanDo />
-      <RealOpportunities jobs={jobs ?? []} projects={projects ?? []} gigs={gigs ?? []} />
-      <FeaturedFreelancers />
-      <OrganizationsPreview />
-      <TrustVerification />
-      <HomePricing />
-      <WhyGigway />
-      <FinalCTA />
-    </main>
-  )
+export default function HomePage() {
+  return <main>
+    <Suspense fallback={null}><LandingRedirect /></Suspense>
+    <Hero />
+    <Suspense fallback={<SectionLoading label="Loading community stats..." />}><LandingData kind="stats" /></Suspense>
+    <ProfessionalIdentity />
+    <WhatYouCanDo />
+    <Suspense fallback={<SectionLoading label="Loading opportunities..." />}><LandingData kind="opportunities" /></Suspense>
+    <Suspense fallback={<SectionLoading label="Loading professionals..." />}><FeaturedFreelancers /></Suspense>
+    <Suspense fallback={<SectionLoading label="Loading Workplaces..." />}><OrganizationsPreview /></Suspense>
+    <TrustVerification />
+    <HomePricing />
+    <WhyGigway />
+    <FinalCTA />
+  </main>
 }

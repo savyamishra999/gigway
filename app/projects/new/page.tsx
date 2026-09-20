@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import ProjectForm from "@/components/projects/ProjectForm"
@@ -6,7 +7,7 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/projects/new"))
 
   const { data: memberships } = await supabase.from("organization_members").select("organization_id, member_role, organizations(id,name,entity_type)").eq("profile_id", user.id).eq("status", "active").in("member_role", ["owner", "admin"])
   const organizations = (memberships || []).map((membership: any) => membership.organizations).filter(Boolean)

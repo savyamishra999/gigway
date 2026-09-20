@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useSearchParams } from "next/navigation"
+import { withDeadline } from "@/lib/async"
 import { safeReturnTo } from "@/lib/auth/return-to"
 import Image from "next/image"
 import Link from "next/link"
@@ -31,7 +32,7 @@ function friendlyAuthError(raw: string): string {
   return "Something went wrong. Please try again."
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams()
   const join = searchParams.get("mode") === "join"
   const next = safeReturnTo(searchParams.get("next"), "")
@@ -39,39 +40,39 @@ export default function LoginPage() {
   const [otp, setOtp]       = useState("")
   const [step, setStep]     = useState<"entry" | "otp">("entry")
   const [loading, setLoading] = useState(false)
-  const [msg, setMsg]       = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [msg, setMsg]       = useState<{ type: "success" | "error"; text: string } | null>(searchParams.get("error") ? { type: "error", text: "Sign-in could not be completed. Please try again. If you already signed in, continue below." } : null)
   const supabase = createClient()
 
+  const runAuth = async (operation: () => Promise<void>) => {
+    setLoading(true); setMsg(null)
+    try { await operation() }
+    catch (error) { setMsg({ type: "error", text: friendlyAuthError(error instanceof Error ? error.message : "network") }) }
+    finally { setLoading(false) }
+  }
+  const callback = () => `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
-    setLoading(true); setMsg(null)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
+    await runAuth(async () => {
+      const { error } = await withDeadline(supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: callback() } }))
+      if (error) throw error
+      setStep("otp")
     })
-    if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }) }
-    else        { setStep("otp") }
-    setLoading(false)
   }
-
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true); setMsg(null)
-    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" })
-    if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }); setLoading(false); return }
-    window.location.href = `/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`
-    setLoading(false)
-  }
-
-  const handleGoogle = async () => {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
+    await runAuth(async () => {
+      const { error } = await withDeadline(supabase.auth.verifyOtp({ email, token: otp, type: "email" }))
+      if (error) throw error
+      window.location.assign(`/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`)
     })
-    if (error) { setMsg({ type: "error", text: friendlyAuthError(error.message) }); setLoading(false) }
   }
+  const handleGoogle = () => runAuth(async () => {
+    const { data, error } = await withDeadline(supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: callback(), skipBrowserRedirect: true } }))
+    if (error) throw error
+    if (!data.url) throw new Error("Sign-in could not be started")
+    window.location.assign(data.url)
+  })
 
   return (
     <div className="min-h-screen bg-white flex flex-col lg:flex-row">
@@ -245,6 +246,8 @@ export default function LoginPage() {
             </div>
           )}
 
+          {searchParams.get("error") && <Link href={`/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="mt-4 block text-center font-semibold text-brand-indigo">Continue if already signed in</Link>}
+
           {/* Bottom note */}
           <p className="text-center text-brand-slate/70 text-caption mt-8 leading-relaxed">
             By continuing, you agree to GigWay&apos;s Terms of Service.<br />
@@ -263,4 +266,8 @@ export default function LoginPage() {
       </div>
     </div>
   )
+}
+
+export default function LoginPage() {
+  return <Suspense fallback={<p role="status" className="p-6">Opening sign-in...</p>}><LoginForm /></Suspense>
 }

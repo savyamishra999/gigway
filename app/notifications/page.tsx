@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -29,7 +30,7 @@ function timeAgo(dateStr: string) {
 export default async function NotificationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/notifications"))
 
   const { data: notifications } = await supabase
     .from("notifications")

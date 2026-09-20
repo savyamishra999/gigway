@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
@@ -34,7 +35,7 @@ export default async function ProjectProposalsPage(props: { params: Promise<{ id
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/home"))
 
   const { data: project } = await supabase
     .from("projects")

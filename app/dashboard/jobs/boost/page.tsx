@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -6,7 +7,7 @@ import { Star, Zap, TrendingUp } from "lucide-react"
 export default async function BoostJobPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
+  if (!user) redirect(await loginForCurrent("/dashboard/jobs/boost"))
 
   // Only company users can boost
   const { data: profile } = await supabase

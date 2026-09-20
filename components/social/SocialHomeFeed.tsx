@@ -1,4 +1,5 @@
-"use client";
+"use client"
+import { boundedFetch } from "@/lib/async";
 import Link from "next/link";
 import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
@@ -200,7 +201,7 @@ function NetworkRail({ items }: { items: NetworkItem[] }) {
   const [candidates, setCandidates] = useState(items), [busyId, setBusyId] = useState<string | null>(null);
   useEffect(() => setCandidates(items), [items]);
   if (!candidates.length) return null;
-  const follow = async (item: NetworkItem) => { setBusyId(item.actorId); try { const response = await fetch(`/api/social/follow/${item.kind === "person" ? "profile" : "organization"}/${item.actorId}`, { method: "POST" }); if (!response.ok) throw Error(); setCandidates((rows) => rows.filter((row) => row.actorId !== item.actorId)); } finally { setBusyId(null); } };
+  const follow = async (item: NetworkItem) => { setBusyId(item.actorId); try { const response = await boundedFetch(`/api/social/follow/${item.kind === "person" ? "profile" : "organization"}/${item.actorId}`, { method: "POST" }); if (!response.ok) throw Error(); setCandidates((rows) => rows.filter((row) => row.actorId !== item.actorId)); } finally { setBusyId(null); } };
   return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Grow Your Network</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{candidates.map((item) => <article key={`${item.kind}-${item.actorId}`} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft sm:w-60"><Link href={item.href} className="block"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <img src={item.image} alt="" className={`h-10 w-10 shrink-0 object-cover ${item.kind === "person" ? "rounded-full" : "rounded-xl"}`}/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{(item.name || "G")[0]}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.name}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div></Link><button onClick={() => void follow(item)} disabled={busyId === item.actorId} className="mt-4 w-full rounded-xl border border-brand-indigo/25 py-2 text-caption font-bold text-brand-indigo disabled:opacity-60">{busyId === item.actorId ? "Following…" : "Follow"}</button></article>)}</div></section>;
 }
 export function PostCard({
@@ -240,7 +241,7 @@ export function PostCard({
     return true;
   };
   const api = async (url: string, method = "POST", body?: unknown) => {
-    const r = await fetch(url, {
+    const r = await boundedFetch(url, {
       method,
       headers: body ? { "content-type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
@@ -670,7 +671,7 @@ export default function SocialHomeFeed({
     setLoading(true);
     setError(false);
     try {
-      const r = await fetch(
+      const r = await boundedFetch(
           `/api/social/posts?feed=${feed}${!reset && cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
         ),
         d: unknown = await r.json().catch(() => null);

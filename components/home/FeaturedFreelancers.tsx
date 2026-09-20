@@ -1,16 +1,19 @@
-import { createClient } from "@/lib/supabase/server"
+import { createPublicClient } from "@/lib/supabase/public"
+import { SectionUnavailable } from "@/components/layout/SectionStatus"
 import Link from "next/link"
 import { CheckCircle2, IndianRupee, Star } from "lucide-react"
 
 export default async function FeaturedFreelancers() {
-  const supabase = await createClient()
-  const { data: freelancers } = await supabase
+  const supabase = createPublicClient()
+  const { data: freelancers, error } = await supabase
     .from("profiles")
     .select("id, username, full_name, avatar_url, tagline, skills, is_verified, avg_rating, hourly_rate")
     .eq("is_verified", true)
     .eq("profile_completed", true)
     .order("avg_rating", { ascending: false })
     .limit(6)
+
+  if (error) return <SectionUnavailable href="/" />
 
   return (
     <section className="bg-white py-20 sm:py-28">

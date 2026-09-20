@@ -1,4 +1,7 @@
 "use client"
+import { withDeadline, boundedFetch } from "@/lib/async"
+import { loginHref } from "@/lib/auth/return-to"
+import RequestFailure from "@/components/layout/RequestFailure"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -38,12 +41,14 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const router = useRouter()
   const supabase = createClient()
 
+  const [loadError, setLoadError] = useState(false)
   useEffect(() => {
     const init = async () => {
       const { id: resolvedId } = await params
       setId(resolvedId)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/login"); return }
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError && authError.name !== "AuthSessionMissingError") throw authError
+      if (!user) { router.replace(loginHref(`${window.location.pathname}${window.location.search}${window.location.hash}`)); return }
 
       const { data: project } = await supabase.from("projects").select("*").eq("id", resolvedId).single()
       if (!project || project.client_id !== user.id) { router.push(`/projects/${resolvedId}`); return }
@@ -57,7 +62,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       setSkillsRequired(project.skills_required || [])
       setLoading(false)
     }
-    init()
+    void withDeadline(init()).catch(() => setLoadError(true)).finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const addSkill = (skill: string) => {
@@ -84,6 +89,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     if (updateError) { setError("Save failed: " + updateError.message); return }
     router.push(`/projects/${id}`)
   }
+
+  if (loadError) return <RequestFailure />
 
   if (loading) return (
     <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">

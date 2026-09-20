@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Building2 } from "lucide-react"
@@ -7,7 +8,7 @@ import { activeWorkplaces } from "@/lib/organizations/server"
 export default async function WorkplacesPage() {
   const db = await createClient()
   const { data: { user } } = await db.auth.getUser()
-  if (!user) redirect("/login?next=/workplaces")
+  if (!user) redirect(await loginForCurrent("/workplaces"))
   const workplaces = await activeWorkplaces(db, user.id)
   return <main className="min-h-screen bg-brand-ivory px-4 py-8 pb-28">
     <div className="mx-auto max-w-3xl space-y-6">

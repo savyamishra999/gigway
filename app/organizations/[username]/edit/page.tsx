@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { notFound, redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import OrganizationForm from "@/components/organizations/OrganizationForm"
@@ -6,7 +7,7 @@ export default async function EditOrganization({ params }: { params: Promise<{ u
   const { username } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/home"))
   const { data: org } = await supabase.from("organizations").select("id,name,username,entity_type,logo_url,cover_url,tagline,description,website,industry,company_size,founded_year,location,country").eq("username", username).maybeSingle()
   if (!org) notFound()
   const { data: membership } = await supabase.from("organization_members").select("member_role").eq("organization_id", org.id).eq("profile_id", user.id).eq("status", "active").maybeSingle()

@@ -1,4 +1,7 @@
 "use client"
+import { withDeadline, boundedFetch } from "@/lib/async"
+import { loginHref } from "@/lib/auth/return-to"
+import RequestFailure from "@/components/layout/RequestFailure"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -36,15 +39,17 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
   const router = useRouter()
   const supabase = createClient()
 
+  const [loadError, setLoadError] = useState(false)
   useEffect(() => {
     const init = async () => {
       const { id: resolvedId } = await params
       setId(resolvedId)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/login"); return }
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError && authError.name !== "AuthSessionMissingError") throw authError
+      if (!user) { router.replace(loginHref(`${window.location.pathname}${window.location.search}${window.location.hash}`)); return }
 
       const { data: job } = await supabase.from("jobs").select("*").eq("id", resolvedId).single()
-      const access = await fetch(`/api/jobs/${resolvedId}`)
+      const access = await boundedFetch(`/api/jobs/${resolvedId}`)
       if (!job || (!access.ok && access.status !== 200)) { router.push(`/jobs/${resolvedId}`); return }
 
       setTitle(job.title || "")
@@ -60,7 +65,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       setSkills(job.skills_required || [])
       setLoading(false)
     }
-    init()
+    void withDeadline(init()).catch(() => setLoadError(true)).finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const addSkill = (skill: string) => {
@@ -73,7 +78,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     e.preventDefault()
     setSaving(true)
     setError("")
-    const response = await fetch(`/api/jobs/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({
+    const response = await boundedFetch(`/api/jobs/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({
       title,
       description,
       company_name: companyName || null,
@@ -90,6 +95,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     if (!response.ok) { const result = await response.json().catch(() => ({})); setError("Save failed: " + (result.error || "Request failed")); return }
     router.push(`/jobs/${id}`)
   }
+
+  if (loadError) return <RequestFailure />
 
   if (loading) return (
     <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">

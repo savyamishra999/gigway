@@ -1,14 +1,17 @@
-import { createClient } from "@/lib/supabase/server"
+import { createPublicClient } from "@/lib/supabase/public"
+import { SectionUnavailable } from "@/components/layout/SectionStatus"
 import Link from "next/link"
 import { Building2 } from "lucide-react"
 
 export default async function OrganizationsPreview() {
-  const supabase = await createClient()
-  const { data: organizations } = await supabase
+  const supabase = createPublicClient()
+  const { data: organizations, error } = await supabase
     .from("organizations")
     .select("id, name, username, logo_url, tagline, industry")
     .order("created_at", { ascending: false })
     .limit(6)
+
+  if (error) return <SectionUnavailable href="/" />
 
   return (
     <section className="bg-brand-ivory py-20 sm:py-28">

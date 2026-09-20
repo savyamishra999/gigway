@@ -1,3 +1,4 @@
+import { completionForCurrent, loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import EditProfileForm from "@/components/profile/EditProfileForm"
@@ -8,7 +9,7 @@ export default async function EditProfilePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login")
+    redirect(await loginForCurrent("/profile/edit"))
   }
 
   const { data: profile } = await supabase
@@ -19,7 +20,7 @@ export default async function EditProfilePage() {
 
   // If onboarding not done, send them there first
   const onboardingDone = profile?.profile_completed === true && !!profile?.username
-  if (!onboardingDone) redirect("/profile/complete")
+  if (!onboardingDone) redirect(await completionForCurrent())
 
   const [{ data: intents }, { data: memberships }] = await Promise.all([
     supabase.from("profile_intents").select("intent_type").eq("profile_id", profile.id).eq("is_active", true),

@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { ShieldCheck, CheckCircle2 } from "lucide-react"
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default async function VerifyMePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/verify-me"))
 
   const { data: profile } = await supabase
     .from("profiles")

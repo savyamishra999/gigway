@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Zap } from "lucide-react"
@@ -38,7 +39,7 @@ export default async function BuyConnectsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect("/login")
+  if (!user) redirect(await loginForCurrent("/buy-connects"))
 
   const { data: profile } = await supabase
     .from("profiles")

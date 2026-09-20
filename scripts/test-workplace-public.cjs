@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const moduleUnderTest = { exports: {} };
 const code = ts.transpileModule(fs.readFileSync('lib/organizations/public.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-vm.runInNewContext(code, { module: moduleUnderTest, exports: moduleUnderTest.exports, URL, require: name => { if (name === 'server-only') return {}; if (name === '@supabase/supabase-js') return { createClient: () => { throw Error('No live DB in tests'); } }; throw Error(name); } });
+vm.runInNewContext(code, { module: moduleUnderTest, exports: moduleUnderTest.exports, URL, require: name => { if (name === 'server-only') return {}; if(name === '@/lib/async') return { boundedFetch: () => { throw Error('No network'); } }; if (name === '@supabase/supabase-js') return { createClient: () => { throw Error('No live DB in tests'); } }; throw Error(name); } });
 const { workplaceSection, workplacePage, workplaceWebsite, workplacePeople, workplacePeopleCount, workplaceOpportunities } = moduleUnderTest.exports;
 function database(tables, failure) {
  const calls = [];
@@ -70,6 +70,10 @@ function database(tables, failure) {
  const fakeLink = ({children,prefetch,...props}) => React.createElement('a',props,children);
  const dependencies = {
    'react/jsx-runtime':require('react/jsx-runtime'),
+   'react':{...React,cache:fn=>fn},
+   '@/lib/auth/server':{getViewer:async()=>role?{id:'user'}:null},
+   '@/lib/async':{withDeadline:async value=>value},
+   '@/components/layout/SectionStatus':{SectionLoading:()=>null,SectionUnavailable:()=>React.createElement('p',null,'Unavailable')},
    'next/link':{default:fakeLink,__esModule:true},
    'lucide-react':{Building2:()=>null,CheckCircle2:()=>null,MapPin:()=>null},
    '@/lib/social/server': { socialDb: () => ({
@@ -85,6 +89,13 @@ function database(tables, failure) {
    '@/components/organizations/OrganizationFollowButton':{__esModule:true,default:()=>React.createElement('button',null,'Follow')},
    '@/components/social/OrganizationSocialFeed':{__esModule:true,default:()=>React.createElement('p',null,'No Workplace posts yet.')},
  };
+ async function resolveTree(element) {
+   if (Array.isArray(element)) return Promise.all(element.map(resolveTree));
+   if (!React.isValidElement(element)) return element;
+   if (typeof element.type === 'function') return resolveTree(await element.type(element.props));
+   const children = await resolveTree(element.props.children);
+   return React.cloneElement(element, {}, ...(Array.isArray(children) ? children : [children]));
+ }
  const componentModule={exports:{}};
  const componentCode=ts.transpileModule(fs.readFileSync('components/organizations/PublicWorkplace.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
  vm.runInNewContext(componentCode,{module:componentModule,exports:componentModule.exports,URL,require:name=>{if(!(name in dependencies))throw Error(name);return dependencies[name]}});
@@ -92,7 +103,7 @@ function database(tables, failure) {
  for(const section of ['home','about','people','jobs','projects','content']){
    for(const memberRole of [null,'owner','admin','member']){
      role=memberRole;requested=[];
-     const html=renderToStaticMarkup(await componentModule.exports.default({organization:org,viewerId:role?'user':undefined,section,page:1}));
+     const html=renderToStaticMarkup(await resolveTree(await componentModule.exports.default({organization:org,viewerId:role?'user':undefined,section,page:1})));
      assert.equal(html.includes('Manage Workplace'),role==='owner'||role==='admin');
      assert.ok(html.includes('Visit Website'));assert.ok(html.includes('7 Followers'));assert.ok(html.includes('1 person'));
      assert.ok(!html.includes('Connections'));assert.ok(!html.includes('Open to Jobs'));assert.ok(!html.includes('Message'));
@@ -104,7 +115,7 @@ function database(tables, failure) {
  }
  for (const count of [0, 2, null]) {
    peopleCount = count;
-   const html = renderToStaticMarkup(await componentModule.exports.default({organization:org,section:'about',page:1}));
+   const html = renderToStaticMarkup(await resolveTree(await componentModule.exports.default({organization:org,section:'about',page:1})));
    if (count === null) assert.ok(!html.includes(' people'));
    else assert.ok(html.includes(`${count} people`));
  }

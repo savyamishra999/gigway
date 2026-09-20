@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Bell, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Search, Sparkles, UserRound, Video, Volume2, X } from "lucide-react"
+import { loginHref } from "@/lib/auth/return-to"
+import { withDeadline } from "@/lib/async"
 import { createClient } from "@/lib/supabase/client"
 import type { Moment } from "@/lib/moments"
 import { MomentHeader } from "@/components/moments/MomentExperience"
@@ -48,14 +50,33 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const [mobileChromeHidden, setMobileChromeHidden] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setUser(user)
-      if (user) {
-        const { data } = await supabase.from("profiles").select("full_name,username,avatar_url").eq("id", user.id).maybeSingle()
-        setProfile(data)
-      }
+    let active = true, revision = 0
+    const load = async () => {
+      const run = ++revision
+      try {
+        const { data: { user }, error } = await withDeadline(supabase.auth.getUser())
+        if (!active || run !== revision || error) return
+        setUser(user); setProfile(null)
+        if (user) {
+          const { data } = await withDeadline(supabase.from("profiles").select("full_name,username,avatar_url").eq("id", user.id).maybeSingle())
+          if (active && run === revision) setProfile(data)
+        }
+      } catch { /* Optional chrome must never gate the public page. */ }
+    }
+    void load()
+    // Defer outside the SDK auth lock; never await Supabase in its callback.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
+      if (event === "SIGNED_OUT") { revision++; setUser(null); setProfile(null) }
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") setTimeout(() => { if (active) void load() }, 0)
     })
+    return () => { active = false; subscription.unsubscribe() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const authHref = (join = false) => loginHref(pathname === "/login" ? undefined : pathname, join)
+  const preserveLocation = (event: React.MouseEvent<HTMLAnchorElement>, join = false) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    router.push(loginHref(`${window.location.pathname}${window.location.search}${window.location.hash}`, join))
+  }
   useEffect(() => {
     let previous = window.scrollY
     const onScroll = () => {
@@ -81,7 +102,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
     setSigningOut(true)
     setOpen(false)
     try {
-      await supabase.auth.signOut({ scope: "local" })
+      await withDeadline(supabase.auth.signOut({ scope: "local" }))
     } catch {
       // Still navigate away: stale UI is worse than leaving the user stuck.
     }
@@ -139,10 +160,10 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link href="/login" className="hidden sm:block rounded-xl px-4 py-2 text-body-sm font-semibold text-brand-slate hover:text-brand-midnight">
+                <Link href={authHref()} onClick={event => preserveLocation(event)} className="hidden sm:block rounded-xl px-4 py-2 text-body-sm font-semibold text-brand-slate hover:text-brand-midnight">
                   Log in
                 </Link>
-                <Link href="/login?mode=join" className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
+                <Link href={authHref(true)} onClick={event => preserveLocation(event, true)} className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
                   Join GigWay
                 </Link>
               </div>
@@ -181,7 +202,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 </button>
               </div>
             ) : (
-              <Link href="/login" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-indigo">
+              <Link href={authHref()} onClick={event => { setOpen(false); preserveLocation(event) }} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-indigo">
                 Log in
               </Link>
             )}

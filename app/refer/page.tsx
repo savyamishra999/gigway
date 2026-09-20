@@ -1,3 +1,4 @@
+import { loginForCurrent } from "@/lib/auth/server"
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -17,7 +18,7 @@ function genRefCode(name: string | null): string {
 export default async function ReferPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login?redirect=/refer")
+  if (!user) redirect(await loginForCurrent("/refer"))
 
   const { data: profile } = await supabase
     .from("profiles")

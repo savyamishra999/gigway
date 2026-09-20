@@ -1,3 +1,4 @@
+import { boundedFetch } from "@/lib/async"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { aggregateVijoxTimedReactions, type VijoxTimedReactionRow, zeroVijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions"
@@ -15,7 +16,7 @@ export function socialDb() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url) throw new SocialFeedStageError("social_db","missing_env","NEXT_PUBLIC_SUPABASE_URL")
   if (!key) throw new SocialFeedStageError("social_db","missing_env","SUPABASE_SERVICE_ROLE_KEY")
-  return createServiceClient(url, key)
+  return createServiceClient(url, key, { global: { fetch: boundedFetch } })
 }
 
 export async function requireSocialUser() {
@@ -136,10 +137,31 @@ export const GLIMPS_MAX_DURATION_SECONDS = 60
 export const GLIMPS_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
 export function socialContentFormat(value:unknown): SocialContentFormat | null { return parsePersistedContentFormat(value) }
 export function validGlimpsMedia(media: Array<{media_type?:unknown;mime_type?:unknown;file_size_bytes?:unknown;duration_seconds?:unknown}>) { if (media.length !== 1) return false; const item=media[0]; return item.media_type === "video" && isValidGlimpsVideoMime(item.mime_type) && typeof item.file_size_bytes === "number" && Number.isSafeInteger(item.file_size_bytes) && item.file_size_bytes > 0 && item.file_size_bytes <= GLIMPS_MAX_FILE_SIZE_BYTES && typeof item.duration_seconds === "number" && Number.isSafeInteger(item.duration_seconds) && item.duration_seconds > 0 && item.duration_seconds <= GLIMPS_MAX_DURATION_SECONDS }
+/** Batch the same visibility rules as canViewPost; never serialize an
+ * unauthorized candidate. At most two follow lookups per candidate page. */
+export async function visiblePosts(posts: SocialPost[], viewerId?: string | null) {
+  const published = posts.filter(post => post.status === "published")
+  if (!viewerId) return published.filter(post => post.visibility === "public")
+  const restricted = published.filter(post => post.visibility !== "public" && post.author_user_id !== viewerId)
+  const profileIds = [...new Set(restricted.map(post => post.author_profile_id).filter((id): id is string => !!id))]
+  const orgIds = [...new Set(restricted.filter(post => !post.author_profile_id).map(post => post.author_organization_id).filter((id): id is string => !!id))]
+  const db = socialDb()
+  const [profiles, organizations] = await Promise.all([
+    profileIds.length ? db.from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewerId).in("followed_profile_id", profileIds) : Promise.resolve({ data: [], error: null }),
+    orgIds.length ? db.from("organization_follows").select("organization_id").eq("follower_user_id", viewerId).in("organization_id", orgIds) : Promise.resolve({ data: [], error: null }),
+  ])
+  requireSocialResult("visibility_profiles", profiles)
+  requireSocialResult("visibility_organizations", organizations)
+  const followedProfiles = new Set((profiles.data || []).map(row => row.followed_profile_id))
+  const followedOrganizations = new Set((organizations.data || []).map(row => row.organization_id))
+  return published.filter(post => post.visibility === "public" || post.author_user_id === viewerId ||
+    (post.author_profile_id ? followedProfiles.has(post.author_profile_id) : !!post.author_organization_id && followedOrganizations.has(post.author_organization_id)))
+}
+
 /** Shared, access-aware query foundation for a later GLIMPS feed. */
-export async function accessibleGlimps(viewerId?:string|null, limit=16) { const {data,error}=await socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(Math.max(1,Math.min(limit,50))); requireSocialResult("glimps_query",{error}); const visible=[] as SocialPost[]; for(const post of data||[]) if(await canViewPost(post as SocialPost,viewerId)) visible.push(post as SocialPost); return visible }
-export async function accessibleGlimpsPage(viewerId?:string|null, cursor?:string|null, limit=10) { const size=Math.max(1,Math.min(limit,20)), fetchSize=size*4+1; let query=socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(fetchSize); if(cursor){const [createdAt,id]=cursor.split("|"); if(!createdAt||!id) throw new SocialFeedStageError("glimps_cursor","invalid_cursor","Invalid cursor"); query=query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)} const {data,error}=await query; requireSocialResult("glimps_page",{error}); const rows=(data||[]) as SocialPost[], visible=[] as SocialPost[]; for(const post of rows){if(await canViewPost(post,viewerId)) visible.push(post); if(visible.length>size) break} const page=visible.slice(0,size), hasMore=visible.length>size||rows.length===fetchSize, marker=hasMore?(page.length===size?page.at(-1):rows.at(-1)):null; return { posts:page, nextCursor:marker?`${marker.created_at}|${marker.id}`:null } }
-export async function accessibleJoxPage(viewerId?:string|null, cursor?:string|null, limit=10) { const size=Math.max(1,Math.min(limit,20)), fetchSize=size*4+1; let query=socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","vijox").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(fetchSize); if(cursor){const [createdAt,id]=cursor.split("|"); if(!createdAt||!id) throw new SocialFeedStageError("jox_cursor","invalid_cursor","Invalid cursor"); query=query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)} const {data,error}=await query; requireSocialResult("jox_page",{error}); const rows=(data||[]) as SocialPost[], visible=[] as SocialPost[]; for(const post of rows){if(isJox(post.content_format)&&await canViewPost(post,viewerId)) visible.push(post); if(visible.length>size) break} const page=visible.slice(0,size), hasMore=visible.length>size||rows.length===fetchSize, marker=hasMore?(page.length===size?page.at(-1):rows.at(-1)):null; return { posts:page, nextCursor:marker?`${marker.created_at}|${marker.id}`:null } }
+export async function accessibleGlimps(viewerId?:string|null, limit=16) { const {data,error}=await socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(Math.max(1,Math.min(limit,50))); requireSocialResult("glimps_query",{error}); return visiblePosts((data || []) as SocialPost[], viewerId) }
+export async function accessibleGlimpsPage(viewerId?:string|null, cursor?:string|null, limit=10) { const size=Math.max(1,Math.min(limit,20)), fetchSize=size*4+1; let query=socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(fetchSize); if(cursor){const [createdAt,id]=cursor.split("|"); if(!createdAt||!id) throw new SocialFeedStageError("glimps_cursor","invalid_cursor","Invalid cursor"); query=query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)} const {data,error}=await query; requireSocialResult("glimps_page",{error}); const rows=(data||[]) as SocialPost[], visible=await visiblePosts(rows,viewerId); const page=visible.slice(0,size), hasMore=visible.length>size||rows.length===fetchSize, marker=hasMore?(page.length===size?page.at(-1):rows.at(-1)):null; return { posts:page, nextCursor:marker?`${marker.created_at}|${marker.id}`:null } }
+export async function accessibleJoxPage(viewerId?:string|null, cursor?:string|null, limit=10) { const size=Math.max(1,Math.min(limit,20)), fetchSize=size*4+1; let query=socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","vijox").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(fetchSize); if(cursor){const [createdAt,id]=cursor.split("|"); if(!createdAt||!id) throw new SocialFeedStageError("jox_cursor","invalid_cursor","Invalid cursor"); query=query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)} const {data,error}=await query; requireSocialResult("jox_page",{error}); const rows=(data||[]) as SocialPost[], visible=await visiblePosts(rows.filter(post=>isJox(post.content_format)),viewerId); const page=visible.slice(0,size), hasMore=visible.length>size||rows.length===fetchSize, marker=hasMore?(page.length===size?page.at(-1):rows.at(-1)):null; return { posts:page, nextCursor:marker?`${marker.created_at}|${marker.id}`:null } }
 export const MEDIA_RULES = {
   "image/jpeg": { type:"image", extension:"jpg", extensions:["jpg","jpeg"], max:10*1024*1024 },
   "image/png": { type:"image", extension:"png", extensions:["png"], max:10*1024*1024 },

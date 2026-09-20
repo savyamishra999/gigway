@@ -15,7 +15,7 @@ console.log('PASS: legacy option values, string initialization, exact completene
 (async()=>{
  const ReactRuntime=require('react/jsx-runtime');let memberRole=null,user=null;const filters=[];
  const supabase={auth:{getUser:async()=>({data:{user}})},from:table=>({select(){return this},eq(key,value){filters.push([table,key,value]);return this},maybeSingle:async()=>({data:table==='organizations'?{id:'org',name:'Legacy',username:'legacy'}:memberRole?{member_role:memberRole}:null})})};
- const deps={'react/jsx-runtime':ReactRuntime,'next/navigation':{redirect:url=>{throw Error('redirect:'+url)},notFound:()=>{throw Error('notFound')}},'@/lib/supabase/server':{createClient:async()=>supabase},'@/components/organizations/OrganizationForm':{default:()=>null}};
+ const deps={'@/lib/auth/server':{loginForCurrent:async()=>'/login?next=/organizations/legacy/edit'},'react/jsx-runtime':ReactRuntime,'next/navigation':{redirect:url=>{throw Error('redirect:'+url)},notFound:()=>{throw Error('notFound')}},'@/lib/supabase/server':{createClient:async()=>supabase},'@/components/organizations/OrganizationForm':{default:()=>null}};
  const m={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/organizations/[username]/edit/page.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module:m,exports:m.exports,require:n=>{if(!(n in deps))throw Error(n);return deps[n]}});
  const render=()=>m.exports.default({params:Promise.resolve({username:'legacy'})});
  await assert.rejects(render,/redirect:\/login/);user={id:'viewer'};
