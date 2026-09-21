@@ -39,5 +39,5 @@ export default function PostText({ body, mentions = [], highlights = [], hiddenU
   }
   normal(body.slice(cursor), cursor);
   const size = gigThought ? (body.length <= 80 ? "text-[20px] leading-8" : body.length <= 160 ? "text-[18px] leading-7" : "text-[16px] leading-7") : "text-body-sm leading-6";
-  return <p className={`whitespace-pre-wrap break-words pt-4 text-brand-midnight ${size}`}>{parts}</p>;
+  return <p className={`min-w-0 max-w-full overflow-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] pt-4 text-brand-midnight ${size}`}>{parts}</p>;
 }

@@ -192,5 +192,16 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     assert.match(homePrompt, /67% complete/);
     assert.match(homePrompt, /if \(error \|\| !data \|\| data\.avatar_url/);
   });
+  await check('mobile Home constrains wide feed media to the viewport', () => {
+    const home = fs.readFileSync('app/home/page.tsx', 'utf8');
+    const feed = fs.readFileSync('components/social/SocialHomeFeed.tsx', 'utf8');
+    const postText = fs.readFileSync('components/social/PostText.tsx', 'utf8');
+    assert.match(home, /grid-cols-\[minmax\(0,1fr\)\]/);
+    assert.match(home, /<div className="w-full min-w-0">/);
+    assert.match(feed, /w-full min-w-0 max-w-full overflow-hidden border/);
+    assert.match(feed, /w-full min-w-0 max-w-3xl overflow-x-hidden/);
+    assert.match(feed, /block h-auto max-h-\[400px\] w-full max-w-full/);
+    assert.match(postText, /\[overflow-wrap:anywhere\]/);
+  });
   console.log(`${passed} P0 check groups passed. Isolated/mocked; no live auth, database, or browser.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

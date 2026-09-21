@@ -415,7 +415,7 @@ export function PostCard({
   const authorHref = post.author?.username ? `/u/${post.author.username}` : null;
   const preview = comments, richPreviewUrls = post.contentDomain === "post" && post.body ? urlsInText(post.body).filter(url => !!externalPreviewFor(url)) : [];
   return (
-    <article className={`relative min-w-0 max-w-full border bg-white p-4 ${post.contentDomain === "post" ? "rounded-xl shadow-none" : "rounded-2xl shadow-soft"} ${post.momentSlug === "raksha-bandhan" ? "border-brand-coral/35" : "border-brand-borderLight"}`}>
+    <article className={`relative w-full min-w-0 max-w-full overflow-hidden border bg-white p-4 ${post.contentDomain === "post" ? "rounded-xl shadow-none" : "rounded-2xl shadow-soft"} ${post.momentSlug === "raksha-bandhan" ? "border-brand-coral/35" : "border-brand-borderLight"}`}>
       {post.momentSlug === "raksha-bandhan" && <p className="mb-3 text-caption font-bold tracking-[.12em] text-brand-coral">RAKSHA BANDHAN · GIGWAY MOMENT</p>}
       <div className="flex gap-3">
         {authorHref ? (
@@ -547,7 +547,7 @@ export function PostCard({
                 key={m.id}
                 src={m.url}
                 alt={m.fileName}
-                className={`mt-3 max-h-[400px] w-full max-w-full rounded-xl bg-brand-ivory object-contain sm:max-h-[500px] ${m.height && m.width && m.height > m.width ? "mx-auto" : ""}`}
+                className={`mt-3 block h-auto max-h-[400px] w-full max-w-full rounded-xl bg-brand-ivory object-contain sm:max-h-[500px] ${m.height && m.width && m.height > m.width ? "mx-auto" : ""}`}
               />
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
@@ -714,7 +714,7 @@ export default function SocialHomeFeed({
   const insertedRailCount = posts.length < 3 ? 0 : Math.floor((posts.length - 3) / 4) + 1;
   const activeMoment = getActiveMoment();
   return (
-    <section className="mt-6 w-full min-w-0 max-w-3xl">
+    <section className="mt-6 w-full min-w-0 max-w-3xl overflow-x-hidden">
       <MomentHomeCard moment={activeMoment} />
       <Link
         href="/social/create"
