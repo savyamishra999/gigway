@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gigway-p0-qa-'));
 const report = { mode: 'headless Chromium, development build, mocked local Supabase', viewports: [], scenarios: [], errors: [], temp };
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'qa@example.invalid', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: { full_name: 'QA New Professional', avatar_url: 'https://lh3.googleusercontent.com/qa-fixture' }, created_at: new Date().toISOString() };
-const person = { id: user.id, username: 'qa-person', full_name: 'QA Professional', avatar_url: 'https://example.invalid/avatar.jpg', profile_completed: true, skills: [], portfolio_links: [], user_roles: ['find_work'], find_work_type: 'both', bio: 'Public identity fixture' };
+const person = { id: user.id, username: 'qa-person', full_name: 'QA Professional With A Deliberately Long Display Name', avatar_url: 'https://example.invalid/avatar.jpg', profile_completed: true, skills: ['Product Strategy', 'Performance Marketing'], portfolio_links: [], user_roles: ['find_work'], find_work_type: 'both', tagline: 'I build useful professional products for teams across India without losing clarity on small screens', bio: 'Public identity fixture About text that must remain below the identity header.' };
 const org = { id: '22222222-2222-4222-8222-222222222222', username: 'qa-workplace', name: 'QA Workplace', entity_type: 'company', description: 'Public Workplace fixture', website: 'https://example.invalid' };
 let databaseFailure = false;
 const mock = http.createServer(async (req, res) => {
@@ -43,6 +43,9 @@ const mock = http.createServer(async (req, res) => {
   if (table === 'organizations') rows = (url.searchParams.get('username') || '').startsWith('ilike.') ? [] : [org];
   if (table === 'organization_members') rows = [{ organization_id: org.id, profile_id: person.id, member_role: 'owner', status: 'active', organizations: org }];
   if (table === 'profile_intents') rows = [{ profile_id: person.id, intent_type: 'looking_for_work' }];
+  if (table === 'gigs') rows = [{ id: 'gig-qa', title: 'Mobile-first identity design service', status: 'active', freelancer_id: person.id }];
+  if (table === 'jobs') rows = [{ id: 'job-qa', title: 'Senior product designer', status: 'active', client_id: person.id }];
+  if (table === 'projects') rows = [{ id: 'project-qa', title: 'Professional network research', status: 'open', client_id: person.id }];
   res.setHeader('content-range', rows.length ? `0-${rows.length - 1}/${rows.length}` : '*/0');
   res.end(JSON.stringify(req.headers.accept?.includes('vnd.pgrst.object') ? rows[0] || null : rows));
 });
@@ -136,6 +139,12 @@ function stop(child) {
     for (const [route, expected] of [['/','Your Professional Identity.'],['/u/qa-person','QA Professional'],['/u/qa-workplace','QA Workplace'],['/login','Welcome back']]) {
       const result = await navigate(route, expected); routes.push({ route, ...result });
       assert.equal(result.overflow, false, `Horizontal overflow at ${width} on ${route}`);
+      if (route === '/u/qa-person') {
+        assert.equal(await evaluate(`document.body.innerText.includes('I build useful professional products')`), true, 'Tagline missing from header');
+        assert.equal(await evaluate(`document.body.innerText.includes('About') && document.body.innerText.includes('Public identity fixture About text')`), true, 'Bio missing from About');
+        assert.equal(await evaluate(`document.body.innerText.includes('67% complete')`), false, 'Completion leaked publicly');
+        assert.equal(await evaluate(`document.body.innerText.includes('Service offered') && document.body.innerText.includes('Job posted') && document.body.innerText.includes('Project posted')`), true, 'Accurate Work labels missing');
+      }
     }
     report.viewports.push({ width, routes }); console.log(`PASS browser width ${width}: landing, person, Workplace, login`);
   }
@@ -186,8 +195,8 @@ function stop(child) {
   await eventually(() => evaluate(`document.body.innerText.includes('@qa_new_professional is available')`));
   assert.equal(await evaluate(`document.body.innerText.includes('Upload Photo') && document.body.innerText.includes('Use Google Photo')`), true);
   await evaluate(`[...document.querySelectorAll('button')].find(button => button.innerText.includes('Skip photo and enter GigWay')).click()`);
-  await eventually(() => evaluate(`location.pathname === '/home' && document.body.innerText.includes('Complete your Professional Identity')`));
-  assert.equal(await evaluate(`document.body.innerText.includes('Add a profile photo so people can recognize you.')`), true);
+  await eventually(() => evaluate(`location.pathname === '/home' && document.body.innerText.includes('Build your Professional Identity')`));
+  assert.equal(await evaluate(`document.body.innerText.includes('Next recommended action: Add profile photo')`), true);
   report.scenarios.push({ name: 'new user name prefill + username + photo skip -> Home completion prompt', passed: true });
   console.log('... new-user onboarding and photo completion prompt ok');
   databaseFailure = true; await navigate('/workplaces', 'We couldn'); report.scenarios.push({ name: 'query failure -> retry UI', passed: true }); databaseFailure = false;

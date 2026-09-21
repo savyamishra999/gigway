@@ -119,7 +119,7 @@ const AVAILABILITY_OPTIONS = [
   { value: "not-available", label: "Not Available" },
 ]
 
-const TABS = ["Profile", "About", "Skills", "Work", "Portfolio", "Preferences", "Workplaces"] as const
+const TABS = ["Identity", "About", "Professional", "Work", "Links", "Account"] as const
 type Tab = (typeof TABS)[number]
 
 function normalizeJobFunction(value: string | string[] | null | undefined): string[] {
@@ -140,8 +140,8 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
   )
 }
 
-export default function EditProfileForm({ profile, userId, activeModes = [], organizations = [] }: {
-  profile: Profile | null; userId: string; activeModes?: string[]; organizations?: OrgMembership[]
+export default function EditProfileForm({ profile, userId, activeModes = [], organizations = [], initialSection }: {
+  profile: Profile | null; userId: string; activeModes?: string[]; organizations?: OrgMembership[]; initialSection?: string
 }) {
   const roles = resolveRoles(profile)
   const htType = roles.hireTalentType
@@ -154,7 +154,8 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
   const anyWorkActive   = freelanceActive || fulltimeActive || hiringActive
   const hasOrganizations = organizations.length > 0
 
-  const [tab, setTab] = useState<Tab>("Profile")
+  const requestedTab = TABS.find(item => item.toLowerCase() === initialSection?.toLowerCase())
+  const [tab, setTab] = useState<Tab>(requestedTab ?? "Identity")
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
     tagline:   profile?.tagline || "",
@@ -209,8 +210,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
   const handleSave = async () => {
     setLoading(true); setError(null); setSuccess(null)
 
-    if (!formData.phone.trim()) { setError("Phone number is required"); setLoading(false); return }
-    if (!validatePhone(formData.phone)) { setError("Enter a valid 10-digit Indian phone number"); setLoading(false); return }
+    if (formData.phone.trim() && !validatePhone(formData.phone)) { setError("Enter a valid 10-digit Indian phone number"); setLoading(false); return }
 
     const updatePayload: Record<string, unknown> = {
       full_name:       formData.full_name,
@@ -276,7 +276,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
       </div>
 
       {/* ── Profile ── */}
-      {tab === "Profile" && (
+      {tab === "Identity" && (
         <div className="space-y-5">
           <Section title="Photo">
             <ImageUploader kind="avatar" label="Upload photo" value={formData.avatar_url} onChange={url => set("avatar_url", url)} />
@@ -326,7 +326,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
       )}
 
       {/* ── Skills ── */}
-      {tab === "Skills" && (
+      {tab === "Professional" && (
         <div className="space-y-5">
           <Section title="Job Functions" sub={`${formData.job_function.length}/5 selected`}>
             <ChipPicker
@@ -508,14 +508,14 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
       )}
 
       {/* ── Portfolio ── */}
-      {tab === "Portfolio" && (
+      {tab === "Links" && (
         <Section title="Portfolio" sub="Link your best work — case studies, live projects, repos.">
           <PortfolioEditor links={formData.portfolio_links} onChange={v => set("portfolio_links", v)} />
         </Section>
       )}
 
       {/* ── Preferences ── */}
-      {tab === "Preferences" && (
+      {tab === "Account" && (
         <div className="space-y-5">
           <Section title="Profile Visibility">
             <div className="flex items-center justify-between">
@@ -552,7 +552,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
       )}
 
       {/* ── Organizations ── */}
-      {tab === "Workplaces" && (
+      {tab === "Account" && (
         <Section title="Workplaces" sub="Companies and teams you're part of.">
           <Link href="/workplaces" className="inline-block text-sm font-semibold text-[#818CF8] hover:text-white">Manage Workplaces</Link>
           {hasOrganizations ? (

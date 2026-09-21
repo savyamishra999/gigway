@@ -5,7 +5,7 @@ import { withDeadline } from "@/lib/async"
 import { SectionUnavailable } from "@/components/layout/SectionStatus"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Briefcase, Building2, CheckCircle2, ExternalLink, IndianRupee, Link2, MapPin, MessageSquare } from "lucide-react"
+import { Briefcase, Building2, CheckCircle2, ExternalLink, Link2, MapPin, MessageSquare } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { WORK_MODES } from "@/lib/identity"
 import { intentMeta } from "@/lib/workIntents"
@@ -15,6 +15,7 @@ import { socialDb } from "@/lib/social/server"
 import ProfileSocialFeed from "@/components/social/ProfileSocialFeed"
 import PublicWorkplace from "@/components/organizations/PublicWorkplace"
 import { WORKPLACE_FIELDS, workplaceSection, workplacePage } from "@/lib/organizations/public"
+import ProfileWorkPreview from "@/components/profile/ProfileWorkPreview"
 
 function portfolioTitle(url: string) {
   try {
@@ -51,6 +52,10 @@ async function PersonCounts({ id, username }: { id: string; username: string }) 
     return <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><Link href={`/u/${username}/followers`}>{counts[1].count || 0} Followers</Link><Link href={`/u/${username}/following`}>{counts[2].count || 0} Following</Link><Link href="/network">{counts[0].count || 0} Connections</Link></div>
   } catch { return <p className="text-sm text-[#9EA6B8]">Counts unavailable.</p> }
 }
+async function PersonContent({ id, name }: { id: string; name: string }) {
+  const viewer = await getViewer().catch(() => null)
+  return <ProfileSocialFeed profileId={id} name={name} isOwner={viewer?.id === id} />
+}
 
 export default async function PublicIdentity({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ section?: string; page?: string }> }) {
   const { username } = await params
@@ -86,7 +91,6 @@ export default async function PublicIdentity({ params, searchParams }: { params:
       supabase.from("organization_members").select("member_role, organizations(name, username, logo_url)").eq("profile_id", profile.id).eq("status", "active"),
     ])
     const modes = (intents ?? []).map(x => WORK_MODES.find(mode => mode.value === x.intent_type)).filter(Boolean)
-    const isFreelancer = modes.some(m => m?.value === "offering_services")
     const jobFunctions = profile.job_function ? (Array.isArray(profile.job_function) ? profile.job_function : [profile.job_function]) : []
     const portfolioLinks = (profile.portfolio_links as string[] | null) ?? []
     const primaryOrg = (memberships ?? []).find((m: any) => m.organizations)
@@ -102,20 +106,19 @@ export default async function PublicIdentity({ params, searchParams }: { params:
 
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-                <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#242431] text-3xl font-bold text-white ring-4 ring-[#15151d]">
+                <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full bg-[#242431] text-3xl font-bold text-white ring-4 ring-[#15151d]">
                   {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.full_name?.[0]?.toUpperCase() || "?"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="break-words text-2xl font-bold text-white">{profile.full_name || "GigWay member"}</h1>
-                    {profile.is_verified && <CheckCircle2 className="h-5 w-5 text-[#A99FFF]" />}
+                    {profile.is_verified && <CheckCircle2 className="h-5 w-5 shrink-0 text-[#A99FFF]" aria-label="Verified Professional Identity" />}
                   </div>
                   <p className="mt-1 break-all text-[#9EA6B8]">@{profile.username}</p>
-                  {(profile.bio || profile.tagline) && <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#D4D8E3]">{profile.bio || profile.tagline}</p>}
+                  {profile.tagline && <p className="mt-1.5 max-w-2xl break-words text-sm font-medium leading-6 text-[#D4D8E3]">{profile.tagline}</p>}
                   {founderLine && <p className="mt-1 text-xs font-medium text-[#B9B3FF]">{founderLine}</p>}
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[#8D96A8]">
                     {profile.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{profile.location}</span>}
-                    {isFreelancer && profile.hourly_rate && <span className="flex items-center gap-1 text-[#B9B3FF] font-semibold"><IndianRupee className="h-3.5 w-3.5" />{profile.hourly_rate}/hr</span>}
                   </div>
                   <Suspense fallback={null}><PersonCounts id={profile.id} username={profile.username} /></Suspense>
                 </div>
@@ -125,7 +128,7 @@ export default async function PublicIdentity({ params, searchParams }: { params:
 
             {modes.length > 0 && (
               <div className="mt-6 flex flex-wrap gap-2">
-                {modes.map(mode => {
+                {modes.slice(0, 2).map(mode => {
                   if (!mode) return null
                   const meta = intentMeta(mode.value)
                   return (
@@ -134,6 +137,7 @@ export default async function PublicIdentity({ params, searchParams }: { params:
                     </span>
                   )
                 })}
+                {modes.length > 2 && <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-[#CBD5E1]">+{modes.length - 2} more</span>}
               </div>
             )}
 
@@ -209,7 +213,8 @@ export default async function PublicIdentity({ params, searchParams }: { params:
                 </div>
               </div>
             )}
-            <ProfileSocialFeed profileId={profile.id} name={profile.full_name||"GigWay member"}/>
+            <Suspense fallback={null}><ProfileWorkPreview profileId={profile.id} /></Suspense>
+            <Suspense fallback={null}><PersonContent id={profile.id} name={profile.full_name||"GigWay member"} /></Suspense>
           </div>
         </section>
       </main>

@@ -189,8 +189,10 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     assert.match(callback, /avatar_url:\s+null/);
     assert.match(googleAvatar, /if \(profile\?\.avatar_url\).*existing GigWay photo was kept/);
     assert.match(googleAvatar, /storage\.from\("avatars"\)\.upload/);
-    assert.match(homePrompt, /67% complete/);
-    assert.match(homePrompt, /if \(error \|\| !data \|\| data\.avatar_url/);
+    assert.doesNotMatch(homePrompt, /67% complete/);
+    assert.match(homePrompt, /professionalMilestones/);
+    assert.match(homePrompt, /if \(error \|\| !data \|\| !data\.full_name \|\| !data\.username\)/);
+    assert.match(homePrompt, /Next recommended action/);
   });
   await check('mobile Home constrains wide feed media to the viewport', () => {
     const home = fs.readFileSync('app/home/page.tsx', 'utf8');

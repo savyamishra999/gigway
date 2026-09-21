@@ -7,7 +7,17 @@ export async function PATCH(request: Request) {
   const db = await createClient()
   const { data: { user } } = await db.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const updates = await request.json()
+  const body = await request.json()
+  const allowed = new Set([
+    "full_name", "username", "avatar_url", "tagline", "bio", "location", "phone", "phone_is_public", "is_private",
+    "job_function", "skills", "portfolio_links", "hourly_rate", "availability", "experience_years", "experience_description",
+    "linkedin_url", "cv_url", "expected_salary", "preferred_job_type", "company_name", "company_size", "company_website", "industry", "gst_number",
+  ])
+  const updates = Object.fromEntries(Object.entries(body).filter(([key]) => allowed.has(key)))
+  if (typeof updates.phone === "string" && updates.phone.trim()) {
+    const digits = updates.phone.replace(/\D/g, "")
+    if (digits.length !== 10 && digits.length !== 12) return NextResponse.json({ error: "Enter a valid 10-digit Indian phone number" }, { status: 400 })
+  }
   const { data: current } = await db.from("profiles").select("portfolio_links").eq("id", user.id).maybeSingle()
   const before = (current?.portfolio_links as string[] | null) || []
   const next = Array.isArray(updates.portfolio_links) ? updates.portfolio_links : before
