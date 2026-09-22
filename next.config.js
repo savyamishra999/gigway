@@ -2,6 +2,32 @@ const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
+  clientsClaim: true,
+  cleanupOutdatedCaches: true,
+  // The start URL is auth-sensitive. Disabling both switches prevents
+  // next-pwa from prepending its own NetworkFirst `start-url` route or
+  // precaching `/` ahead of our NetworkOnly navigation rule.
+  cacheStartUrl: false,
+  dynamicStartUrl: false,
+  // Never persist document responses or API payloads. Both can contain
+  // session-specific state while their URL stays identical across accounts.
+  // Static build assets remain cacheable and use a versioned cache name so a
+  // newly activated worker cannot read the former broad runtime caches.
+  runtimeCaching: [
+    {
+      urlPattern: ({ request, url }) => request.mode === "navigate" || url.pathname.startsWith("/api/"),
+      handler: "NetworkOnly",
+    },
+    {
+      urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith("/_next/static/"),
+      handler: "CacheFirst",
+      options: {
+        cacheName: "gigway-static-v2",
+        expiration: { maxEntries: 128, maxAgeSeconds: 30 * 24 * 60 * 60 },
+        cacheableResponse: { statuses: [0, 200] },
+      },
+    },
+  ],
   disable: process.env.NODE_ENV === "development",
 })
 

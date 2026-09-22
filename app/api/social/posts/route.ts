@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canViewPost, enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, socialContentFormat, SOCIAL_POST_FIELDS, socialDb, withReplyPreviews } from "@/lib/social/server";
+import { enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, safePosts, socialContentFormat, socialPerf, SOCIAL_POST_FIELDS, socialDb, visiblePosts, withReplyPreviews } from "@/lib/social/server";
 import { parseContentDomain, toContentDomain, toPersistedContentFormat } from "@/lib/social/content-domain";
 import { MAX_GLIMPS_CAPTION_LENGTH, MAX_JOX_CAPTION_LENGTH } from "@/lib/social/content-domain";
 import { specialMoments } from "@/lib/moments";
@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const requestStartedAt = performance.now();
   let stage = "auth";
   try {
     const viewer = await requireSocialUser();
@@ -119,13 +120,17 @@ export async function GET(req: NextRequest) {
       stage = "base_posts";
       const { data, error } = await query;
       if (error) throw error;
-      const accessible = [] as any[];
       stage = "post_access";
-      for (const post of data || []) if (await canViewPost(post, viewer?.id)) accessible.push(post);
+      const visibilityStartedAt = performance.now();
+      const accessible = await visiblePosts((data || []) as any[], viewer?.id);
+      socialPerf("social_visibility", visibilityStartedAt, { candidates:(data || []).length, visible:accessible.length, feed });
       const page = accessible.slice(0, PAGE_SIZE);
       stage = "serialization";
-      const serialized = await withReplyPreviews(await Promise.all(page.map((post) => safePost(post, viewer?.id))));
-      return NextResponse.json({ items: await enrichPostsWithVijoxTimedReactions<any>(serialized as any[], viewer?.id), nextCursor: accessible.length > PAGE_SIZE ? `${page.at(-1).created_at}|${page.at(-1).id}` : null });
+      const serialized = await withReplyPreviews(await safePosts(page, viewer?.id));
+      const items = await enrichPostsWithVijoxTimedReactions<any>(serialized as any[], viewer?.id);
+      socialPerf("social_api_total", requestStartedAt, { candidates:(data || []).length, visible:page.length, feed });
+      const marker=page.at(-1);
+      return NextResponse.json({ items, nextCursor: accessible.length > PAGE_SIZE && marker ? `${marker.created_at}|${marker.id}` : null });
     }
 
     const cursor = readCursor(cursorValue);
@@ -177,12 +182,16 @@ export async function GET(req: NextRequest) {
       serviceIds.length ? db.from("gigs").select("id,title,price,rating,image_url,status,freelancer_id,owner_id").in("id", serviceIds).eq("status", "active") : Promise.resolve({ data: [] as any[] }),
     ]);
     const peopleById = new Map((sharePeople.data || []).map(p => [p.id, p])), orgsById = new Map((shareOrgs.data || []).map(o => [o.id, o])), jobsById = new Map((jobs.data || []).map(x => [x.id, x])), projectsById = new Map((projects.data || []).map(x => [x.id, x])), servicesById = new Map((services.data || []).map(x => [x.id, x]));
+    const visibilityStartedAt = performance.now();
+    const visibleCandidates = await visiblePosts([...(originalsRes.data || []), ...repostPosts] as any[], viewer.id);
+    const visiblePostIds = new Set(visibleCandidates.map(post => post.id));
+    socialPerf("social_visibility", visibilityStartedAt, { candidates:(originalsRes.data || []).length+repostPosts.length, visible:visibleCandidates.length, feed });
     const activities: Activity[] = [];
-    for (const post of originalsRes.data || []) if (await canViewPost(post, viewer.id)) activities.push({ type: "post", key: `post:${post.id}`, time: post.created_at, post });
+    for (const post of originalsRes.data || []) if (visiblePostIds.has(post.id)) activities.push({ type: "post", key: `post:${post.id}`, time: post.created_at, post });
     for (const repost of repostRows) {
       const post = postsById.get(repost.post_id);
       const actor = actorsById.get(repost.user_id);
-      if (post && actor && await canViewPost(post, viewer.id)) activities.push({ type: "repost", key: `repost:${repost.post_id}:${repost.user_id}`, time: repost.created_at, post, actor });
+      if (post && actor && visiblePostIds.has(post.id)) activities.push({ type: "repost", key: `repost:${repost.post_id}:${repost.user_id}`, time: repost.created_at, post, actor });
     }
     for (const share of shares) {
       const actor = share.actor_user_id ? peopleById.get(share.actor_user_id) : orgsById.get(share.actor_organization_id);
@@ -202,7 +211,9 @@ export async function GET(req: NextRequest) {
     }
     const page = deduped.slice(0, PAGE_SIZE);
     stage = "serialization";
-    const items = await Promise.all(page.map(async (activity) => activity.type === "post" ? safePost(activity.post, viewer.id) : activity.type === "marketplace_share" ? (() => { const object = activity.post, type = activity.share.job_id ? "job" : activity.share.project_id ? "project" : "service"; const salary = object.salary_min || object.salary_max ? `${object.salary_min ? `From ₹${Number(object.salary_min).toLocaleString()}` : ""}${object.salary_min && object.salary_max ? " · " : ""}${object.salary_max ? `Up to ₹${Number(object.salary_max).toLocaleString()}` : ""}` : null; const ownObject = activity.actor!.kind === "organization" ? activity.actor!.id === object.organization_id : activity.actor!.id === (object.client_id || object.freelancer_id || object.owner_id); return { type: "marketplace_share" as const, shareId: activity.share.id, sharedAt: activity.time, verb: ownObject ? "shared" as const : "reposted" as const, actor: { id: activity.actor!.id, name: activity.actor!.name || activity.actor!.full_name || "GigWay member", href: activity.actor!.kind === "organization" ? (activity.actor!.username ? `/u/${activity.actor!.username}` : "/explore?tab=organizations") : activity.actor!.id === viewer.id ? "/profile" : activity.actor!.username ? `/u/${activity.actor!.username}` : `/freelancers/${activity.actor!.id}`, avatar: activity.actor!.logo_url || activity.actor!.avatar_url, type: activity.actor!.kind! }, object: { type, title: object.title, href: `/${type === "service" ? "gigs" : `${type}s`}/${object.id}`, subtitle: type === "job" ? [object.company_name, object.location, object.job_type, salary].filter(Boolean).join(" · ") : type === "project" ? [`Budget: ₹${Number(object.budget || 0).toLocaleString()}`, ...(object.skills_required || []).slice(0, 3)].join(" · ") : [`From ₹${Number(object.price || 0).toLocaleString()}`, object.rating ? `${object.rating} rating` : null].filter(Boolean).join(" · "), image: object.image_url, tags: type === "project" ? (object.skills_required || []).slice(0, 3) : undefined, rating: object.rating, cta: type === "job" ? "View Job / Apply" : type === "project" ? "View Project / Send Proposal" : "View Service" } } })() : {
+    const socialPagePosts=[...new Map(page.filter(activity=>activity.type!=="marketplace_share").map(activity=>[activity.post.id,activity.post])).values()];
+    const serializedById=new Map((await safePosts(socialPagePosts,viewer.id)).map(post=>[post.id,post]));
+    const items = await Promise.all(page.map(async (activity) => activity.type === "post" ? serializedById.get(activity.post.id)! : activity.type === "marketplace_share" ? (() => { const object = activity.post, type = activity.share.job_id ? "job" : activity.share.project_id ? "project" : "service"; const salary = object.salary_min || object.salary_max ? `${object.salary_min ? `From ₹${Number(object.salary_min).toLocaleString()}` : ""}${object.salary_min && object.salary_max ? " · " : ""}${object.salary_max ? `Up to ₹${Number(object.salary_max).toLocaleString()}` : ""}` : null; const ownObject = activity.actor!.kind === "organization" ? activity.actor!.id === object.organization_id : activity.actor!.id === (object.client_id || object.freelancer_id || object.owner_id); return { type: "marketplace_share" as const, shareId: activity.share.id, sharedAt: activity.time, verb: ownObject ? "shared" as const : "reposted" as const, actor: { id: activity.actor!.id, name: activity.actor!.name || activity.actor!.full_name || "GigWay member", href: activity.actor!.kind === "organization" ? (activity.actor!.username ? `/u/${activity.actor!.username}` : "/explore?tab=organizations") : activity.actor!.id === viewer.id ? "/profile" : activity.actor!.username ? `/u/${activity.actor!.username}` : `/freelancers/${activity.actor!.id}`, avatar: activity.actor!.logo_url || activity.actor!.avatar_url, type: activity.actor!.kind! }, object: { type, title: object.title, href: `/${type === "service" ? "gigs" : `${type}s`}/${object.id}`, subtitle: type === "job" ? [object.company_name, object.location, object.job_type, salary].filter(Boolean).join(" · ") : type === "project" ? [`Budget: ₹${Number(object.budget || 0).toLocaleString()}`, ...(object.skills_required || []).slice(0, 3)].join(" · ") : [`From ₹${Number(object.price || 0).toLocaleString()}`, object.rating ? `${object.rating} rating` : null].filter(Boolean).join(" · "), image: object.image_url, tags: type === "project" ? (object.skills_required || []).slice(0, 3) : undefined, rating: object.rating, cta: type === "job" ? "View Job / Apply" : type === "project" ? "View Project / Send Proposal" : "View Service" } } })() : {
       type: "repost" as const,
       repostedAt: activity.time,
       repostActor: {
@@ -212,7 +223,7 @@ export async function GET(req: NextRequest) {
         avatar: activity.actor!.avatar_url,
         href: activity.actor!.id === viewer.id ? "/profile" : activity.actor!.username ? `/u/${activity.actor!.username}` : `/freelancers/${activity.actor!.id}`,
       },
-      originalPost: await safePost(activity.post, viewer.id),
+      originalPost: serializedById.get(activity.post.id)!,
     }));
     const postItems = items.filter((item): any => !("type" in item) || item.type === "repost"); const originals = await withReplyPreviews(postItems.map((item): any => "type" in item && item.type === "repost" ? item.originalPost : item)); let postIndex = 0; const enrichedItems = items.map((item) => { if ("type" in item && item.type === "marketplace_share") return item; const enriched = originals[postIndex++]; return "type" in item && item.type === "repost" ? { ...item, originalPost: enriched } : enriched });
     const last = page.at(-1);
@@ -225,6 +236,7 @@ export async function GET(req: NextRequest) {
       const post = reactionEnrichedPosts[reactionPostIndex++];
       return "type" in item && item.type === "repost" ? { ...item, originalPost: post } : post;
     });
+    socialPerf("social_api_total",requestStartedAt,{candidates:activities.length,visible:page.length,feed});
     return NextResponse.json({ items: finalItems, nextCursor: hasMore && last ? encodeCursor(last) : null });
   } catch (error) {
     logFeedFailure(stage, error);

@@ -1,0 +1,1 @@
+(()=>{const t=new Set(["start-url","apis","others","next-data","static-data-assets","cross-origin","static-image-assets","next-image","static-audio-assets","static-video-assets"]);self.addEventListener("activate",s=>{s.waitUntil(caches.keys().then(s=>Promise.all(s.filter(s=>t.has(s)).map(t=>caches.delete(t)))))})})();

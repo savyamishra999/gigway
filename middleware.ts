@@ -7,6 +7,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
   .split(",").map(e => e.trim().toLowerCase())
 
 export async function middleware(req: NextRequest) {
+  const startedAt = Date.now()
   const pathname = req.nextUrl.pathname
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set("x-pathname", pathname)
@@ -52,6 +53,9 @@ export async function middleware(req: NextRequest) {
       const result = await withDeadline(supabase.auth.getSession())
       if (result.error) throw result.error
       session = result.data.session
+      if (process.env.NODE_ENV === "development" || process.env.GIGWAY_PERF_DIAGNOSTICS === "1") {
+        console.info("gigway_perf", { stage: "middleware_auth", pathname, durationMs: Date.now() - startedAt, authenticated: !!session })
+      }
     } catch {
       // Keep the destination and give the user a finite retry, not a false logout.
       return new NextResponse("Your session could not be checked. Please reload to try again.", {
@@ -136,6 +140,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api(?:/|$)|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
