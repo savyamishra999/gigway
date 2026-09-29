@@ -2,14 +2,23 @@ import Link from "next/link"
 import { ArrowRight, Sparkles } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { withDeadline } from "@/lib/async"
-import { professionalMilestones } from "@/lib/identity/profile-strength"
+import { professionalMilestones, type ProfessionalIdentitySignals } from "@/lib/identity/profile-strength"
 
-export default async function IdentityCompletionPrompt({ userId }: { userId: string }) {
+type Props = {
+  userId: string
+  loadProfile?: () => PromiseLike<{
+    data: (ProfessionalIdentitySignals & { full_name?: string | null; username?: string | null }) | null
+    error: unknown
+  }>
+  loadIntents?: () => PromiseLike<{ data: { intent_type: string }[] | null }>
+}
+
+export default async function IdentityCompletionPrompt({ userId, loadProfile, loadIntents }: Props) {
   try {
     const db = await createClient()
     const [{ data, error }, { data: intents }] = await withDeadline(Promise.all([
-      db.from("profiles").select("full_name,username,avatar_url,tagline,bio,skills,job_function,portfolio_links,experience_description").eq("id", userId).maybeSingle(),
-      db.from("profile_intents").select("intent_type").eq("profile_id", userId).eq("is_active", true).limit(1),
+      loadProfile ? loadProfile() : db.from("profiles").select("full_name,username,avatar_url,tagline,bio,skills,job_function,portfolio_links,experience_description").eq("id", userId).maybeSingle(),
+      loadIntents ? loadIntents() : db.from("profile_intents").select("intent_type").eq("profile_id", userId).eq("is_active", true).limit(1),
     ]))
     if (error || !data || !data.full_name || !data.username) return null
     const milestones = professionalMilestones({ ...data, hasIntent: !!intents?.length })

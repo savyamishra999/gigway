@@ -12,7 +12,7 @@ import { externalPreviewFor, urlsInText } from "@/lib/social/external-links";
 import { getActiveMoment } from "@/lib/moments";
 import { usePostLike } from "@/components/social/usePostEngagement";
 import { MomentHomeCard } from "@/components/moments/MomentExperience";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { VijoxTimedReactionSummary } from "@/lib/social/vijox-timed-reactions";
 import type { PostHighlight } from "@/lib/social/gigthought";
 import {
@@ -111,6 +111,7 @@ export type FeedItem =
   | MarketplaceShare;
 export type MarketplaceShare = { type: "marketplace_share"; sharedAt: string; shareId: string; verb: "reposted" | "shared"; actor: { id: string; name: string; href: string; avatar?: string | null; type: "profile" | "organization" }; object: { type: "job" | "project" | "service"; title: string; href: string; subtitle: string; image?: string | null; cta: string; tags?: string[]; rating?: number | null } };
 type Props = {
+  initialPage?: { items: FeedItem[]; nextCursor: string | null };
   opportunities: OpportunityItem[];
   network: NetworkItem[];
   glimps: Post[];
@@ -193,11 +194,11 @@ function Rail({
     </section>
   );
 }
-function OpportunityRail({ items }: { items: OpportunityItem[] }) {
+export function OpportunityRail({ items }: { items: OpportunityItem[] }) {
   if (!items.length) return null;
   return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Opportunities for You</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{items.map((item) => <Link key={`${item.kind}-${item.id}`} href={item.href} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-indigo/35 sm:w-60"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <img src={item.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover"/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{item.title?.[0] || "G"}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.title}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div><p className="mt-4 text-caption font-bold text-brand-indigo">{item.cta}</p></Link>)}</div></section>;
 }
-function NetworkRail({ items }: { items: NetworkItem[] }) {
+export function NetworkRail({ items }: { items: NetworkItem[] }) {
   const [candidates, setCandidates] = useState(items), [busyId, setBusyId] = useState<string | null>(null);
   useEffect(() => setCandidates(items), [items]);
   if (!candidates.length) return null;
@@ -656,17 +657,19 @@ function ViewedPostCard({ post, onRefresh }: { post: Post; onRefresh: () => void
   return <QualifiedPostView postId={post.id} onQualified={setViewCount}><PostCard post={post} onRefresh={onRefresh} viewCountOverride={viewCount} /></QualifiedPostView>;
 }
 export default function SocialHomeFeed({
+  initialPage,
   opportunities,
   network,
   glimps,
   jox,
 }: Props) {
   const [feed, setFeed] = useState<"discover" | "following">("discover"),
-    [posts, setPosts] = useState<FeedItem[]>([]),
-    [loading, setLoading] = useState(true),
+    [posts, setPosts] = useState<FeedItem[]>(initialPage?.items || []),
+    [loading, setLoading] = useState(!initialPage),
     [error, setError] = useState(false),
     [tuneOpen, setTuneOpen] = useState(false),
-    [cursor, setCursor] = useState<string | null>(null);
+    [cursor, setCursor] = useState<string | null>(initialPage?.nextCursor || null);
+  const previousFeed = useRef(feed);
   const load = async (reset = false) => {
     setLoading(true);
     setError(false);
@@ -693,6 +696,11 @@ export default function SocialHomeFeed({
     }
   };
   useEffect(() => {
+    // SSR data is the first page, including an empty page. StrictMode replay
+    // must not fetch it twice. Returning from Following still refreshes Discover.
+    if (initialPage && previousFeed.current === feed) return;
+    previousFeed.current = feed;
+    setPosts([]);
     setCursor(null);
     load(true);
   }, [feed]);
