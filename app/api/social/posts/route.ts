@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, safePosts, socialContentFormat, socialPerf, SOCIAL_POST_FIELDS, socialDb, visiblePosts, withReplyPreviews } from "@/lib/social/server";
+import { accessibleDiscoverPage, enrichPostsWithVijoxTimedReactions, MAX_VIJOX_TRANSCRIPT_LENGTH, plainText, requireSocialUser, resolveProfile, safePost, safePosts, socialContentFormat, socialPerf, SOCIAL_POST_FIELDS, socialDb, visiblePosts, withReplyPreviews } from "@/lib/social/server";
 import { parseContentDomain, toContentDomain, toPersistedContentFormat } from "@/lib/social/content-domain";
 import { MAX_GLIMPS_CAPTION_LENGTH, MAX_JOX_CAPTION_LENGTH } from "@/lib/social/content-domain";
 import { specialMoments } from "@/lib/moments";
@@ -111,26 +111,17 @@ export async function GET(req: NextRequest) {
     const db = socialDb();
 
     if (feed === "discover") {
-      let query = db.from("posts").select(POST_FIELDS).eq("status", "published").eq("content_format", "standard").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(PAGE_SIZE + 1);
       if (cursorValue) {
         const [createdAt, id] = cursorValue.split("|");
         if (!createdAt || !id) return NextResponse.json({ error: "Invalid cursor." }, { status: 400 });
-        query = query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`);
       }
-      stage = "base_posts";
-      const { data, error } = await query;
-      if (error) throw error;
-      stage = "post_access";
-      const visibilityStartedAt = performance.now();
-      const accessible = await visiblePosts((data || []) as any[], viewer?.id);
-      socialPerf("social_visibility", visibilityStartedAt, { candidates:(data || []).length, visible:accessible.length, feed });
-      const page = accessible.slice(0, PAGE_SIZE);
+      stage = "discover_page";
+      const { posts: page, nextCursor, candidates, windows } = await accessibleDiscoverPage(viewer?.id, cursorValue);
       stage = "serialization";
       const serialized = await withReplyPreviews(await safePosts(page, viewer?.id));
       const items = await enrichPostsWithVijoxTimedReactions<any>(serialized as any[], viewer?.id);
-      socialPerf("social_api_total", requestStartedAt, { candidates:(data || []).length, visible:page.length, feed });
-      const marker=page.at(-1);
-      return NextResponse.json({ items, nextCursor: accessible.length > PAGE_SIZE && marker ? `${marker.created_at}|${marker.id}` : null });
+      socialPerf("social_api_total", requestStartedAt, { candidates, windows, visible:page.length, feed });
+      return NextResponse.json({ items, nextCursor });
     }
 
     const cursor = readCursor(cursorValue);

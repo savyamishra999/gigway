@@ -3,39 +3,21 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const react=require('react');
 const {moduleAt,fixture,walk,HomeModule,asyncLib,statuses,def,placeholder,socialClient}=require('./test-makkhan-pass2.cjs');
 const output=process.argv[2]||fs.mkdtempSync(path.join(os.tmpdir(),'gigway-pass2-final-tests-'));
-const report={evidence:'SYNTHETIC, actual application functions with mock I/O and hook lifecycle; not browser hydration',checks:[],knownIssues:[],findings:[]};
+const report={evidence:'SYNTHETIC, actual application functions with mock I/O and hook lifecycle; not browser hydration',checks:[],findings:[]};
 async function check(name,fn){try{const detail=await fn();report.checks.push({name,passed:true,detail});console.log('PASS',name);}catch(error){report.checks.push({name,passed:false,error:error.message});console.error('FAIL',name,error.message);}}
-// KNOWN PRE-EXISTING ISSUE tracking — NOT a pass and NOT part of the Pass 2 regression gate.
-// Discover pagination (app/api/social/posts/route.ts, unchanged since 3683fda, mirrored by
-// lib/home/primary.ts for SSR/API parity) only continues when >15 candidates are visible, so
-// hidden/inaccessible candidates can end the feed early. These assertions stay red on purpose
-// and are tracked for the separate follow-up discover pagination fix (JOX/GLIMPS already page
-// safely via accessibleJoxPage/accessibleGlimpsPage). Only an error matching `signature` counts
-// as the known issue; any other error or unexpected success is a hard FAIL in the gate. When the follow-up fix lands,
-// move these back to check() so they gate again.
-async function knownIssue(name,signature,fn){
-  try{
-    await fn();
-    const message='Known pagination issue was not reproduced. Investigate the fixture or the separate follow-up fix before reclassifying; this is not a pagination PASS.';
-    report.knownIssues.push({name,status:'NOT REPRODUCED',reproduced:false,note:message});
-    report.checks.push({name,passed:false,error:message});
-    console.error('FAIL: KNOWN ISSUE NOT REPRODUCED',name,message);
-  }
-  catch(error){if(error.code!=='ERR_ASSERTION'||!signature.test(error.message)){report.checks.push({name,passed:false,error:error.message});console.error('FAIL',name,error.message);return;}
-    report.knownIssues.push({name,status:'KNOWN PRE-EXISTING ISSUE',reproduced:true,error:error.message});console.warn('KNOWN PRE-EXISTING ISSUE',name,error.message.split('\n')[0]);}
-}
+// The three reproduced pre-existing pagination failures now gate the focused fix.
 const plain=value=>JSON.parse(JSON.stringify(value));
 const wait=()=>new Promise(resolve=>setTimeout(resolve,0));
 function post(index,visibility='public') {return {id:String(10000-index).padStart(5,'0'),author_user_id:'author-user',author_profile_id:'author',author_organization_id:null,body:'Post '+index,content_format:'standard',status:'published',visibility,created_at:'2026-09-20T12:00:00Z',edited_at:null};}
-function socialFixture(posts,viewer='viewer') {
+function socialFixture(posts,viewer='viewer',failTable=null) {
   const calls=[];
   const records={posts,profiles:[{id:'author',username:'author',full_name:'Author',profile_completed:true}],post_media:[],post_comments:[],organization_follows:[],organization_members:[],organizations:[],
     profile_follows:[{follower_user_id:'viewer',followed_profile_id:'author'}],
     post_likes:posts.slice(0,1).map(p=>({post_id:p.id,user_id:'viewer'})),post_saves:posts.slice(0,1).map(p=>({post_id:p.id,user_id:'viewer'})),post_reposts:posts.slice(0,1).map(p=>({post_id:p.id,user_id:'viewer'}))};
-  const db={from(table){let filters=[],limit=Infinity,cursor=null,head=false;const q={
-    select(fields,options){head=options?.head===true;return q},eq(k,v){filters.push(row=>row[k]===v);return q},in(k,v){filters.push(row=>v.includes(row[k]));return q},is(k,v){filters.push(row=>(row[k]??null)===v);return q},order(){return q},limit(n){limit=n;return q},
+  const db={from(table){let filters=[],limit=Infinity,cursor=null,head=false,fieldsSelected='',orders=[];const q={
+    select(fields,options){fieldsSelected=fields;head=options?.head===true;return q},eq(k,v){filters.push(row=>row[k]===v);return q},in(k,v){filters.push(row=>v.includes(row[k]));return q},is(k,v){filters.push(row=>(row[k]??null)===v);return q},order(key,options={}){orders.push([key,options.ascending]);return q},limit(n){limit=n;return q},
     or(value){const match=/created_at\.lt\.([^,]+),and\(created_at\.eq\.[^,]+,id\.lt\.([^\)]+)\)/.exec(value);assert.ok(match,'unexpected cursor expression');cursor={time:match[1],id:match[2]};return q},
-    then(resolve){calls.push({table,limit,cursor,head});let data=[...(records[table]||[])].filter(row=>filters.every(fn=>fn(row)));if(table==='posts'){data.sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));if(cursor)data=data.filter(row=>row.created_at<cursor.time||(row.created_at===cursor.time&&row.id<cursor.id));}data=data.slice(0,limit);resolve({data:head?null:data,count:data.length,error:null})}
+    then(resolve){const call={table,limit,cursor,head,visibility:["followed_profile_id","organization_id"].includes(fieldsSelected)};calls.push(call);let data=[...(records[table]||[])].filter(row=>filters.every(fn=>fn(row)));if(table==='posts'){assert.deepEqual(orders,[['created_at',false],['id',false]],'canonical ordering');data.sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));if(cursor)data=data.filter(row=>row.created_at<cursor.time||(row.created_at===cursor.time&&row.id<cursor.id));}data=data.slice(0,limit);call.rows=data.length;if(table===failTable)return resolve({data:null,error:{message:'Injected query failure'}});resolve({data:head?null:data,count:data.length,error:null})}
   };return q},storage:{from(){return{createSignedUrl:async()=>{throw Error('Unexpected media signing')}}}}};
   const domain=moduleAt('lib/social/content-domain.ts',{});
   const social=moduleAt('lib/social/server.ts',{
@@ -55,8 +37,8 @@ function hooks(){let values=[],refs=[],deps=[],position=0,effects=[];return{
 };}
 function clientModule(h,fetcher){const source=fs.readFileSync('components/social/SocialHomeFeed.tsx','utf8');const deps=Object.fromEntries([...source.matchAll(/from\s+["']([^"']+)["']/g)].map(x=>[x[1],def(placeholder(x[1]))]));deps.react=h.react;deps['lucide-react']=new Proxy({},{get:(_,name)=>name==='__esModule'?true:placeholder(String(name))});deps['@/components/moments/MomentExperience']={MomentHomeCard:placeholder('moment')};deps['@/lib/moments']={getActiveMoment:()=>null};deps['@/lib/social/external-links']={urlsInText:()=>[],externalPreviewFor:()=>null};deps['@/lib/async']={boundedFetch:fetcher};deps['@/components/social/usePostEngagement']=moduleAt('components/social/usePostEngagement.ts',{react:h.react},{fetch:fetcher});return moduleAt('components/social/SocialHomeFeed.tsx',deps)}
 const text=node=>typeof node==='string'?node:Array.isArray(node)?node.map(text).join(''):node?.props?text(node.props.children):'';
-async function hydrationAndPages(total){
-  const records=Array.from({length:total},(_,i)=>post(i)),server=socialFixture(records),initial=await server.initial();
+async function hydrationAndPages(total, hiddenFirst=0){
+  const records=Array.from({length:total},(_,i)=>post(i,i<hiddenFirst?'followers':'public')),server=socialFixture(records,hiddenFirst?'different-viewer':'viewer'),initial=await server.initial();
   const h=hooks(),requests=[];const client=clientModule(h,async url=>{requests.push(url);const cursor=new URL(url,'http://local').searchParams.get('cursor');assert.ok(cursor,'continuation omitted initial cursor');const page=await server.next(cursor);return{ok:true,json:async()=>page}});
   const props={opportunities:[],network:[],glimps:[],jox:[],initialPage:initial};const render=()=>h.render(()=>client.default(props));
   let tree=render();const initialIds=initial.items.map(p=>p.id);await h.flush(true);tree=render();
@@ -66,7 +48,7 @@ async function hydrationAndPages(total){
     assert.ok(++rounds<10,'pagination loop');tree=render();const button=walk(tree,n=>n.type==='button'&&text(n).trim()==='Load more')[0];assert.ok(button);await button.props.onClick();tree=render();
     const expectedCursor=rounds===1?initial.nextCursor:null;if(expectedCursor)assert.equal(new URL(requests[0],'http://local').searchParams.get('cursor'),expectedCursor);
   }
-  const ids=plain(h.values[1].map(p=>p.id));assert.deepEqual(ids,records.map(p=>p.id));assert.equal(new Set(ids).size,ids.length);assert.ok(!walk(tree,n=>n.type==='button'&&text(n).trim()==='Load more').length);
+  const ids=plain(h.values[1].map(p=>p.id));assert.deepEqual(ids,records.filter(p=>p.visibility==='public').map(p=>p.id));assert.equal(new Set(ids).size,ids.length);assert.ok(!walk(tree,n=>n.type==='button'&&text(n).trim()==='Load more').length);
   return{total,initial:initial.items.length,continuations:requests.length,stableOrder:true,unique:true};
 }
 async function stateTest(){for(const viewer of ['viewer','different-viewer']){
@@ -112,19 +94,20 @@ async function headroom(){const people=Array.from({length:60},(_,i)=>({id:'p'+i,
   const records={profiles:[],organizations:[],jobs:jobs.map((j,i)=>({...j,client_id:i<24?'viewer':'other'})),projects:[],gigs:[],profile_follows:[],organization_follows:[]};
   const f=fixture({records,realRanking:true}),nodes=walk(await f.page.default(),n=>n.type===HomeModule),opp=await nodes.find(n=>n.props.name==='opportunities').props.load();const items=walk(opp,n=>n.type===socialClient.OpportunityRail)[0].props.items;assert.equal(items.length,0);report.findings.push({type:'self-heavy-starvation',candidates:24,visible:0,olderEligible:36});return cases;
 }
-(async()=>{
+async function main(){
   for(const count of [0,1,15,16,31,45])await check('hydration/pagination '+count+' public posts',()=>hydrationAndPages(count));
   await check('viewer engagement hydration A/B',stateTest);
   for(const count of [1,16])await check('SSR/API parity and fail-closed visibility after '+count+' hidden candidates',()=>sparseParity(count));
-  // Known pre-existing discover pagination issue — diagnostics only, outside the Pass 2 gate (see knownIssue()).
-  for(const count of [1,16])await knownIssue('no skipped accessible posts after '+count+' hidden candidates',/^Accessible older posts are stranded/,()=>sparseCase(count));
-  await knownIssue('no skipped accessible posts on API continuation',/^Continuation stops after30 visible posts/,sparseContinuation);
+  for(const count of [1,16])await check('no skipped accessible posts after '+count+' hidden candidates',()=>sparseCase(count));
+  await check('no skipped accessible posts on API continuation',sparseContinuation);
   for(const name of ['opportunities','network','jox','glimps','completion','activity'])await check('never-settling '+name,()=>neverSettles(name));
   await check('candidate capacity and starvation fixtures',headroom);
-  const failed=report.checks.filter(c=>!c.passed).length,known=report.knownIssues.filter(k=>k.reproduced).length;
-  report.summary={gate:{passed:report.checks.length-failed,failed},knownPreExistingIssues:{reproduced:known,notReproduced:report.knownIssues.length-known},paginationCorrect:false};
+  const failed=report.checks.filter(c=>!c.passed).length;
+  report.summary={gate:{passed:report.checks.length-failed,failed},originalPaginationRegressionsPassed:report.checks.filter(c=>c.name.startsWith("no skipped accessible posts")&&c.passed).length};
   fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify(report,null,2));console.log('Verification report:',path.join(output,'verification.json'));
   console.log(`Pass 2 regression gate: ${report.checks.length-failed} PASS / ${failed} FAIL`);
-  console.log(`KNOWN PRE-EXISTING ISSUE (discover pagination, not fixed, outside gate): ${known} reproduced / ${report.knownIssues.length-known} not reproduced`);
+  console.log('Original three pagination regressions are hard PASS/FAIL assertions.');
   if(failed)process.exitCode=1;
-})().catch(error=>{console.error(error);process.exitCode=1});
+}
+module.exports={socialFixture,post,hydrationAndPages};
+if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1});

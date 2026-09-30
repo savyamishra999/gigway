@@ -189,6 +189,49 @@ export async function visiblePosts(posts: SocialPost[], viewerId?: string | null
     (post.author_profile_id ? followedProfiles.has(post.author_profile_id) : !!post.author_organization_id && followedOrganizations.has(post.author_organization_id)))
 }
 
+/** Discover uses the same bounded raw traversal for SSR and API continuation.
+ * A full raw window is not evidence of exhaustion, even if every row is hidden.
+ */
+export const DISCOVER_PAGE_SIZE = 15
+export const DISCOVER_MAX_WINDOWS = 8
+export async function accessibleDiscoverPage(viewerId?: string | null, cursor?: string | null) {
+  const posts: SocialPost[] = []
+  let nextCursor = cursor || null, candidates = 0, windows = 0
+  for (; windows < DISCOVER_MAX_WINDOWS; ) {
+    const fetchSize = DISCOVER_PAGE_SIZE - posts.length + 1
+    let query = socialDb().from("posts").select(SOCIAL_POST_FIELDS)
+      .eq("status", "published").eq("content_format", "standard")
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(fetchSize)
+    if (nextCursor) {
+      const [createdAt, id] = nextCursor.split("|")
+      if (!createdAt || !id) throw new SocialFeedStageError("discover_cursor", "invalid_cursor", "Invalid cursor")
+      query = query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)
+    }
+    const { data, error } = await query
+    requireSocialResult("discover_page", { error })
+    const rows = (data || []) as SocialPost[]
+    windows++
+    candidates += rows.length
+    const startedAt = performance.now()
+    const visible = new Set((await visiblePosts(rows, viewerId)).map(post => post.id))
+    socialPerf("social_visibility", startedAt, { candidates: rows.length, visible: visible.size, feed: "discover" })
+    // Only consume rows through the last returned post and any subsequent hidden
+    // rows. Never advance past an extra visible lookahead row: it belongs to the
+    // next page, even though its visibility was checked in this batch.
+    for (const row of rows) {
+      if (visible.has(row.id)) {
+        if (posts.length === DISCOVER_PAGE_SIZE) return { posts, nextCursor, candidates, windows }
+        posts.push(row)
+      }
+      nextCursor = `${row.created_at}|${row.id}`
+    }
+    if (rows.length < fetchSize) return { posts, nextCursor: null, candidates, windows }
+    if (posts.length === DISCOVER_PAGE_SIZE) break
+  }
+  // At the safety bound, a sparse/empty page still has a raw continuation.
+  return { posts, nextCursor, candidates, windows }
+}
+
 /** Shared, access-aware query foundation for a later GLIMPS feed. */
 export async function accessibleGlimps(viewerId?:string|null, limit=16) { const {data,error}=await socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(Math.max(1,Math.min(limit,50))); requireSocialResult("glimps_query",{error}); return visiblePosts((data || []) as SocialPost[], viewerId) }
 export async function accessibleGlimpsPage(viewerId?:string|null, cursor?:string|null, limit=10) { const size=Math.max(1,Math.min(limit,20)), fetchSize=size*4+1; let query=socialDb().from("posts").select(SOCIAL_POST_FIELDS).eq("content_format","glimps").eq("status","published").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(fetchSize); if(cursor){const [createdAt,id]=cursor.split("|"); if(!createdAt||!id) throw new SocialFeedStageError("glimps_cursor","invalid_cursor","Invalid cursor"); query=query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)} const {data,error}=await query; requireSocialResult("glimps_page",{error}); const rows=(data||[]) as SocialPost[], visible=await visiblePosts(rows,viewerId); const page=visible.slice(0,size), hasMore=visible.length>size||rows.length===fetchSize, marker=hasMore?(page.length===size?page.at(-1):rows.at(-1)):null; return { posts:page, nextCursor:marker?`${marker.created_at}|${marker.id}`:null } }

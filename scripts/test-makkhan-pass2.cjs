@@ -118,12 +118,11 @@ async function scenario(options) {
 async function primaryTests() {
   let stages = [], fail = null;
   const posts = Array.from({length:16},(_,i)=>({id:String(i),created_at:'date'}));
-  const q = { select(){return q},eq(){return q},order(){return q},limit(n){assert.equal(n,16);return q},then(resolve){stages.push('query');resolve({data:posts,error:fail==='query'?Error('injected'):null})} };
-  const social = { socialDb:()=>({from:()=>q}), SOCIAL_POST_FIELDS:'fields' };
-  for(const name of ['visiblePosts','safePosts','withReplyPreviews','enrichPostsWithVijoxTimedReactions']) social[name]=async (rows,viewer)=>{stages.push(name);if(fail===name)throw Error('injected'); if(name==='visiblePosts'||name==='safePosts')assert.equal(viewer,'viewer');return rows.map(row=>({...row,replyPreview:[]}));};
+  const social = { accessibleDiscoverPage:async viewer=>{stages.push('accessibleDiscoverPage');assert.equal(viewer,'viewer');if(fail==='accessibleDiscoverPage')throw Error('injected');return {posts:posts.slice(0,15),nextCursor:'date|14'};} };
+  for(const name of ['safePosts','withReplyPreviews','enrichPostsWithVijoxTimedReactions']) social[name]=async (rows,viewer)=>{stages.push(name);if(fail===name)throw Error('injected');if(name==='safePosts')assert.equal(viewer,'viewer');return rows.map(row=>({...row,replyPreview:[]}));};
   const {initialHomePosts}=moduleAt('lib/home/primary.ts', {'server-only':{},'@/lib/social/server':social});
   const result=await initialHomePosts('viewer');assert.equal(result.items.length,15);assert.equal(result.nextCursor,'date|14');
-  assert.deepEqual(stages,['query','visiblePosts','safePosts','withReplyPreviews','enrichPostsWithVijoxTimedReactions']);
+  assert.deepEqual(stages,['accessibleDiscoverPage','safePosts','withReplyPreviews','enrichPostsWithVijoxTimedReactions']);
   for(const stage of [...stages]){fail=stage;await assert.rejects(initialHomePosts('viewer'));}
   console.log('PASS first-page bounds, cursor, viewer propagation, visibility-before-serialization and fail-closed stages');
 }
