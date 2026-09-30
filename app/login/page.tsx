@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { withDeadline } from "@/lib/async"
 import { safeReturnTo } from "@/lib/auth/return-to"
@@ -8,6 +8,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Mail, Loader2, ArrowRight, ChevronLeft, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Briefcase, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuthUi } from "@/components/layout/AuthUiProvider"
 import { cn } from "@/lib/utils"
 
 const VALUE_POINTS = [
@@ -40,17 +41,9 @@ function LoginForm() {
   const [otp, setOtp]       = useState("")
   const [step, setStep]     = useState<"entry" | "otp">("entry")
   const [loading, setLoading] = useState(false)
-  const [currentUser, setCurrentUser] = useState<{ email?: string } | null>(null)
+  const { user: currentUser } = useAuthUi()
   const [msg, setMsg]       = useState<{ type: "success" | "error"; text: string } | null>(searchParams.get("error") ? { type: "error", text: "Sign-in could not be completed. Please try again. If you already signed in, continue below." } : null)
   const supabase = createClient()
-
-  useEffect(() => {
-    let active = true
-    void withDeadline(supabase.auth.getUser()).then(({ data }) => {
-      if (active) setCurrentUser(data.user)
-    }).catch(() => {})
-    return () => { active = false }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const runAuth = async (operation: () => Promise<void>) => {
     setLoading(true); setMsg(null)

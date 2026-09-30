@@ -19,7 +19,7 @@ export default async function PostLoginPage({ searchParams }: { searchParams: Pr
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("profile_completed, username, user_roles, find_work_type, hire_talent_type, account_type")
+    .select("profile_completed, username")
     .eq("id", user.id)
     .maybeSingle()
 

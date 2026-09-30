@@ -1,5 +1,6 @@
 "use client";
 
+import { boundedFetch } from "@/lib/async";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Check, Loader2, UserRound } from "lucide-react";
@@ -27,15 +28,17 @@ export default function NetworkClient() {
 
   const load = async () => {
     setLoading(true);
-    const response = await fetch("/api/connections");
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(data.error || "Could not load network.");
-    } else {
-      setRequests(data.requests || []);
-      setConnections(data.connections || []);
-    }
-    setLoading(false);
+    setError("");
+    try {
+      const response = await boundedFetch("/api/connections");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) setError(data.error || "Could not load network.");
+      else {
+        setRequests(data.requests || []);
+        setConnections(data.connections || []);
+      }
+    } catch { setError("Could not load network. Please try again."); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {

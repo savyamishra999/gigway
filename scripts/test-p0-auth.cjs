@@ -74,7 +74,7 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
         } } };
       } },
     }).middleware;
-    for (const path of ['/login', '/u/person', '/social/vijox']) await middleware(new NextRequest(`https://gigway.invalid${path}`));
+    for (const path of ['/login', '/u/person', '/social/vijox', '/work', '/auth/callback']) await middleware(new NextRequest(`https://gigway.invalid${path}`));
     assert.equal(calls, 0);
     let response = await middleware(new NextRequest('https://gigway.invalid/'));
     assert.equal(response.headers.get('location'), null);
@@ -156,6 +156,7 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     const form = load('app/login/page.tsx', {
       react: hooks, 'next/navigation': { useSearchParams: () => new URLSearchParams('next=/workplaces') },
       '@/lib/async': asyncTools, '@/lib/auth/return-to': destination,
+      '@/components/layout/AuthUiProvider': { useAuthUi: () => ({ user: null, profile: null }) },
       'next/image': { __esModule: true, default: () => null }, 'next/link': { __esModule: true, default: () => null },
       'lucide-react': new Proxy({}, { get: () => () => null }), '@/lib/utils': { cn: () => '' },
       '@/lib/supabase/client': { createClient: () => ({ auth: { signInWithOAuth: async () => { throw Error('network failed'); } } }) },
@@ -163,7 +164,7 @@ function query(result) { return new Proxy({}, { get: (_, key) => key === 'then' 
     const wrapper = form(), tree = wrapper.props.children.type();
     function find(node) { if (!React.isValidElement(node)) return null; if (node.type === 'button' && node.props.onClick) return node; for (const child of React.Children.toArray(node.props.children)) { const found = find(child); if (found) return found; } return null; }
     await find(tree).props.onClick();
-    assert.equal(states[3], false); assert.equal(states[5].type, 'error');
+    assert.equal(states[3], false); assert.equal(states[4].type, 'error');
   });
   await check('explicit Google account switching requests the chooser and preserves account isolation', () => {
     const login = fs.readFileSync('app/login/page.tsx', 'utf8');

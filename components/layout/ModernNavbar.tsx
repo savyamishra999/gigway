@@ -8,6 +8,7 @@ import { Bell, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSqua
 import { authenticatedRootDestination, loginHref } from "@/lib/auth/return-to"
 import { withDeadline } from "@/lib/async"
 import { createClient } from "@/lib/supabase/client"
+import { useAuthUi } from "@/components/layout/AuthUiProvider"
 import type { Moment } from "@/lib/moments"
 import { MomentHeader } from "@/components/moments/MomentExperience"
 
@@ -43,41 +44,15 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const focusedGlimpsCreator = pathname === "/social/glimps/create"
   const homeExperience = pathname === "/home"
   const router = useRouter()
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
-  const [profile, setProfile] = useState<{ full_name?: string | null; username?: string | null; avatar_url?: string | null } | null>(null)
+  const { user, profile } = useAuthUi()
   const [open, setOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [mobileChromeHidden, setMobileChromeHidden] = useState(false)
 
   useEffect(() => {
-    let active = true, revision = 0
-    const load = async () => {
-      const run = ++revision
-      try {
-        const { data: { user }, error } = await withDeadline(supabase.auth.getUser())
-        if (!active || run !== revision || error) return
-        setUser(user); setProfile(null)
-        const rootDestination = authenticatedRootDestination(pathname, !!user)
-        if (rootDestination) {
-          // Reconcile a cached/streamed guest shell with the authenticated cookie
-          // session. A document replacement also lets middleware refresh cookies.
-          window.location.replace(rootDestination)
-          return
-        }
-        if (user) {
-          const { data } = await withDeadline(supabase.from("profiles").select("full_name,username,avatar_url").eq("id", user.id).maybeSingle())
-          if (active && run === revision) setProfile(data)
-        }
-      } catch { /* Optional chrome must never gate the public page. */ }
-    }
-    void load()
-    // Defer outside the SDK auth lock; never await Supabase in its callback.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
-      if (event === "SIGNED_OUT") { revision++; setUser(null); setProfile(null) }
-      if (event === "SIGNED_IN" || event === "USER_UPDATED") setTimeout(() => { if (active) void load() }, 0)
-    })
-    return () => { active = false; subscription.unsubscribe() }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    const rootDestination = authenticatedRootDestination(pathname, !!user)
+    if (rootDestination) window.location.replace(rootDestination)
+  }, [pathname, user])
   const authHref = (join = false) => loginHref(pathname === "/login" ? undefined : pathname, join)
   const preserveLocation = (event: React.MouseEvent<HTMLAnchorElement>, join = false) => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
@@ -109,11 +84,13 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
     setSigningOut(true)
     setOpen(false)
     try {
-      await withDeadline(supabase.auth.signOut({ scope: "local" }))
+      const { error } = await withDeadline(supabase.auth.signOut({ scope: "local" }))
+      if (error) throw error
+      // The provider handles SIGNED_OUT with one document replacement.
     } catch {
-      // Still navigate away: stale UI is worse than leaving the user stuck.
+      // On failure, root rechecks cookies rather than asserting a false logout.
+      window.location.replace("/")
     }
-    window.location.replace("/")
   }
 
   return (

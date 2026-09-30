@@ -55,10 +55,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/admin`)
   }
 
-  // Check profile
+  // Existence is required for new-user setup/referrals; post-login alone checks completion.
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("profile_completed, username, user_roles, find_work_type, hire_talent_type, account_type")
+    .select("id")
     .eq("id", user.id)
     .maybeSingle()
 

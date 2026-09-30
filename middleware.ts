@@ -27,7 +27,8 @@ export async function middleware(req: NextRequest) {
   // so middleware must refresh/read its cookie session before any landing HTML
   // can be served. Authenticated root requests continue through the existing
   // post-login profile/onboarding gate.
-  const publicRoute = pathname === "/login" || pathname.startsWith("/u/") || pathname.startsWith("/@") ||
+  // Work is static public navigation; callback verifies its own PKCE exchange.
+  const publicRoute = pathname === "/work" || pathname === "/auth/callback" || pathname === "/login" || pathname.startsWith("/u/") || pathname.startsWith("/@") ||
     ["/social/explore", "/social/vijox", "/social/glimps"].includes(pathname) || /^\/social\/posts\/[^/]+$/.test(pathname)
   let session = null
   if (!publicRoute) {

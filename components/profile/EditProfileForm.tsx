@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useAuthUi } from "@/components/layout/AuthUiProvider"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -190,6 +191,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
+  const { refreshProfile } = useAuthUi()
 
   const set = <K extends keyof typeof formData>(key: K, value: (typeof formData)[K]) =>
     setFormData(prev => ({ ...prev, [key]: value }))
@@ -253,6 +255,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
     const result = await response.json().catch(() => ({}))
     if (!response.ok) { setError(result.error === "upgrade_required" ? "Your portfolio is growing. You've used your free showcase slots — upgrade to Pro for up to 20 projects." : result.error || "Failed to save profile."); setLoading(false); return }
 
+    refreshProfile(userId)
     setSuccess("Profile saved successfully!")
     setLoading(false)
     router.refresh()

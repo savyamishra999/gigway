@@ -1,4 +1,4 @@
-import { loginForCurrent } from "@/lib/auth/server"
+import { getViewer, loginForCurrent } from "@/lib/auth/server"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -6,7 +6,7 @@ import { activeWorkplaces } from "@/lib/organizations/server"
 
 export default async function ProfilePage() {
   const db = await createClient()
-  const { data: { user } } = await db.auth.getUser()
+  const user = await getViewer()
   if (!user) redirect(await loginForCurrent("/profile"))
   const [{ data: profile, error }, workplaces] = await Promise.all([
     db.from("profiles").select("full_name,username,avatar_url").eq("id", user.id).maybeSingle(),

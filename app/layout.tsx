@@ -3,6 +3,7 @@ import { Manrope } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import ModernNavbar from '@/components/layout/ModernNavbar'
+import AuthUiProvider from '@/components/layout/AuthUiProvider'
 import Footer from '@/components/layout/Footer'
 import { getActiveMoment } from '@/lib/moments'
 
@@ -51,11 +52,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <ModernNavbar moment={getActiveMoment()} />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
+          <AuthUiProvider>
+            <ModernNavbar moment={getActiveMoment()} />
+            <main className="min-h-screen">
+              {children}
+            </main>
+            <Footer />
+          </AuthUiProvider>
         </ThemeProvider>
       </body>
     </html>

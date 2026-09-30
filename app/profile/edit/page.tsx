@@ -1,4 +1,4 @@
-import { completionForCurrent, loginForCurrent } from "@/lib/auth/server"
+import { getViewer, completionForCurrent, loginForCurrent } from "@/lib/auth/server"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import EditProfileForm from "@/components/profile/EditProfileForm"
@@ -6,17 +6,19 @@ import WorkModesEditor from "@/components/identity/WorkModesEditor"
 
 export default async function EditProfilePage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getViewer()
 
   if (!user) {
     redirect(await loginForCurrent("/profile/edit"))
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
+
+  if (profileError) throw new Error("Your profile could not be checked. Please try again.")
 
   // If onboarding not done, send them there first
   const onboardingDone = profile?.profile_completed === true && !!profile?.username

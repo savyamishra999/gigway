@@ -1,8 +1,10 @@
+import { cache } from "react"
 import { createServerClient } from "@supabase/ssr"
 import { boundedFetch } from "@/lib/async"
 import { cookies } from "next/headers"
 
-export const createClient = async () => {
+// React cache is scoped to the current server render, never shared across users.
+export const createClient = cache(async () => {
   const cookieStore = await cookies()
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,4 +32,4 @@ export const createClient = async () => {
       },
     }
   )
-}
+})
