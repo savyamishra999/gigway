@@ -1,6 +1,7 @@
 "use client"
 import { boundedFetch } from "@/lib/async";
 import Link from "next/link";
+import { productVisibility } from "@/lib/product-visibility";
 import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
 import GlimpsRail from "@/components/social/GlimpsRail";
@@ -750,8 +751,8 @@ export default function SocialHomeFeed({
         <button type="button" onClick={() => setTuneOpen(value => !value)} aria-expanded={tuneOpen} className="shrink-0 border-b-2 border-transparent py-2 text-caption font-extrabold text-brand-indigo">✦ TUNE</button>
       </div>
       {tuneOpen && <p className="mt-2 text-caption text-brand-slate" role="status">Tune preferences are not available yet. Your current feed remains unchanged.</p>}
-      <JoxOrbitRail items={jox} />
-      <GlimpsRail items={glimps} />
+      {productVisibility.joxCurrentProduct && <JoxOrbitRail items={jox} />}
+      {productVisibility.glimpsCurrentProduct && <GlimpsRail items={glimps} />}
       <div className="mt-5">
         {posts.map((item, i) => {
           if ("type" in item && item.type === "marketplace_share") {

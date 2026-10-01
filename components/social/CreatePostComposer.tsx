@@ -673,7 +673,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
         </>}
       </div>
       <p className="mt-2 text-caption text-brand-slate">
-        {isJoxCreator ? "Jox your voice in up to 27 seconds. Cover and companion images are separate; add up to three companion images." : "Choose Post-native attachments, or use a dedicated creator for Jox and GLIMPS."}
+        {isJoxCreator ? "Jox your voice in up to 27 seconds. Cover and companion images are separate; add up to three companion images." : "Add photos, videos or documents to your GigThought."}
       </p>
       <div className="mt-5 rounded-xl bg-brand-ivory/65 p-3">
         <p className="text-caption font-bold text-brand-slate">

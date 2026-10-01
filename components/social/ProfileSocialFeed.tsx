@@ -1,4 +1,5 @@
 "use client"
+import { isCurrentProductCategory } from "@/lib/product-visibility";
 import { boundedFetch } from "@/lib/async"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -9,11 +10,11 @@ import GlimpsExperience from "@/components/social/GlimpsExperience"
 export default function ProfileSocialFeed({ profileId, name, isOwner = false }: { profileId: string; name: string; isOwner?: boolean }) {
   type Tab = "gigthoughts" | "jox" | "glimps" | "reposts"
   type Page = { items: FeedItem[]; nextCursor: string | null; loaded: boolean }
-  const tabs: { value: Tab; label: string; empty: string }[] = [{ value: "gigthoughts", label: "GigThoughts", empty: "No GigThoughts yet." }, { value: "jox", label: "JOX", empty: "No JOX yet." }, { value: "glimps", label: "GLIMPS", empty: "No GLIMPS yet." }, { value: "reposts", label: "Reposts", empty: "No reposts yet." }]
+  const tabs = ([{ value: "gigthoughts", label: "GigThoughts", empty: "No GigThoughts yet." }, { value: "jox", label: "JOX", empty: "No JOX yet." }, { value: "glimps", label: "GLIMPS", empty: "No GLIMPS yet." }, { value: "reposts", label: "Reposts", empty: "No reposts yet." }] satisfies { value: Tab; label: string; empty: string }[]).filter(item => isCurrentProductCategory(item.value))
   const blank = (): Page => ({ items: [], nextCursor: null, loaded: false })
   const [tab, setTab] = useState<Tab>("gigthoughts"), [pages, setPages] = useState<Record<Tab, Page>>({ gigthoughts: blank(), jox: blank(), glimps: blank(), reposts: blank() }), [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
-  const load = async (reset = false) => { const page = pages[tab]; if (!reset && page.loaded && !page.nextCursor) return; setLoading(true); setError(false); try { const cursor = !reset ? page.nextCursor : null, response = await boundedFetch(`/api/social/profiles/${profileId}/posts?tab=${tab}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`), data = await response.json(); if (!response.ok || !Array.isArray(data.items)) throw Error(); setPages(current => ({ ...current, [tab]: { items: reset ? data.items : [...current[tab].items, ...data.items], nextCursor: data.nextCursor || null, loaded: true } })) } catch { setError(true); setPages(current => ({ ...current, [tab]: { ...blank(), loaded: true } })) } finally { setLoading(false) } }
+  const load = async (reset = false) => { const page = pages[tab]; if (!reset && page.loaded && !page.nextCursor) return; setLoading(true); setError(false); try { const cursor = !reset ? page.nextCursor : null, response = await boundedFetch(`/api/social/profiles/${profileId}/posts?currentProduct=1&tab=${tab}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`), data = await response.json(); if (!response.ok || !Array.isArray(data.items)) throw Error(); setPages(current => ({ ...current, [tab]: { items: reset ? data.items : [...current[tab].items, ...data.items], nextCursor: data.nextCursor || null, loaded: true } })) } catch { setError(true); setPages(current => ({ ...current, [tab]: { ...blank(), loaded: true } })) } finally { setLoading(false) } }
   useEffect(() => { setPages({ gigthoughts: blank(), jox: blank(), glimps: blank(), reposts: blank() }) }, [profileId])
   useEffect(() => { if (!pages[tab].loaded && !loading) void load() }, [tab, pages, loading]) // eslint-disable-line react-hooks/exhaustive-deps
   const items = pages[tab].items, active = tabs.find(item => item.value === tab)!

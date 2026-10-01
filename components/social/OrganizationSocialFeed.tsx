@@ -14,7 +14,7 @@ export default function OrganizationSocialFeed({ organizationId, isAdmin, previe
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true); setError(false)
-    boundedFetch(`/api/social/organizations/${organizationId}/posts${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`, { signal: controller.signal })
+    boundedFetch(`/api/social/organizations/${organizationId}/posts?currentProduct=1${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, { signal: controller.signal })
       .then(async response => { if (!response.ok) throw Error(); return response.json() })
       .then(data => {
         if (controller.signal.aborted) return

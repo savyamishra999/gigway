@@ -51,7 +51,7 @@ export default function Hero() {
                 Explore Work
               </Link>
             </div>
-            <p className="mt-5 max-w-lg text-caption text-brand-slate">Share what you know and what you build through GigThoughts, JOX &amp; GLIMPS.</p>
+            <p className="mt-5 max-w-lg text-caption text-brand-slate">Share what you know and what you build through GigThoughts.</p>
           </div>
 
           {/* Right: product-led composition — identity + work + opportunity */}

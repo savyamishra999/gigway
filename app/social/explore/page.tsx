@@ -1,3 +1,4 @@
+import { productVisibility, isCurrentProductCategory, currentProductFormats } from "@/lib/product-visibility";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +9,7 @@ import JoxOrbitRail from "@/components/social/JoxOrbitRail";
 import GlimpsRail from "@/components/social/GlimpsRail";
 import { compactIntentLabels } from "@/lib/identity";
 
-const tabs = ["all", "people", "posts", "jox", "glimps", "jobs"] as const;
+const tabs = (["all", "people", "posts", "jox", "glimps", "jobs"] as const).filter(isCurrentProductCategory);
 type Tab = typeof tabs[number];
 
 export default async function SocialExplore({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string; tab?: string }> }) {
@@ -21,13 +22,13 @@ export default async function SocialExplore({ searchParams }: { searchParams: Pr
   const like = `%${query.replace(/[%_(),]/g, " ")}%`;
   let people = db.from("profiles").select("id,full_name,username,avatar_url,tagline").eq("profile_completed", true).order("created_at", { ascending: false }).limit(12);
   let jobs = db.from("jobs").select("id,title,company_name,location").eq("status", "active").order("created_at", { ascending: false }).limit(12);
-  let posts = db.from("posts").select(SOCIAL_POST_FIELDS).eq("status", "published").order("created_at", { ascending: false }).limit(30);
+  let posts = db.from("posts").select(SOCIAL_POST_FIELDS).eq("status", "published").in("content_format", currentProductFormats()).order("created_at", { ascending: false }).limit(30);
   if (query) {
     people = people.or(`full_name.ilike.${like},username.ilike.${like}`);
     jobs = jobs.or(`title.ilike.${like},company_name.ilike.${like}`);
     posts = posts.ilike("body", like);
   }
-  const [peopleRes, jobsRes, postsRes, joxPage, glimpsRows] = await Promise.all([people, jobs, posts, accessibleJoxPage(user?.id, undefined, 8), accessibleGlimps(user?.id, 8)]);
+  const [peopleRes, jobsRes, postsRes, joxPage, glimpsRows] = await Promise.all([people, jobs, posts, productVisibility.joxCurrentProduct ? accessibleJoxPage(user?.id, undefined, 8) : Promise.resolve({ posts: [] }), productVisibility.glimpsCurrentProduct ? accessibleGlimps(user?.id, 8) : Promise.resolve([])]);
   const peopleIds = (peopleRes.data || []).map((person) => person.id)
   const { data: peopleIntents } = peopleIds.length
     ? await db.from("profile_intents").select("profile_id,intent_type").in("profile_id", peopleIds).eq("is_active", true)
@@ -54,8 +55,8 @@ export default async function SocialExplore({ searchParams }: { searchParams: Pr
     {query && <p className="mt-4 text-body-sm text-brand-slate">{params.tag ? `Topic #${query}` : `Results for "${query}"`}</p>}
     {!query && show("all") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">Topics</h2><div className="mt-2 flex flex-wrap gap-2">{topics.length ? topics.map((topic) => <Link key={topic} href={`/social/explore?tag=${encodeURIComponent(topic.slice(1))}`} className="rounded-lg bg-violet-50 px-3 py-2 text-caption font-semibold text-violet-700">{topic}</Link>) : <p className="text-body-sm text-brand-slate">Topics will appear as professionals share them.</p>}</div></section>}
     {show("people") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">{query ? "People" : "People to discover"}</h2><div className="mt-3 grid gap-2 sm:grid-cols-2">{(peopleRes.data || []).map((person) => { const intentLabels = compactIntentLabels(intentsByProfile.get(person.id)); return <Link key={person.id} href={`/u/${person.username}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-brand-borderLight bg-white p-3"><span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-indigo/10">{person.avatar_url && <img src={person.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="min-w-0"><b className="block truncate text-body-sm text-brand-midnight">{person.full_name}</b><span className="block truncate text-caption text-brand-slate">{person.tagline || `@${person.username}`}</span>{intentLabels.length ? <span className="mt-1 block truncate text-caption font-semibold text-brand-indigo">{intentLabels.join(" · ")}</span> : null}</span></Link>})}</div></section>}
-    {show("jox") && <JoxOrbitRail items={jox} />}
-    {show("glimps") && <GlimpsRail items={glimps} />}
+    {productVisibility.joxCurrentProduct && show("jox") && <JoxOrbitRail items={jox} />}
+    {productVisibility.glimpsCurrentProduct && show("glimps") && <GlimpsRail items={glimps} />}
     {show("posts") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">Posts</h2><div className="mt-3 space-y-3">{visible.map((post) => <PostCard key={post.id} post={post} />)}</div></section>}
     {show("jobs") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">{query ? "Jobs" : "Latest opportunities"}</h2><div className="mt-3 space-y-2">{(jobsRes.data || []).map((job) => <Link key={job.id} href={`/jobs/${job.id}`} className="block rounded-xl border border-brand-borderLight bg-white p-3"><b className="block text-brand-midnight">{job.title}</b><span className="text-caption text-brand-slate">{[job.company_name, job.location].filter(Boolean).join(" / ")}</span></Link>)}</div></section>}
     {empty && <p className="mt-8 rounded-xl border border-brand-borderLight bg-white p-4 text-body-sm text-brand-slate">No accessible results for this search yet. Try another word, person, topic, or tab.</p>}

@@ -1,5 +1,6 @@
 "use client"
 
+import { isCurrentProductCategory } from "@/lib/product-visibility";
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -18,7 +19,7 @@ const links = [
   { href: "/social/vijox", label: "VIJOX", icon: Volume2 },
   { href: "/social/glimps", label: "GLIMPS", icon: Video },
   { href: "/work", label: "Work", icon: Package },
-]
+].filter(item => isCurrentProductCategory(item.href.split("/").at(-1)!))
 
 const MOBILE_TABS = [
   { href: "/home", label: "Home", icon: Home },

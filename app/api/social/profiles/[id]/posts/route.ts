@@ -1,3 +1,4 @@
+import { currentProductFormats } from "@/lib/product-visibility"
 import { NextRequest, NextResponse } from "next/server"
 import { requireSocialUser, safePosts, socialPerf, SOCIAL_POST_FIELDS, socialDb, visiblePosts } from "@/lib/social/server"
 
@@ -26,7 +27,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (repostsRes.error || sharesRes.error) throw repostsRes.error || sharesRes.error
     const repostRows = repostsRes.data || [], shares = sharesRes.data || []
     const postIds = repostRows.map(row => row.post_id), jobIds = shares.map(row => row.job_id).filter(Boolean), projectIds = shares.map(row => row.project_id).filter(Boolean), serviceIds = shares.map(row => row.service_id).filter(Boolean)
-    const [postsRes, jobsRes, projectsRes, servicesRes] = await Promise.all([postIds.length ? db.from("posts").select(fields).in("id", postIds).eq("status", "published") : Promise.resolve({ data: [] as any[] }), jobIds.length ? db.from("jobs").select("id,title,company_name,location,job_type,client_id,status").in("id", jobIds) : Promise.resolve({ data: [] as any[] }), projectIds.length ? db.from("projects").select("id,title,category,budget,client_id,status").in("id", projectIds) : Promise.resolve({ data: [] as any[] }), serviceIds.length ? db.from("gigs").select("id,title,category,price,image_url,owner_id,freelancer_id,status").in("id", serviceIds) : Promise.resolve({ data: [] as any[] })])
+    let repostPostsQuery = db.from("posts").select(fields).in("id", postIds).eq("status", "published")
+    if (req.nextUrl.searchParams.get("currentProduct") === "1") repostPostsQuery = repostPostsQuery.in("content_format", currentProductFormats())
+    const [postsRes, jobsRes, projectsRes, servicesRes] = await Promise.all([postIds.length ? repostPostsQuery : Promise.resolve({ data: [] as any[] }), jobIds.length ? db.from("jobs").select("id,title,company_name,location,job_type,client_id,status").in("id", jobIds) : Promise.resolve({ data: [] as any[] }), projectIds.length ? db.from("projects").select("id,title,category,budget,client_id,status").in("id", projectIds) : Promise.resolve({ data: [] as any[] }), serviceIds.length ? db.from("gigs").select("id,title,category,price,image_url,owner_id,freelancer_id,status").in("id", serviceIds) : Promise.resolve({ data: [] as any[] })])
     const posts = new Map((postsRes.data || []).map((post: any) => [post.id, post])), jobs = new Map((jobsRes.data || []).map((row: any) => [row.id, row])), projects = new Map((projectsRes.data || []).map((row: any) => [row.id, row])), services = new Map((servicesRes.data || []).map((row: any) => [row.id, row]))
     const visibleReposts=await visiblePosts([...posts.values()] as any[],viewer?.id),serializedReposts=new Map((await safePosts(visibleReposts,viewer?.id)).map(post=>[post.id,post]))
     const social = repostRows.map(row => { const originalPost=serializedReposts.get(row.post_id); return originalPost ? { type:"repost",repostedAt:row.created_at,originalPost }:null })

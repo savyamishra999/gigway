@@ -8,6 +8,7 @@ function moduleAt(file, deps, globals = {}) {
   const module = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
   vm.runInNewContext(code, { module, exports: module.exports, performance, console, setTimeout, clearTimeout, ...globals, require: name => {
+    if (name === "@/lib/product-visibility" && !deps[name]?.productVisibility) return moduleAt("lib/product-visibility.ts", {});
     if (name in deps) return deps[name];
     if (name === 'react/jsx-runtime') return require(name);
     throw Error('Unmocked import: ' + name);
@@ -29,7 +30,7 @@ function walk(node, predicate, found = []) {
   react.Children.forEach(node.props?.children, child => walk(child, predicate, found));
   return found;
 }
-function fixture({ fault, delayed, hanging, records, realRanking = false, deadline = 120000 } = {}) {
+function fixture({ fault, delayed, hanging, records, realRanking = false, legacyProducts = false, deadline = 120000 } = {}) {
   const calls = [], counts = {};
   const deadlines = { ...asyncLib, withDeadline: promise => asyncLib.withDeadline(promise, deadline) };
   const db = { from(table) {
@@ -66,6 +67,7 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, deadli
     '@/lib/identity/profile-strength':moduleAt('lib/identity/profile-strength.ts',{}),
   }).default;
   const page = moduleAt('app/home/page.tsx', {
+    "@/lib/product-visibility": legacyProducts ? { productVisibility: { joxCurrentProduct: true, glimpsCurrentProduct: true } } : moduleAt("lib/product-visibility.ts", {}),
     react: { ...react, cache: fn => { const memo = new Map(); return key => { if (!memo.has(key)) memo.set(key, fn(key)); return memo.get(key); }; } },
     '@/lib/auth/server': { getViewer: async () => { counts.viewer=(counts.viewer||0)+1; return { id:'viewer' }; } }, '@/lib/async': deadlines,
     '@/components/layout/SectionStatus': statuses, 'next/link':def(placeholder('link')),
@@ -75,9 +77,9 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, deadli
     '@/lib/recommendations': realRanking ? moduleAt('lib/recommendations.ts',{}) : { scoreOpportunity: () => ({score:1,skills:[]}) },
     '@/lib/recommendations/intentRanking': realRanking ? moduleAt('lib/recommendations/intentRanking.ts',{}) : { scoreIntentAwareOpportunity: () => ({finalScore:1}), scoreNetworkCandidate: () => ({finalScore:1}) },
     '@/lib/social/server': {
-      socialPerf() {}, safePosts: async posts => posts,
-      accessibleGlimpsPage: async () => { if(hanging==='glimps') await new Promise(()=>{}); if(delayed==='glimps') await sleep(5000); return {posts:[]}; },
-      accessibleJoxPage: async () => { if(hanging==='jox') await new Promise(()=>{}); if(delayed==='jox') await sleep(5000); if(fault==='jox') throw Error('Injected'); return {posts:[]}; },
+      socialPerf() {}, safePosts: async posts => { counts.legacySerialization=(counts.legacySerialization||0)+1; return posts; },
+      accessibleGlimpsPage: async () => { counts.glimps=(counts.glimps||0)+1; if(hanging==='glimps') await new Promise(()=>{}); if(delayed==='glimps') await sleep(5000); return {posts:[]}; },
+      accessibleJoxPage: async () => { counts.jox=(counts.jox||0)+1; if(hanging==='jox') await new Promise(()=>{}); if(delayed==='jox') await sleep(5000); if(fault==='jox') throw Error('Injected'); return {posts:[]}; },
     },
     '@/lib/identity': { compactIntentLabels: () => [] },
     '@/components/home/IdentityCompletionPrompt': def(async ({loadProfile,loadIntents}) => { if(fault==='completion') throw Error('Injected'); return completion({userId:'viewer',loadProfile,loadIntents}); }),
@@ -88,7 +90,7 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, deadli
   return {page,calls,counts};
 }
 async function scenario(options) {
-  const {page,calls} = fixture(options), shell = await page.default();
+  const {page,calls} = fixture({...options, legacyProducts:true}), shell = await page.default();
   const modules = walk(shell, n => n.type === HomeModule);
   assert.equal(modules.length,7);
   const settled = new Map();

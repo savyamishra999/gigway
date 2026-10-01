@@ -1,3 +1,4 @@
+import { productVisibility } from "@/lib/product-visibility";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getViewer } from "@/lib/auth/server";
@@ -139,8 +140,8 @@ export default async function HomeHub() {
     <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="primary" load={() => Primary({ user })} />
       <HomeModule name="opportunities" load={() => Opportunities({ user })} />
       <HomeModule name="network" load={() => Network({ user })} />
-      <HomeModule name="jox" load={() => Jox({ user })} />
-      <HomeModule name="glimps" load={() => Glimps({ user })} />
+      {productVisibility.joxCurrentProduct && <HomeModule name="jox" load={() => Jox({ user })} />}
+      {productVisibility.glimpsCurrentProduct && <HomeModule name="glimps" load={() => Glimps({ user })} />}
       <HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /></div><aside className="mt-8 min-w-0 space-y-4"><section className="rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft"><h2 className="font-extrabold text-brand-midnight">Your activity</h2><HomeModule name="activity" load={() => Activity({ user })} /></section><section className="rounded-2xl border border-brand-indigo/20 bg-brand-indigo/[.04] p-4"><CheckCircle2 className="h-5 w-5 text-brand-indigo"/><h2 className="mt-2 font-extrabold text-brand-midnight">Build your professional edge.</h2><Link href="/ai-tools" className="mt-3 inline-flex items-center gap-1 text-caption font-bold text-brand-indigo">Explore tools <ArrowRight className="h-3.5 w-3.5"/></Link></section></aside></div>
   </div></main>
 }

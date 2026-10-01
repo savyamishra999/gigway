@@ -68,7 +68,7 @@ async function sparseContinuation(){
  report.findings.push({type:'continuation-starvation',first:first.items.length,second:second.items.length,cursor:second.nextCursor,olderAccessible:17});
  assert.ok(second.nextCursor,'Continuation stops after30 visible posts with17 accessible posts still remaining');
 }
-async function neverSettles(name){const f=fixture({hanging:name,deadline:30}),shell=await f.page.default(),nodes=walk(shell,n=>n.type===HomeModule),settled=new Map();
+async function neverSettles(name){const f=fixture({hanging:name,deadline:30,legacyProducts:true}),shell=await f.page.default(),nodes=walk(shell,n=>n.type===HomeModule),settled=new Map();
   const bounded=moduleAt('components/home/HomeModule.tsx',{react,'@/lib/async':{withDeadline:p=>asyncLib.withDeadline(p,40)},'@/lib/social/server':{socialPerf(){}},'@/components/layout/SectionStatus':statuses}).HomeModule;
   const started=performance.now();await Promise.all(nodes.map(async n=>{const c=bounded(n.props).props.children.props.children;settled.set(n.props.name,await c.type(c.props))}));
   assert.ok(settled.get('primary').props['data-home-ready']);assert.equal(settled.size,7);assert.ok(performance.now()-started<1000);

@@ -73,9 +73,10 @@ check('profile update endpoint filters writable columns', () => {
   assert.match(route, /\.update\(updates\)\.eq\("id", user\.id\)/)
 })
 
-check('social identity tabs remain available', () => {
+check('current social identity tabs are simplified; legacy definitions are preserved', () => {
   const feed = source('components/social/ProfileSocialFeed.tsx')
-  for (const label of ['GigThoughts', 'JOX', 'GLIMPS', 'Reposts']) assert.ok(feed.includes(label))
+  for (const label of ['GigThoughts', 'Reposts']) assert.ok(feed.includes(label))
+  assert.match(feed, /filter\(item => isCurrentProductCategory\(item.value\)\)/)
   assert.match(feed, /isOwner && createHref\[tab\]/)
   assert.match(feed, /\/social\/vijox\/create/)
   assert.match(feed, /\/social\/glimps\/create/)
