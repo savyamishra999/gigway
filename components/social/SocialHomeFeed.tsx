@@ -1,6 +1,7 @@
 "use client"
 import { boundedFetch } from "@/lib/async";
 import Link from "next/link";
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { productVisibility } from "@/lib/product-visibility";
 import GigVideoPlayer from "@/components/social/GigVideoPlayer";
 import VijoxPlayer from "@/components/social/VijoxPlayer";
@@ -211,11 +212,13 @@ export function PostCard({
   onRefresh = () => {},
   authHref,
   viewCountOverride,
+  exactTimestamp = false,
 }: {
   post: Post;
   onRefresh?: () => void;
   authHref?: string;
   viewCountOverride?: number;
+  exactTimestamp?: boolean;
 }) {
   const [menu, setMenu] = useState(false),
     [editing, setEditing] = useState(false),
@@ -432,9 +435,9 @@ export function PostCard({
         <div className="relative min-w-0 flex-1">
           {authorHref ? <Link href={authorHref} className="block truncate font-bold text-brand-midnight hover:text-brand-indigo">{post.author?.name || "GigWay member"}</Link> : <p className="truncate font-bold text-brand-midnight">{post.author?.name || "GigWay member"}</p>}
           {post.author?.type === "organization" && <p className="text-caption font-semibold text-brand-indigo">Workplace</p>}
-          <p className="truncate text-caption text-brand-slate">
+          <p className={post.contentDomain === "post" ? "break-words text-caption text-brand-slate" : "truncate text-caption text-brand-slate"}>
             {post.author?.username ? `@${post.author.username} · ` : ""}
-            <time dateTime={post.createdAt} title={new Date(post.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}>{relativePostTime(post.createdAt)}</time>
+            {post.contentDomain === "post" ? <ContentTimestamp createdAt={post.createdAt} exact={exactTimestamp} /> : <time dateTime={post.createdAt} title={new Date(post.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}>{relativePostTime(post.createdAt)}</time>}
           </p>
           {authorHref && <Link href={authorHref} aria-label={`View @${post.author?.username} profile`} className="absolute inset-x-0 bottom-0 h-5" />}
         </div>

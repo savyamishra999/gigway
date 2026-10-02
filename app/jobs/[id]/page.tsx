@@ -1,3 +1,4 @@
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
@@ -36,13 +37,7 @@ export async function generateMetadata(
   }
 }
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const days = Math.floor(diff / 86400000)
-  if (days === 0) return "Today"
-  if (days === 1) return "Yesterday"
-  return `${days} days ago`
-}
+
 
 export default async function JobDetailPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params
@@ -126,7 +121,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
                   </span>
                 )}
                 <span className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" /> {timeAgo(job.created_at)}
+                  <Clock className="h-4 w-4" /> <ContentTimestamp createdAt={job.created_at} exact />
                 </span>
                 {job.deadline && (
                   <span className="flex items-center gap-1.5">

@@ -1,3 +1,4 @@
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
@@ -42,7 +43,7 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
 
   const { data: moreGigs } = await supabase
     .from("gigs")
-    .select("id, title, price, delivery_days, category, tags, rating, orders_count, image_url, freelancer_id, profiles:freelancer_id(full_name, username, avg_rating, is_verified)")
+    .select("*, profiles:freelancer_id(full_name, username, avg_rating, is_verified)")
     .eq("freelancer_id", gig.freelancer_id)
     .eq("status", "active")
     .neq("id", id)
@@ -90,6 +91,7 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
                 )}
               </div>
               <h1 className="text-h2 font-extrabold text-brand-midnight mb-4">{gig.title}</h1>
+              <ContentTimestamp createdAt={gig.created_at} updatedAt={gig.updated_at} exact className="mt-2 block text-caption text-brand-slate" />
               {user && <div className="mb-4"><MarketplaceShareButton objectType="service" objectId={id} isOwner={isOwner} /></div>}
 
               {/* Freelancer mini row */}

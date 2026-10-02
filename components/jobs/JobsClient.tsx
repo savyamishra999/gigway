@@ -1,5 +1,6 @@
 "use client"
 
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
@@ -41,14 +42,7 @@ const SALARY_TIERS = [
   { value: 2000000, label: "₹20L+" },
 ]
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
+
 
 function isFeaturedActive(job: Job) {
   if (!job.is_featured) return false
@@ -405,7 +399,7 @@ function JobCard({ job, featured = false }: { job: Job; featured?: boolean }) {
               </span>
             )}
             <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" /> {timeAgo(job.created_at)}
+              <Clock className="h-3.5 w-3.5" /> <ContentTimestamp createdAt={job.created_at} />
             </span>
           </div>
 

@@ -1,5 +1,6 @@
 "use client"
 
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
@@ -50,14 +51,7 @@ const DEADLINE_TIERS = [
   { value: "flexible", label: "Flexible" },
 ]
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
+
 
 function clientOf(project: Project): ProjectClient | null {
   return Array.isArray(project.client) ? project.client[0] ?? null : project.client ?? null
@@ -346,14 +340,14 @@ function ProjectCard({ project }: { project: Project }) {
             </span>
           )}
         </div>
-        <div className="flex items-center justify-between text-caption text-brand-slate">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-brand-slate">
           <span className="flex items-center gap-1.5 min-w-0">
             <span className="truncate">{name}</span>
             {client?.is_verified && <CheckCircle2 className="h-3 w-3 text-brand-indigo flex-shrink-0" />}
           </span>
-          <span className="flex items-center gap-3 flex-shrink-0">
+          <span className="flex min-w-0 flex-wrap items-center gap-3">
             <span className="flex items-center gap-1"><Users className="h-3 w-3" />{proposalCount}</span>
-            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeAgo(project.created_at)}</span>
+            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /><ContentTimestamp createdAt={project.created_at} /></span>
           </span>
         </div>
         <span className="mt-3 flex items-center justify-center gap-1.5 w-full text-brand-indigo text-caption font-semibold py-2 rounded-lg bg-brand-indigo/5 group-hover:bg-brand-indigo/10 transition-colors">

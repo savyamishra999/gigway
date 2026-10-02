@@ -1,9 +1,12 @@
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import Link from "next/link"
 import { Star, Clock, CheckCircle2 } from "lucide-react"
 
 interface GigProfile { full_name: string | null; username?: string | null; avg_rating: number | null; is_verified: boolean }
 
 export interface Gig {
+  created_at?: string | null
+  updated_at?: string | null
   id: string
   title: string
   price: number
@@ -97,6 +100,8 @@ export default function GigCard({ gig }: { gig: Gig }) {
             ))}
           </div>
         )}
+
+        <ContentTimestamp createdAt={gig.created_at} updatedAt={gig.updated_at} className="relative z-10 mb-3 block text-caption text-brand-slate" />
 
         {/* Footer */}
         <div className="border-t border-brand-borderLight pt-3 flex items-center justify-between pointer-events-none">

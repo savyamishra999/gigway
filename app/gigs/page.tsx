@@ -23,7 +23,7 @@ export default async function GigsPage() {
     { data: { user } },
   ] = await Promise.all([
     supabase.from("gigs")
-      .select("id, title, price, delivery_days, category, tags, rating, orders_count, image_url, freelancer_id, owner_id, created_at, is_featured, featured_until, profiles:freelancer_id(full_name, username, avg_rating, is_verified)")
+      .select("*, profiles:freelancer_id(full_name, username, avg_rating, is_verified)")
       .eq("status", "active")
       .order("is_featured", { ascending: false })
       .order("orders_count",  { ascending: false })

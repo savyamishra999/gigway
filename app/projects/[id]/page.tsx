@@ -1,3 +1,4 @@
+import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
@@ -144,7 +145,7 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
-                  {new Date(project.created_at).toLocaleDateString()}
+                  <ContentTimestamp createdAt={project.created_at} exact />
                 </span>
               </div>
 

@@ -109,10 +109,10 @@ function browser(){let user={id:'A',email:'A@local.invalid'},event,auth=0,profil
     const button=walk(tree);assert.ok(button);await button.props.onClick();assert.deepEqual(calls,ok?['A','router']:[]);
   }
  });
- await check('Work renders only static links; exact exclusion does not bypass child/target guards',async()=>{
+ await check('Work public shell retains category links and independent previews; targets keep auth guards',async()=>{
   const source=fs.readFileSync('app/work/page.tsx','utf8');assert.doesNotMatch(source,/getUser|getViewer|createClient|fetch\(|saved|profile_intents/);
-  const Link=()=>null;const page=load('app/work/page.tsx',{'next/link':{__esModule:true,default:Link},'lucide-react':new Proxy({},{get:()=>()=>null})}).default();
-  const links=[];const walk=n=>{if(!n||typeof n!=='object')return;if(n.type===Link)links.push(n.props.href);React.Children.forEach(n.props?.children,walk)};walk(page);assert.deepEqual(links,['/jobs','/projects','/gigs','/freelancers']);
+  const Link=()=>null;const page=load('app/work/page.tsx',{'next/link':{__esModule:true,default:Link},react:React,'@/components/work/WorkPreviewRail':{__esModule:true,default:()=>null}}).default();
+  const links=[];const walk=n=>{if(!n||typeof n!=='object')return;if(n.type===Link)links.push(n.props.href);React.Children.forEach(n.props?.children,walk)};walk(page);assert.deepEqual(links,['/jobs','/projects','/gigs','/freelancers','/jobs/new','/projects/new']);
   const {NextRequest,NextResponse}=require('next/server');let reads=0;const mid=load('middleware.ts',{'next/server':{NextRequest,NextResponse},'@/lib/async':fast,'@/lib/auth/return-to':dest,'@supabase/ssr':{createServerClient:()=>({auth:{getSession:async()=>{reads++;return{data:{session:null},error:null}}}})}}).middleware;
   await mid(new NextRequest('https://local.invalid/work'));assert.equal(reads,0);await mid(new NextRequest('https://local.invalid/work/private'));assert.equal(reads,1);
   for(const p of ['/jobs/new','/projects/new','/gigs/new','/saved']){const response=await mid(new NextRequest('https://local.invalid'+p));assert.equal(new URL(response.headers.get('location')).pathname,'/login');}
