@@ -113,12 +113,12 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
     <>
       {/* Search */}
       <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-slate" />
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name, bio, or skills..."
-          className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 pl-9 focus:border-[#FFD700]"
+          className="bg-white border-brand-borderLight text-brand-midnight placeholder:text-brand-slate pl-9 focus:border-brand-indigo"
         />
       </div>
 
@@ -128,8 +128,8 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
           onClick={() => setSkillFilter("")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
             skillFilter === ""
-              ? "bg-[#FFD700] text-black border-[#FFD700]"
-              : "bg-white/5 text-[#6B7280] border-white/10 hover:border-white/30"
+              ? "bg-brand-indigo text-white border-brand-indigo"
+              : "bg-white text-brand-slate border-brand-borderLight hover:border-brand-indigo/40"
           }`}
         >
           All Skills
@@ -140,8 +140,8 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
             onClick={() => setSkillFilter(skillFilter === skill ? "" : skill)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
               skillFilter === skill
-                ? "bg-[#FFD700] text-black border-[#FFD700]"
-                : "bg-white/5 text-[#6B7280] border-white/10 hover:border-white/30"
+                ? "bg-brand-indigo text-white border-brand-indigo"
+                : "bg-white text-brand-slate border-brand-borderLight hover:border-brand-indigo/40"
             }`}
           >
             {skill}
@@ -152,13 +152,13 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
       {/* Max Rate + Verified */}
       <div className="flex flex-wrap items-center gap-4 mb-8">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] text-sm">₹</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-slate text-sm">₹</span>
           <Input
             type="number"
             value={maxRate}
             onChange={e => setMaxRate(e.target.value)}
             placeholder="Max hourly rate"
-            className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 pl-7 w-44 focus:border-[#FFD700]"
+            className="bg-white border-brand-borderLight text-brand-midnight placeholder:text-brand-slate pl-7 w-44 focus:border-brand-indigo"
           />
         </div>
         <label className="flex items-center gap-2 cursor-pointer">
@@ -166,24 +166,24 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
             type="checkbox"
             checked={verifiedOnly}
             onChange={e => setVerifiedOnly(e.target.checked)}
-            className="w-4 h-4 accent-[#FFD700]"
+            className="w-4 h-4 accent-brand-indigo"
           />
-          <span className="text-gray-300 text-sm">Verified only</span>
+          <span className="text-brand-slate text-sm">Verified only</span>
         </label>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-[#12121A] border border-[#1E1E2E] rounded-xl h-52 animate-pulse" />
+            <div key={i} className="bg-white border border-brand-borderLight rounded-xl h-52 animate-pulse" />
           ))}
         </div>
       ) : freelancers.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-gray-500 mb-3">No freelancers found.</p>
-          <p className="text-[#6B7280] text-sm">
+          <p className="text-brand-slate mb-3">No freelancers found.</p>
+          <p className="text-brand-slate text-sm">
             Try removing filters or{" "}
-            <a href="/profile/edit" className="text-[#FFD700] underline">complete your profile</a> to appear here!
+            <a href="/profile/edit" className="text-brand-indigo underline">complete your profile</a> to appear here!
           </p>
         </div>
       ) : (
@@ -192,9 +192,9 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
           {featuredFreelancers.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <Star className="h-4 w-4 fill-[#FFD700] text-[#FFD700]" />
-                <h2 className="text-[#FFD700] font-bold text-sm uppercase tracking-wider">Featured Freelancers</h2>
-                <span className="text-[#6B7280] text-xs">· Top picks this month</span>
+                <Star className="h-4 w-4 fill-[#FFD700] text-brand-indigo" />
+                <h2 className="text-brand-indigo font-bold text-sm uppercase tracking-wider">Featured Freelancers</h2>
+                <span className="text-brand-slate text-xs">· Top picks this month</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {featuredFreelancers.map(f => (
@@ -202,8 +202,8 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
                 ))}
               </div>
               {regularFreelancers.length > 0 && (
-                <div className="mt-8 mb-4 border-t border-white/5 pt-6">
-                  <p className="text-[#6B7280] text-sm font-medium mb-4">All Freelancers ({regularFreelancers.length})</p>
+                <div className="mt-8 mb-4 border-t border-brand-borderLight pt-6">
+                  <p className="text-brand-slate text-sm font-medium mb-4">All Freelancers ({regularFreelancers.length})</p>
                 </div>
               )}
             </div>
@@ -213,7 +213,7 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
           {regularFreelancers.length > 0 && (
             <>
               {featuredFreelancers.length === 0 && (
-                <p className="text-gray-500 text-sm mb-4">
+                <p className="text-brand-slate text-sm mb-4">
                   {freelancers.length} freelancer{freelancers.length !== 1 ? "s" : ""} found
                 </p>
               )}
@@ -243,15 +243,15 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
                     </div>
 
                     {/* Lock overlay */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/80 to-transparent rounded-2xl px-4 py-8">
-                      <div className="bg-[#12121A] border border-[#1E1E2E] rounded-2xl p-8 text-center max-w-sm shadow-2xl">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-brand-ivory via-brand-ivory/80 to-transparent rounded-2xl px-4 py-8">
+                      <div className="bg-white border border-brand-borderLight rounded-2xl p-8 text-center max-w-sm shadow-2xl">
                         <div className="w-12 h-12 rounded-full bg-[#4F46E5]/15 flex items-center justify-center mx-auto mb-4">
-                          <Lock className="h-6 w-6 text-[#818CF8]" />
+                          <Lock className="h-6 w-6 text-brand-indigo" />
                         </div>
-                        <h3 className="text-white font-black text-lg mb-2">
+                        <h3 className="text-brand-midnight font-black text-lg mb-2">
                           See {regularFreelancers.length - PAGE_1_SIZE} more freelancers
                         </h3>
-                        <p className="text-[#6B7280] text-sm mb-5">
+                        <p className="text-brand-slate text-sm mb-5">
                           Boost or Verify your profile to unlock full search and find the perfect match.
                         </p>
                         <Link

@@ -49,7 +49,7 @@ async function PersonCounts({ id, username }: { id: string; username: string }) 
       db.from("profile_follows").select("followed_profile_id", { count: "exact", head: true }).eq("follower_user_id", id),
     ]))
     if (counts.some(result => result.error)) throw Error()
-    return <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><Link href={`/u/${username}/followers`}>{counts[1].count || 0} Followers</Link><Link href={`/u/${username}/following`}>{counts[2].count || 0} Following</Link><Link href="/network">{counts[0].count || 0} Connections</Link></div>
+    return <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><Link href={`/u/${username}/followers`}>{counts[1].count || 0} Followers</Link><Link href={`/u/${username}/following`}>{counts[2].count || 0} Following</Link><Link href="/network?tab=connections">{counts[0].count || 0} Connections</Link></div>
   } catch { return <p className="text-sm text-[#9EA6B8]">Counts unavailable.</p> }
 }
 async function PersonContent({ id, name }: { id: string; name: string }) {

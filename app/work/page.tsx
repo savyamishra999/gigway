@@ -6,7 +6,7 @@ const destinations = [
   { href: "/jobs", title: "Jobs" },
   { href: "/projects", title: "Projects" },
   { href: "/gigs", title: "Services" },
-  { href: "/freelancers", title: "Hire People" },
+  { href: "/freelancers", title: "Find Professionals" },
 ];
 export default function WorkPage() {
   return <main className="min-h-screen bg-brand-ivory px-4 py-8 pb-24"><div className="mx-auto min-w-0 max-w-5xl">

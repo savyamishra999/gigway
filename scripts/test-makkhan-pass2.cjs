@@ -56,6 +56,7 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, legacy
             if (table === 'profiles' || table === 'organizations') data = data.filter(row=>row.username != null);
             if (limit) data = data.slice(0,limit);
           }
+          if (Array.isArray(data) && limit) data = data.slice(0,limit);
           resolve({ data, error: null, count: 1 });
         } catch (error) { reject(error); }
       }
@@ -66,6 +67,13 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, legacy
     '@/lib/supabase/server': {createClient:async()=>db}, '@/lib/async':deadlines,
     '@/lib/identity/profile-strength':moduleAt('lib/identity/profile-strength.ts',{}),
   }).default;
+  const previewDeps = {'server-only':{}, '@/lib/supabase/server':{createClient:async()=>db}};
+  const discovery = moduleAt('lib/network/discovery.ts',{...previewDeps,'@/lib/identity':{compactIntentLabels:()=>[]}});
+  const previews = moduleAt('components/home/DiscoveryPreviews.tsx', {
+    'next/link':def(placeholder('link')), '@/components/connections/DiscoveryCards':def(socialClient.NetworkRail),
+    '@/lib/network/discovery':discovery, '@/lib/work/previews':moduleAt('lib/work/previews.ts',previewDeps),
+    '@/components/ui/ContentTimestamp':def(placeholder('timestamp')),
+  });
   const page = moduleAt('app/home/page.tsx', {
     "@/lib/product-visibility": legacyProducts ? { productVisibility: { joxCurrentProduct: true, glimpsCurrentProduct: true } } : moduleAt("lib/product-visibility.ts", {}),
     react: { ...react, cache: fn => { const memo = new Map(); return key => { if (!memo.has(key)) memo.set(key, fn(key)); return memo.get(key); }; } },
@@ -74,6 +82,7 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, legacy
     'lucide-react': { ArrowRight:placeholder('arrow'), CheckCircle2:placeholder('check') },
     '@/lib/supabase/server': { createClient: async () => db },
     '@/components/social/SocialHomeFeed': socialClient,
+    '@/components/home/DiscoveryPreviews':previews,
     '@/lib/recommendations': realRanking ? moduleAt('lib/recommendations.ts',{}) : { scoreOpportunity: () => ({score:1,skills:[]}) },
     '@/lib/recommendations/intentRanking': realRanking ? moduleAt('lib/recommendations/intentRanking.ts',{}) : { scoreIntentAwareOpportunity: () => ({finalScore:1}), scoreNetworkCandidate: () => ({finalScore:1}) },
     '@/lib/social/server': {
@@ -102,18 +111,20 @@ async function scenario(options) {
   assert.ok(settled.has('primary'), 'primary must settle without secondary dependencies');
   if(options?.delayed) assert.ok(!settled.has(options.delayed), 'injected delay must actually be pending');
   await Promise.all(tasks);
-  if(options?.fault && !['activity'].includes(options.fault)) assert.equal(settled.get(options.fault).props['data-home-error'],options.fault);
+  if(options?.fault && !['activity','opportunities'].includes(options.fault)) assert.equal(settled.get(options.fault).props['data-home-error'],options.fault);
   if(options?.fault==='activity') assert.ok(walk(settled.get('activity'), n=>n.type===statuses.SectionUnavailable).length);
   if(options?.fault==='primary') for(const name of ['opportunities','network','jox','glimps','completion','activity']) assert.ok(settled.has(name));
   if(!options?.fault) {
-    assert.ok(!settled.get('network').props.children.props.items.some(item=>item.id==='p0'), 'followed people excluded');
-    const rail = walk(settled.get('opportunities'), n=>n.type===socialClient.OpportunityRail)[0];
-    assert.ok(!rail.props.items.some(item=>item.id==='own'), 'own opportunity excluded');
-    assert.equal(calls.filter(q=>q.table==='profiles' && q.filters.single).length,1,'shared viewer profile');
-    assert.equal(calls.filter(q=>q.table==='profile_intents' && q.filters.profile_id==='viewer').length,1,'shared viewer intents');
-    for(const table of ['jobs','projects','organizations']) assert.equal(calls.find(q=>q.table===table).limit,24);
-    const labels = calls.find(q=>q.table==='profile_intents' && Array.isArray(q.filters.profile_id));
-    assert.ok(labels.filters.profile_id.length<=12);
+    const rails=walk(settled.get('network'),n=>n.type===socialClient.NetworkRail);
+    assert.equal(rails.length,2);assert.ok(rails.every(n=>n.props.items.length<=6));
+    assert.equal(rails[0].props.items.find(item=>item.id==='p0')?.following,true,'existing follows accurately displayed');
+    assert.ok(walk(settled.get('opportunities'),n=>n.type==='article').length<=6);
+    assert.equal(calls.filter(q=>q.table==='profiles' && q.filters.single).length,1,'single viewer profile');
+    assert.equal(calls.filter(q=>q.table==='profile_intents' && q.filters.profile_id==='viewer').length,1,'single viewer intents');
+    for(const table of ['jobs','projects','gigs']) assert.equal(calls.find(q=>q.table===table).limit,2);
+    assert.equal(calls.find(q=>q.table==='organizations').limit,6);
+    const labels=calls.find(q=>q.table==='profile_intents' && Array.isArray(q.filters.profile_id));
+    assert.ok(labels.filters.profile_id.length<=6);
   }
   console.log('PASS actual Home loaders/boundaries:', JSON.stringify(options || {normal:true}));
 }

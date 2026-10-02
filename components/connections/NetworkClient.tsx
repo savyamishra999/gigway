@@ -19,7 +19,7 @@ type Item = {
   };
 };
 
-export default function NetworkClient() {
+export default function NetworkClient({ embedded = false }: { embedded?: boolean } = {}) {
   const [requests, setRequests] = useState<Item[]>([]);
   const [connections, setConnections] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,7 @@ export default function NetworkClient() {
   );
 
   const row = (item: Item, actions?: React.ReactNode) => (
-    <div key={item.id} className="flex min-w-0 items-center gap-3 border-t border-brand-borderLight py-3 first:border-0">
+    <div key={item.id} className="flex min-w-0 flex-wrap items-center gap-3 border-t border-brand-borderLight py-3 first:border-0">
       <ProfileAvatar src={item.profile?.avatar_url} name={item.profile?.full_name} className="h-10 w-10 shrink-0 text-xs" />
       {identity(item)}
       {actions}
@@ -86,11 +86,11 @@ export default function NetworkClient() {
   );
 
   return (
-    <main className="min-h-screen bg-brand-ivory px-4 py-8 pb-24">
+    <section className={embedded ? "mt-6" : "min-h-screen bg-brand-ivory px-4 py-8 pb-24"}>
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-indigo/10 text-brand-indigo"><UserRound className="h-5 w-5" /></span>
-          <div><h1 className="text-h2 font-extrabold text-brand-midnight">My network</h1><p className="text-body-sm text-brand-slate">Professional connections are separate from who you follow.</p></div>
+          <div><h2 className="text-h2 font-extrabold text-brand-midnight">My Network</h2><p className="text-body-sm text-brand-slate">Professional connections are separate from who you follow.</p></div>
         </div>
         {error && <p className="mt-3 text-body-sm text-brand-coral">{error}</p>}
         <section className="mt-5 rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft">
@@ -102,6 +102,6 @@ export default function NetworkClient() {
           {loading ? <Loader2 className="mx-auto my-5 h-5 w-5 animate-spin text-brand-indigo" /> : connections.length ? connections.map((item) => row(item, <div className="flex shrink-0 flex-col items-end gap-1"><Link href={item.profile?.username ? `/u/${item.profile.username}` : "/network"} className="text-caption font-bold text-brand-indigo">View profile</Link><button disabled={busyId === item.id} onClick={() => disconnect(item)} className="text-caption font-semibold text-brand-slate disabled:opacity-60">Disconnect</button></div>)) : <p className="mt-3 text-body-sm text-brand-slate">Your accepted professional connections will appear here.</p>}
         </section>
       </div>
-    </main>
+    </section>
   );
 }

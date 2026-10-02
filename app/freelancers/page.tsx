@@ -88,10 +88,10 @@ export default async function FreelancersPage() {
   const initialFreelancers = [...(boosted ?? []), ...(planActive ?? []), ...(rest ?? [])]
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
+    <div className="min-h-screen bg-brand-ivory pb-24">
       <div className="container mx-auto px-4 py-10 max-w-6xl">
-        <h1 className="text-3xl font-bold text-white mb-2">Find Freelancers</h1>
-        <p className="text-[#6B7280] text-sm mb-6">India&apos;s top verified freelancers — zero commission</p>
+        <h1 className="text-h2 font-extrabold text-brand-midnight mb-2">Find Professionals</h1>
+        <p className="text-brand-slate text-sm mb-6">Find people for freelance, project or professional work — zero commission</p>
 
         {ad && <BannerAd ad={ad} className="mb-8" />}
         <FreelancersClient initialFreelancers={initialFreelancers} isProUser={isProUser} />

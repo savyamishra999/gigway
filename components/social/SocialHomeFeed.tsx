@@ -733,7 +733,7 @@ export default function SocialHomeFeed({
         className="flex w-full min-w-0 justify-between rounded-2xl border border-brand-indigo/20 bg-white p-4 shadow-soft"
       >
         <span className="min-w-0 text-body-sm text-brand-slate">
-          Share something with your professional network...
+          Share a GigThought...
         </span>
         <Plus className="text-brand-coral" />
       </Link>

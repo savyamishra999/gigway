@@ -20,10 +20,10 @@ interface FreelancerCardProps {
 }
 
 const availabilityColor: Record<string, string> = {
-  "full-time": "text-green-400",
-  "part-time": "text-yellow-400",
-  "weekends": "text-blue-400",
-  "not-available": "text-red-400",
+  "full-time": "text-green-700",
+  "part-time": "text-amber-700",
+  "weekends": "text-blue-700",
+  "not-available": "text-red-700",
 }
 
 const availabilityLabel: Record<string, string> = {
@@ -42,17 +42,17 @@ function isBoostedActive(freelancer: FreelancerCardProps["freelancer"]): boolean
 export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
   const initial = freelancer.full_name?.[0]?.toUpperCase() || "?"
   const rating = freelancer.avg_rating ?? 0
-  const avColor = availabilityColor[freelancer.availability || ""] || "text-[#6B7280]"
+  const avColor = availabilityColor[freelancer.availability || ""] || "text-brand-slate"
   const avLabel = availabilityLabel[freelancer.availability || ""] || freelancer.availability || ""
   const boosted = isBoostedActive(freelancer)
 
   return (
     <Link href={`/freelancers/${freelancer.id}`}>
       <div
-        className={`relative bg-[#12121A] rounded-xl p-5 hover:bg-[#12121A] transition-all cursor-pointer group ${
+        className={`relative bg-white rounded-2xl p-5 shadow-soft hover:bg-white transition-all cursor-pointer group ${
           boosted
             ? "border-2 border-[#F97316]/60 hover:border-[#F97316] shadow-[0_0_16px_rgba(249,115,22,0.15)]"
-            : "border border-[#1E1E2E] hover:border-[#4F46E5]/40"
+            : "border border-brand-borderLight hover:border-[#4F46E5]/40"
         }`}
       >
         {/* Featured banner */}
@@ -61,7 +61,7 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
         )}
         {boosted && (
           <div className="flex items-center gap-1 mb-3 bg-[#F97316]/10 border border-[#F97316]/20 rounded-md px-2 py-1 w-fit">
-            <span className="text-[#FFD700] text-xs">⭐</span>
+            <span className="text-brand-indigo text-xs">⭐</span>
             <span className="text-[#F97316] text-[10px] font-bold uppercase tracking-wider">Featured</span>
           </div>
         )}
@@ -75,29 +75,29 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
                 : initial}
             </div>
             {boosted && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#F59E0B] rounded-full flex items-center justify-center text-[9px] shadow-md border-2 border-[#12121A]">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#F59E0B] rounded-full flex items-center justify-center text-[9px] shadow-md border-2 border-white">
                 ⭐
               </span>
             )}
             {freelancer.is_verified && (
-              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-md border-2 border-[#12121A]">
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-md border-2 border-white">
                 ✓
               </span>
             )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-white truncate group-hover:text-[#818CF8] transition-colors">
+              <h3 className="font-semibold text-brand-midnight truncate group-hover:text-brand-indigo transition-colors">
                 {freelancer.full_name || "Unnamed"}
               </h3>
               {freelancer.is_verified && (
-                <span className="inline-flex items-center bg-[#4F46E5]/20 text-[#818CF8] text-[10px] px-1.5 py-0.5 rounded-full font-semibold border border-[#4F46E5]/30 flex-shrink-0">
+                <span className="inline-flex items-center bg-[#4F46E5]/20 text-brand-indigo text-[10px] px-1.5 py-0.5 rounded-full font-semibold border border-[#4F46E5]/30 flex-shrink-0">
                   ✓ Verified
                 </span>
               )}
             </div>
             {freelancer.tagline && (
-              <p className="text-xs text-[#6B7280] truncate mt-0.5">{freelancer.tagline}</p>
+              <p className="text-xs text-brand-slate truncate mt-0.5">{freelancer.tagline}</p>
             )}
           </div>
         </div>
@@ -108,16 +108,16 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
             {[1, 2, 3, 4, 5].map(i => (
               <Star
                 key={i}
-                className={`h-3.5 w-3.5 ${i <= Math.round(rating) ? "fill-[#F97316] text-[#F97316]" : "text-gray-600"}`}
+                className={`h-3.5 w-3.5 ${i <= Math.round(rating) ? "fill-[#F97316] text-[#F97316]" : "text-brand-slate"}`}
               />
             ))}
-            <span className="text-xs text-[#6B7280] ml-1">{rating.toFixed(1)}</span>
+            <span className="text-xs text-brand-slate ml-1">{rating.toFixed(1)}</span>
           </div>
         )}
 
         {/* Bio */}
         {freelancer.bio && (
-          <p className="text-sm text-[#6B7280] line-clamp-2 mb-3">{freelancer.bio}</p>
+          <p className="text-sm text-brand-slate line-clamp-2 mb-3">{freelancer.bio}</p>
         )}
 
         {/* Skills */}
@@ -126,13 +126,13 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
             {freelancer.skills.slice(0, 3).map(skill => (
               <Badge
                 key={skill}
-                className="bg-[#4F46E5]/10 text-[#818CF8] border-[#4F46E5]/20 text-xs px-2 py-0.5"
+                className="bg-[#4F46E5]/10 text-brand-indigo border-[#4F46E5]/20 text-xs px-2 py-0.5"
               >
                 {skill}
               </Badge>
             ))}
             {freelancer.skills.length > 3 && (
-              <Badge className="bg-white/5 text-[#6B7280] border-white/10 text-xs px-2 py-0.5">
+              <Badge className="bg-white text-brand-slate border-brand-borderLight text-xs px-2 py-0.5">
                 +{freelancer.skills.length - 3}
               </Badge>
             )}

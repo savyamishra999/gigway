@@ -57,7 +57,7 @@ function rail(loader) { return moduleAt('components/work/WorkPreviewRail.tsx',{'
   });
   await check('one failed preview leaves other categories usable; empty is distinct from unavailable',async()=>{
     const f=dbFixture({fail:'jobs'}),load=previews(f.db);
-    const results=await Promise.all(['jobs','projects','services'].map(load.workPreviews));assert.equal(results[0].unavailable,true);assert.equal(results[1].items.length,6);assert.equal(results[2].items.length,6);
+    const results=await Promise.all(['jobs','projects','services'].map(kind => load.workPreviews(kind)));assert.equal(results[0].unavailable,true);assert.equal(results[1].items.length,6);assert.equal(results[2].items.length,6);
     assert.equal((await previews(dbFixture({empty:true}).db).workPreviews('jobs')).unavailable,false);
   });
   await check('Work rails have semantic dates, real routes, swipe regions and no fabricated missing fields',async()=>{

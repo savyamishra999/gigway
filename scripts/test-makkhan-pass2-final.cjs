@@ -74,26 +74,19 @@ async function neverSettles(name){const f=fixture({hanging:name,deadline:30,lega
   assert.ok(settled.get('primary').props['data-home-ready']);assert.equal(settled.size,7);assert.ok(performance.now()-started<1000);
   const result=settled.get(name);assert.ok(result.props['data-home-error']||walk(result,n=>n.type===statuses.SectionUnavailable).length||name==='completion');
   assert.equal(f.counts.viewer,1);return{module:name,terminal:true,elapsedMs:Math.round(performance.now()-started),testDeadlineMs:40};}
-async function headroom(){const people=Array.from({length:60},(_,i)=>({id:'p'+i,username:'p'+i,full_name:'Person '+i,skills:['design']})),orgs=Array.from({length:60},(_,i)=>({id:'o'+i,username:'o'+i,name:'Org '+i})),jobs=Array.from({length:60},(_,i)=>({id:'j'+i,title:'Job '+i,client_id:'other',created_at:'2026-09-20T12:00:00Z'}));
+async function headroom(){
   const cases=[];
-  for(const dense of [false,true]){const records={profiles:people,organizations:orgs,jobs,projects:[],gigs:[],profile_follows:dense?people.slice(0,24).map(p=>({followed_profile_id:p.id})):[],organization_follows:dense?orgs.slice(0,24).map(p=>({organization_id:p.id})):[]};
-    const f=fixture({records,realRanking:true}),nodes=walk(await f.page.default(),n=>n.type===HomeModule),network=await nodes.find(n=>n.props.name==='network').props.load(),opp=await nodes.find(n=>n.props.name==='opportunities').props.load();
-    const opportunities=walk(opp,n=>n.type===socialClient.OpportunityRail)[0].props.items;
-    const detail={dense,candidatesPeople:24,candidatesOrganizations:24,networkVisible:network.props.items.length,opportunityVisible:opportunities.length,olderUnfollowed: dense?72:0};cases.push(detail);
-    if(!dense){assert.equal(network.props.items.length,12);assert.equal(opportunities.length,12)}else{assert.equal(network.props.items.length,0);report.findings.push({type:'candidate-starvation',...detail});}
-  }
-  for (const table of ['jobs','projects','gigs','profiles','organizations']) {
+  for(const table of ['jobs','projects','gigs','profiles','organizations']) {
     const records={profiles:[],organizations:[],jobs:[],projects:[],gigs:[],profile_follows:[],organization_follows:[]};
-    records[table]=table==='profiles'?people:table==='organizations'?orgs:jobs;
-    const f=fixture({records,realRanking:true}),nodes=walk(await f.page.default(),n=>n.type===HomeModule);
-    const isNetwork=['profiles','organizations'].includes(table),result=await nodes.find(n=>n.props.name===(isNetwork?'network':'opportunities')).props.load();
-    const items=isNetwork?result.props.items:walk(result,n=>n.type===socialClient.OpportunityRail)[0].props.items;
-    assert.equal(items.length,12,table+' cannot fill rail');cases.push({table,candidates:table==='gigs'?12:24,visible:items.length});
+    records[table]=Array.from({length:60},(_,i)=>({id:'r'+i,username:'r'+i,full_name:'Person '+i,name:'Workplace '+i,title:'Work '+i,skills:['design'],created_at:'2026-10-01T10:00:00Z'}));
+    const f=fixture({records}),nodes=walk(await f.page.default(),n=>n.type===HomeModule),isNetwork=['profiles','organizations'].includes(table);
+    const result=await nodes.find(n=>n.props.name===(isNetwork?'network':'opportunities')).props.load();
+    const count=isNetwork?walk(result,n=>n.type===socialClient.NetworkRail).reduce((sum,n)=>sum+n.props.items.length,0):walk(result,n=>n.type==='article').length;
+    assert.equal(count,isNetwork?6:2);assert.equal(f.calls.find(q=>q.table===table).limit,isNetwork?6:2);cases.push({table,visible:count});
   }
-  // Self-heavy opportunities with no other categories available.
-  const records={profiles:[],organizations:[],jobs:jobs.map((j,i)=>({...j,client_id:i<24?'viewer':'other'})),projects:[],gigs:[],profile_follows:[],organization_follows:[]};
-  const f=fixture({records,realRanking:true}),nodes=walk(await f.page.default(),n=>n.type===HomeModule),opp=await nodes.find(n=>n.props.name==='opportunities').props.load();const items=walk(opp,n=>n.type===socialClient.OpportunityRail)[0].props.items;assert.equal(items.length,0);report.findings.push({type:'self-heavy-starvation',candidates:24,visible:0,olderEligible:36});return cases;
+  return cases;
 }
+
 async function main(){
   for(const count of [0,1,15,16,31,45])await check('hydration/pagination '+count+' public posts',()=>hydrationAndPages(count));
   await check('viewer engagement hydration A/B',stateTest);
