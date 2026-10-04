@@ -2,12 +2,12 @@ import "server-only"
 import { cache } from "react"
 import { headers } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
-import { withDeadline } from "@/lib/async"
+import { withDeadline, AUTH_CHECK_TIMEOUT_MS } from "@/lib/async"
 import { safeReturnTo, loginHref, completionHref } from "./return-to"
 
 export const getViewer = cache(async () => {
   const db = await createClient()
-  const { data: { user }, error } = await withDeadline(db.auth.getUser())
+  const { data: { user }, error } = await withDeadline(db.auth.getUser(), AUTH_CHECK_TIMEOUT_MS)
   if (error && error.name !== "AuthSessionMissingError") throw new Error("Your session could not be checked. Please try again.")
   return user
 })

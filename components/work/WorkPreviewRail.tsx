@@ -14,7 +14,7 @@ export default async function WorkPreviewRail({ kind }: { kind: WorkKind }) {
     <h2 id={`work-${kind}`} className="text-h3 font-extrabold text-brand-midnight">{label.title}</h2>
     {unavailable ? <p role="status" className="mt-3 rounded-2xl border border-brand-borderLight bg-white p-4 text-body-sm text-brand-slate">{label.title} could not be loaded. Try the full listing.</p>
       : !items.length ? <div className="mt-3 rounded-2xl border border-brand-borderLight bg-white p-4"><p className="text-body-sm text-brand-slate">No {label.noun} available yet.</p><WorkCreationLink href={label.create}>{label.action}</WorkCreationLink></div>
-      : <div role="region" aria-label={label.title} tabIndex={0} className="mt-3 flex max-w-full snap-x gap-3 overflow-x-auto pb-3 focus-visible:outline-brand-indigo">
+      : <div role="region" aria-label={label.title} tabIndex={0} className="mt-3 flex max-w-full snap-x gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-brand-indigo">
         {items.map(item => <article key={item.id} className="flex w-[85%] min-w-0 shrink-0 snap-start flex-col rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft sm:w-72">
           <h3 className="break-words font-bold text-brand-midnight">{item.title}</h3>
           {item.author && <p className="mt-2 break-words text-body-sm text-brand-slate">{item.author}</p>}

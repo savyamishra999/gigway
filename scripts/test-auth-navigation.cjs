@@ -12,6 +12,20 @@ const q=result=>new Proxy({}, {get:(_,k)=>k==='then'?(ok,bad)=>Promise.resolve(r
 let groups=0;async function check(name,fn){await fn();console.log('PASS',name);groups++;}
 function browser(){let user={id:'A',email:'A@local.invalid'},event,auth=0,profiles=0,failAuth=false,failProfile=false,hold=null;const states=[],changes=[];const db={auth:{getUser:async()=>{auth++;if(hold)return hold.promise;if(failAuth)throw Error('auth unavailable');return{data:{user},error:null}},onAuthStateChange(fn){event=fn;return{data:{subscription:{unsubscribe(){}}}}}},from(){profiles++;return{select(){return this},eq(_,id){this.id=id;return this},maybeSingle(){return failProfile?Promise.resolve({data:null,error:Error('profile')}):Promise.resolve({data:{full_name:this.id,avatar_url:this.id+'.png'},error:null})}}}};const {observeAuthUi}=load('lib/auth/browser-ui.ts',{'@/lib/async':fast});return{db,states,changes,start:()=>observeAuthUi(db,s=>states.push(plain(s)),v=>changes.push(v)),emit:(e,u=user)=>event(e,u?{user:u}:null),setUser:u=>user=u,failAuth:()=>failAuth=true,failProfile:()=>failProfile=true,hold:()=>hold=deferred(),counts:()=>({auth,profiles})};}
 (async()=>{
+ await check('session recovery before initial verification never reloads the document',async()=>{
+  for(const initial of [false,true]){
+   const f=browser(),hold=f.hold(),stop=f.start();
+   if(initial)f.emit('INITIAL_SESSION');
+   f.emit('SIGNED_IN');f.emit('SIGNED_IN');await tick();
+   assert.deepEqual(f.changes,[]);
+   hold.resolve({data:{user:{id:'A'}},error:null});await tick();
+   assert.equal(f.states.at(-1).user.id,'A');assert.deepEqual(f.changes,[]);stop();
+  }
+ });
+ await check('initial guest followed by real login still invalidates the document',async()=>{
+  const f=browser(),stop=f.start();f.emit('INITIAL_SESSION',null);f.emit('SIGNED_IN');
+  assert.deepEqual(f.changes,[true]);await tick();stop();
+ });
  await check('BEFORE mounted navbar + login duplicate auth reads = 2 (actual baseline hooks)',async()=>{
   let calls=0;const effects=[];const db={auth:{getUser:async()=>{calls++;return{data:{user:null},error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})}};
   for(const file of ['components/layout/ModernNavbar.tsx','app/login/page.tsx']){

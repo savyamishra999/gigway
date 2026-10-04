@@ -98,14 +98,14 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
     <>
       <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl transition-transform duration-200 ${homeExperience && mobileChromeHidden ? "max-lg:-translate-y-full" : "max-lg:translate-y-0"} ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:gap-4 sm:px-4">
-          <Link href="/" className="shrink-0">
+          <Link prefetch={false} href="/" className="shrink-0">
             <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-auto w-16 sm:h-10 sm:w-auto" />
           </Link>
           <MomentHeader moment={moment} />
 
           <nav className="hidden lg:flex items-center gap-1">
             {links.map(({ href, label }) => (
-              <Link key={href} href={resolveHref(href)}
+              <Link prefetch={false} key={href} href={resolveHref(href)}
                 className={`rounded-lg px-3 py-2 text-body-sm font-semibold transition-colors ${
                   active(href) ? "bg-brand-indigo/10 text-brand-indigoDark" : "text-brand-slate hover:text-brand-midnight"
                 }`}>
@@ -123,19 +123,19 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
           </form>
 
           <div className="ml-auto flex items-center gap-1 md:ml-0">
-            <Link href="/explore" aria-label="Search"
+            <Link prefetch={false} href="/explore" aria-label="Search"
               className="flex md:hidden rounded-full p-2 sm:p-2.5 text-brand-indigo bg-brand-indigo/10 hover:bg-brand-indigo/15">
               <Search className="h-5 w-5" />
             </Link>
             {user ? (
               <>
-                <Link aria-label="Create" href="/create" className="hidden sm:flex rounded-lg p-2.5 text-brand-coral hover:bg-brand-coral/10">
+                <Link prefetch={false} aria-label="Create" href="/create" className="hidden sm:flex rounded-lg p-2.5 text-brand-coral hover:bg-brand-coral/10">
                   <CirclePlus className="h-5 w-5" />
                 </Link>
-                <Link aria-label="Messages" href="/messages" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
+                <Link prefetch={false} aria-label="Messages" href="/messages" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
                   <MessageSquare className="h-5 w-5" />
                 </Link>
-                <Link aria-label="Notifications" href="/notifications" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
+                <Link prefetch={false} aria-label="Notifications" href="/notifications" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
                   <Bell className="h-5 w-5" />
                 </Link>
                 <button onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open} aria-controls="account-menu"
@@ -145,10 +145,10 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link href={authHref()} onClick={event => preserveLocation(event)} className="hidden sm:block rounded-xl px-4 py-2 text-body-sm font-semibold text-brand-slate hover:text-brand-midnight">
+                <Link prefetch={false} href={authHref()} onClick={event => preserveLocation(event)} className="hidden sm:block rounded-xl px-4 py-2 text-body-sm font-semibold text-brand-slate hover:text-brand-midnight">
                   Log in
                 </Link>
-                <Link href={authHref(true)} onClick={event => preserveLocation(event, true)} className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
+                <Link prefetch={false} href={authHref(true)} onClick={event => preserveLocation(event, true)} className="rounded-xl bg-brand-indigo px-4 py-2 text-body-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark hover:shadow-[0_6px_18px_-4px_rgba(79,70,229,.55)] transition-all">
                   Join GigWay
                 </Link>
               </div>
@@ -163,7 +163,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
           <div id="account-menu" className="max-h-[calc(100dvh-9rem)] overflow-y-auto border-t border-brand-borderLight bg-white px-4 py-3 lg:absolute lg:right-4 lg:top-14 lg:w-72 lg:rounded-xl lg:border lg:shadow-elevated">
             <div className="lg:hidden grid gap-1 mb-2">
               {links.map(({ href, label }) => (
-                <Link key={href} href={resolveHref(href)} onClick={() => setOpen(false)}
+                <Link prefetch={false} key={href} href={resolveHref(href)} onClick={() => setOpen(false)}
                   className="rounded-lg px-3 py-2 text-body-sm text-brand-midnight">
                   {label}
                 </Link>
@@ -173,16 +173,16 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
               <div className="lg:mt-0 mt-2 border-t border-brand-borderLight pt-2 lg:border-t-0 lg:pt-0">
                 <p className="px-3 py-1.5 text-body-sm font-semibold text-brand-midnight truncate">{profile?.full_name || "My account"}</p>
                 {profile?.username && <p className="truncate px-3 pb-2 text-caption text-brand-slate">@{profile.username}</p>}
-                <Link href={profile?.username ? `/u/${profile.username}` : "/profile/complete"} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-50 hover:text-brand-midnight">
+                <Link prefetch={false} href={profile?.username ? `/u/${profile.username}` : "/profile/complete"} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-50 hover:text-brand-midnight">
                   {profile?.username ? "View Professional Identity" : "Complete Professional Identity"}
                 </Link>
                 {MENU_ITEMS.map(item => (
-                  <Link key={item.label} href={item.href} onClick={() => setOpen(false)}
+                  <Link prefetch={false} key={item.label} href={item.href} onClick={() => setOpen(false)}
                     className="block rounded-lg px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-50 hover:text-brand-midnight">
                     {item.label}
                   </Link>
                 ))}
-                <Link href="/login?switch=1" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-indigo hover:bg-brand-indigo/5">
+                <Link prefetch={false} href="/login?switch=1" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-indigo hover:bg-brand-indigo/5">
                   Switch Google account
                 </Link>
                 <button onClick={logout} disabled={signingOut} className="w-full rounded-lg px-3 py-2 text-left text-body-sm text-brand-coral hover:bg-brand-coral/5 disabled:opacity-60">
@@ -190,7 +190,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 </button>
               </div>
             ) : (
-              <Link href={authHref()} onClick={event => { setOpen(false); preserveLocation(event) }} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-indigo">
+              <Link prefetch={false} href={authHref()} onClick={event => { setOpen(false); preserveLocation(event) }} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-indigo">
                 Log in
               </Link>
             )}
@@ -199,13 +199,13 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
       </header>
 
       {user && (
-        <nav className={`fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-brand-borderLight bg-white/95 px-2 py-2 backdrop-blur transition-transform duration-200 lg:hidden ${homeExperience && mobileChromeHidden ? "translate-y-full" : "translate-y-0"} ${focusedGlimpsCreator ? "hidden" : ""}`}>
+        <nav className={`fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-brand-borderLight bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden ${focusedGlimpsCreator ? "hidden" : ""}`}>
           {MOBILE_TABS.map(item => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             return (
-              <Link key={item.label} href={item.href}
-                className={`flex flex-col items-center gap-1 text-[10px] font-medium ${isActive ? "text-brand-indigo" : "text-brand-slate"}`}>
+              <Link prefetch={false} key={item.label} href={item.href}
+                className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium ${isActive ? "text-brand-indigo" : "text-brand-slate"}`}>
                 <Icon className={item.label === "Create" ? "h-7 w-7 -mt-4 rounded-full bg-brand-coral p-1.5 text-white shadow-lg shadow-brand-coral/30" : "h-5 w-5"} />
                 {item.label}
               </Link>

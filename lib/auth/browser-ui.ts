@@ -45,18 +45,25 @@ export function observeAuthUi(db: SupabaseClient, publish: (state: AuthUiState) 
   }
   const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
     if (!active) return
-    if (event === "SIGNED_OUT") {
+    if (event === "INITIAL_SESSION") {
+      // Establish an event baseline only. Display identity still comes from
+      // getUser; restoring a session is not an account switch.
+      if (identity === undefined) identity = session?.user.id || null
+    } else if (event === "SIGNED_OUT") {
       clear(); identity = null; pendingId = undefined
       identityChanged(false)
     } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
       const id = session?.user.id
       if (!id || (event === "SIGNED_IN" && (id === identity || id === pendingId))) return
-      const changed = identity !== id
+      // SDK session recovery can emit SIGNED_IN before the initial getUser
+      // settles. Redirecting then restarts recovery on every document load.
+      const changed = identity !== undefined && identity !== id
+      identity = id
       clear()
       if (changed) identityChanged(true)
       schedule(id)
     }
-    // INITIAL_SESSION is covered by the authoritative initial read. Token
+    // Display state is covered by the authoritative initial read. Token
     // refresh/same-account sign-in does not change the identity being displayed.
   })
   schedule()

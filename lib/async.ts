@@ -1,5 +1,8 @@
 // Recovery ceilings, not performance targets. Allow slow mobile requests a full
 // minute; multi-request operations get two minutes before offering a retry.
+// Navigation/session checks need earlier recovery than uploads or multi-step work.
+export const AUTH_CHECK_TIMEOUT_MS = 15_000
+export const ROUTE_RECOVERY_MS = 15_000
 export const REQUEST_TIMEOUT_MS = 60_000
 export const OPERATION_TIMEOUT_MS = 120_000
 
@@ -30,7 +33,8 @@ export async function boundedFetch(input: RequestInfo | URL, init?: RequestInit)
   const abort = () => controller.abort(upstream?.reason)
   if (upstream?.aborted) abort()
   else upstream?.addEventListener("abort", abort, { once: true })
-  const timer = setTimeout(() => controller.abort(new Error("Request timed out")), REQUEST_TIMEOUT_MS)
+  const timeout = /\/auth\/v1\/user(?:[?#]|$)/.test(url) ? AUTH_CHECK_TIMEOUT_MS : REQUEST_TIMEOUT_MS
+  const timer = setTimeout(() => controller.abort(new Error("Request timed out")), timeout)
   try {
     const response = await fetch(input, { ...init, signal: controller.signal })
     if (!response.headers.get("content-type")?.includes("json")) return response

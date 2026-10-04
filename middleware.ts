@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import { boundedFetch, withDeadline } from "@/lib/async"
+import { boundedFetch, withDeadline, AUTH_CHECK_TIMEOUT_MS } from "@/lib/async"
 import { authenticatedRootDestination, safeReturnTo } from "@/lib/auth/return-to"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com")
@@ -51,7 +51,7 @@ export async function middleware(req: NextRequest) {
   })
 
     try {
-      const result = await withDeadline(supabase.auth.getSession())
+      const result = await withDeadline(supabase.auth.getSession(), AUTH_CHECK_TIMEOUT_MS)
       if (result.error) throw result.error
       session = result.data.session
       if (process.env.NODE_ENV === "development" || process.env.GIGWAY_PERF_DIAGNOSTICS === "1") {
