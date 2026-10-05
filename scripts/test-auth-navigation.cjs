@@ -98,7 +98,7 @@ function browser(){let user={id:'A',email:'A@local.invalid'},event,auth=0,profil
  });
  await check('Network boot rejection reaches terminal error without endless spinner',async()=>{
   const values=[],effects=[];let i=0;const hooks={useState:v=>{const n=i++;values[n]=v;return[v,x=>values[n]=x]},useEffect:fn=>effects.push(fn)};
-  const mod=load('components/connections/NetworkClient.tsx',{react:hooks,'next/link':{default:()=>null},'lucide-react':new Proxy({},{get:()=>()=>null}),'@/components/ui/profile-avatar':{ProfileAvatar:()=>null},'@/lib/async':{boundedFetch:async()=>{throw Error('offline')}}});mod.default();effects.forEach(fn=>fn());await tick();assert.equal(values[2],false);assert.match(values[4],/Could not load network/);
+  const mod=load('components/connections/NetworkClient.tsx',{react:hooks,'next/link':{default:()=>null},'lucide-react':new Proxy({},{get:()=>()=>null}),'@/components/ui/profile-avatar':{ProfileAvatar:()=>null},'@/lib/async':{boundedFetch:async()=>{throw Error('offline')}}},{AbortController});mod.default();effects.forEach(fn=>fn());await tick();assert.equal(values[2],false);assert.match(values[4],/Could not load network/);
  });
  await check('profile-only save refreshes mounted name/avatar without another auth read',async()=>{
   let name='Old',auth=0,profiles=0;const states=[];

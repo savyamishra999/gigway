@@ -78,7 +78,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const active = (href: string) => (href === "/" ? pathname === homeHref : pathname.startsWith(href))
   const initial = profile?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "G"
   const avatar = profile?.avatar_url
-    ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+    ? <img width={40} height={40} decoding="async" src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
     : <span>{initial}</span>
   const logout = async () => {
     if (signingOut) return

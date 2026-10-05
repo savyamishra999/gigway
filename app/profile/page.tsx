@@ -19,7 +19,7 @@ export default async function ProfilePage() {
       <section className="rounded-2xl border border-brand-borderLight bg-white p-4 sm:p-6">
         <h2 className="font-bold text-brand-midnight">Professional Identity</h2>
         <div className="mt-4 flex min-w-0 items-center gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo">{profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile?.full_name?.[0] || "G"}</div>
+          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo">{profile?.avatar_url ? <img width={48} height={48} decoding="async" src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile?.full_name?.[0] || "G"}</div>
           <div className="min-w-0"><p className="break-words font-semibold text-brand-midnight">{profile?.full_name || "Your Professional Identity"}</p>{profile?.username && <p className="break-all text-sm text-brand-slate">@{profile.username}</p>}</div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-brand-indigo">

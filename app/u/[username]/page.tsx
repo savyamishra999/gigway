@@ -107,7 +107,7 @@ export default async function PublicIdentity({ params, searchParams }: { params:
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                 <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full bg-[#242431] text-3xl font-bold text-white ring-4 ring-[#15151d]">
-                  {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.full_name?.[0]?.toUpperCase() || "?"}
+                  {profile.avatar_url ? <img width={96} height={96} decoding="async" src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : profile.full_name?.[0]?.toUpperCase() || "?"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -202,7 +202,7 @@ export default async function PublicIdentity({ params, searchParams }: { params:
                     <Link key={m.organizations.username} href={`/u/${m.organizations.username}`}
                       className="flex items-center gap-3 rounded-xl bg-white/[.035] p-3 hover:bg-white/[.06]">
                       <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#252535]">
-                        {m.organizations.logo_url ? <img src={m.organizations.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-4 w-4 text-[#B9B3FF]" />}
+                        {m.organizations.logo_url ? <img width={36} height={36} loading="lazy" decoding="async" src={m.organizations.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-4 w-4 text-[#B9B3FF]" />}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white">{m.organizations.name}</p>
