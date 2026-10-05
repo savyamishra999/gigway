@@ -73,12 +73,12 @@ function rail(loader) { return moduleAt('components/work/WorkPreviewRail.tsx',{'
     assert.deepEqual(walk(tree,n=>n.type==='a').map(n=>n.props.href),['/jobs','/projects','/gigs','/freelancers','/jobs/new','/projects/new']);assert.equal(walk(tree,n=>n.type===React.Suspense).length,3);assert.deepEqual(walk(tree,n=>n.type===Preview).map(n=>n.props.kind),['jobs','projects','services']);assert.ok(text(tree).includes('Find work. Hire people. Offer your skills.'));assert.doesNotMatch(text(tree),/Gigs|JOX|GLIMPS/);
   });
   await check('Create has four clear English examples, secondary styling and intact personal/workplace selection',async()=>{
-    const db={auth:{getUser:async()=>({data:{user:{id:'viewer'}}})},from(table){const result={data:table==='profiles'?{full_name:'Mohit',username:'muh21'}:[{organizations:{id:'org',name:'Workplace'}}]};const q=new Proxy({}, {get:(_,key)=>key==='then'?resolve=>resolve(result):()=>q});return q}};
-    const page=moduleAt('app/create/page.tsx',{'@/lib/product-visibility':policy,'@/lib/auth/server':{},'next/link':def('a'),'next/navigation':{},'lucide-react':icons,'@/lib/supabase/server':{createClient:async()=>db}}).default;
-    const tree=await page({searchParams:Promise.resolve({personal:'1'})});const copy=text(tree);assert.equal(walk(tree,n=>n.type==='h2').length,4);assert.ok(copy.includes('You are posting as'));assert.ok(copy.includes('@muh21'));assert.ok(copy.includes('Professional Profile'));assert.doesNotMatch(copy,/JOX|GLIMPS|monetize|engagement/i);
-    for(const phrase of ['Share an idea, update, question, photo or video','Hiring for a role?','Need a specific piece of work done?','Show people what you can do'])assert.ok(copy.includes(phrase));const examples=walk(tree,n=>n.type==='p'&&text(n).startsWith('Example:'));assert.equal(examples.length,4);assert.ok(examples.every(n=>n.props.className.includes('text-caption')));
-    const chooser=await page({searchParams:Promise.resolve({})});assert.ok(walk(chooser,n=>n.props?.href==='/create?personal=1').length);
-    const org=await page({searchParams:Promise.resolve({organization:'org'})});assert.deepEqual(walk(org,n=>n.type==='h2').map(text),['Share a GigThought','Post a Job']);assert.ok(walk(org,n=>n.props?.href==='/jobs/new?organization=org').length);
+    const { choices } = require('./test-create-mobile.cjs');
+    const tree=choices('personal=1');const copy=text(tree);assert.equal(walk(tree,n=>n.type==='h2').length,4);assert.ok(copy.includes('You are posting as'));assert.ok(copy.includes('@muh21'));assert.ok(copy.includes('Professional Profile'));assert.doesNotMatch(copy,/JOX|GLIMPS|monetize|engagement/i);
+    for(const phrase of ['Share an update, idea, photo or video','Hire someone for a role','Get a specific piece of work done','Show people what you can do'])assert.ok(copy.includes(phrase));
+    const examples=walk(tree,n=>n.type==='p'&&text(n).startsWith('Example:'));assert.equal(examples.length,4);assert.ok(examples.every(n=>n.props.className.includes('hidden')&&n.props.className.includes('sm:block')));
+    assert.ok(walk(choices(),n=>n.props?.href==='/create?personal=1').length);
+    const org=choices('organization=org');assert.deepEqual(walk(org,n=>n.type==='h2').map(text),['Share a GigThought','Post a Job']);assert.ok(walk(org,n=>n.props?.href==='/jobs/new?organization=org').length);
   });
   await check('shared timestamps wired into post/job/project/service cards and exact detail pages',()=>{
     for(const f of ['components/social/SocialHomeFeed.tsx','components/jobs/JobsClient.tsx','components/projects/ProjectsClient.tsx','components/gigs/GigCard.tsx','app/jobs/[id]/page.tsx','app/projects/[id]/page.tsx','app/gigs/[id]/page.tsx'])assert.match(source(f),/ContentTimestamp/);

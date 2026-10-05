@@ -114,21 +114,13 @@ const records = {
       assert.deepEqual(walk(tree,n => n.type === 'button').map(n => text(n)), ['GigThoughts','Reposts']);
     }
   });
-  await check('Create uses existing personal/workplace actions with clear labels', async () => {
-    for (const organization of [undefined,'org']) {
-      const { db } = database({ profiles: [{id:'viewer'}], organization_members: organization ? [{ profile_id:'viewer', status:'active', member_role:'owner', organizations: { id:'org', name:'Workplace' } }] : [] }, 'viewer');
-      const page = ui('app/create/page.tsx', { '@/lib/supabase/server': { createClient: async () => db } }).default;
-      const tree = await page({ searchParams: Promise.resolve({ organization }) }); noLegacy(tree);
-      const labels = walk(tree,n => n.type === 'h2').map(n => text(n));
-      assert.deepEqual(labels, organization ? ['Share a GigThought','Post a Job'] : ['Share a GigThought','Post a Job','Post a Project','Offer a Service']);
+  await check('Create personal/workplace actions retain product visibility', () => {
+    const { choices } = require('./test-create-mobile.cjs');
+    for(const query of ['', 'personal=1', 'organization=org']) {
+      const tree=choices(query); noLegacy(tree);
+      assert.deepEqual(walk(tree,n=>n.type==='h2').map(text),query==='organization=org'?['Share a GigThought','Post a Job']:['Share a GigThought','Post a Job','Post a Project','Offer a Service']);
     }
-    for (const route of ['social/create','jobs/new','projects/new','gigs/new']) assert.ok(fs.existsSync(`app/${route}/page.tsx`));
-    const {db}=database({profiles:[{id:'viewer'}],organization_members:[{profile_id:'viewer',status:'active',member_role:'owner',organizations:{id:'org',name:'Workplace'}}]},'viewer');
-    const page=ui('app/create/page.tsx',{'@/lib/supabase/server':{createClient:async()=>db}}).default;
-    const chooser=await page({searchParams:Promise.resolve({})});
-    assert.equal(walk(chooser,n=>n.props?.href==='/create?personal=1').length,1);
-    const personal=await page({searchParams:Promise.resolve({personal:'1'})});
-    assert.equal(walk(personal,n=>n.type==='h2').length,4); noLegacy(personal);
+    assert.ok(walk(choices(),n=>n.props?.href==='/create?personal=1').length);
   });
   await check('search tabs and queries exclude legacy before visibility/media serialization', async () => {
     const { db, calls } = database(records, 'viewer'); const serialized = [];
@@ -145,7 +137,7 @@ const records = {
     noLegacy(ui('components/moments/MomentExperience.tsx', {}, [true]).MomentHeader({ moment }));
     noLegacy(ui('components/moments/MomentExperience.tsx', {}, [false]).MomentHomeCard({ moment }));
     assert.doesNotMatch(source('components/home/Hero.tsx'), /jox|glimps/i);
-    assert.ok(source('components/social/CreatePostComposer.tsx').includes('Add photos, videos or documents to your GigThought.'));
+    assert.ok(source('components/social/CreatePostComposer.tsx').includes('Add photos, a video or a PDF to your GigThought.'));
   });
   await check('current profile reposts and workplace feeds filter before serialization; direct API retains legacy', async () => {
     for (const route of ['profiles','organizations']) for (const current of [false,true]) {

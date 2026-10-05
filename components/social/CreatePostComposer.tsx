@@ -14,17 +14,18 @@ import {
   X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useCreateWorkplaces } from "@/components/create/useCreateWorkplaces";
 import MentionPicker from "@/components/social/MentionPicker";
 import { findActiveMention, replaceActiveMention } from "@/lib/social/mentions";
 import { createClient } from "@/lib/supabase/client";
 import type { VideoMetadata } from "@/lib/social/video";
-import VijoxExperience from "@/components/social/VijoxExperience";
+const VijoxExperience = dynamic(() => import("@/components/social/VijoxExperience"));
 import VijoxCircularProgress from "@/components/social/VijoxCircularProgress";
 import { MAX_JOX_CAPTION_LENGTH } from "@/lib/social/content-domain";
 import type { PostHighlight } from "@/lib/social/gigthought";
 type Author = { id?: string; name: string; avatar?: string | null };
-type Props = { profile: Author; organizations: Author[]; mode?: "post" | "jox" };
+type Props = { profile: Author; organizations: Author[]; mode?: "post" | "jox"; loadWorkplaces?: boolean };
 type Kind = "image" | "video" | "document" | "audio";
 type Status = "idle" | "uploading" | "publishing" | "posted";
 const MAX = 27,
@@ -99,7 +100,9 @@ function Avatar({ a }: { a: Author }) {
     </span>
   );
 }
-export default function CreatePostComposer({ profile, organizations, mode = "post" }: Props) {
+export default function CreatePostComposer({ profile, organizations: initialOrganizations, mode = "post", loadWorkplaces = false }: Props) {
+  const workplaces = useCreateWorkplaces(loadWorkplaces ? profile.id : undefined);
+  const organizations = loadWorkplaces ? workplaces.organizations : initialOrganizations;
   const router = useRouter(),
     params = useSearchParams(),
     input = useRef<HTMLInputElement>(null), uploadInput = useRef<HTMLInputElement>(null), coverCrop = useRef<HTMLDivElement>(null),
@@ -121,7 +124,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     [cursor, setCursor] = useState(0),
     [closed, setClosed] = useState(false),
     [visibility, setVisibility] = useState("public"),
-    [author, setAuthor] = useState(() => { const requested = params.get("organization"); return organizations.some(org => org.id === requested) ? requested! : "personal" }),
+    [author, setAuthor] = useState(() => params.get("organization") || "personal"),
     [files, setFiles] = useState<File[]>([]),
     [error, setError] = useState(""),
     [status, setStatus] = useState<Status>("idle"),
@@ -138,6 +141,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     [vijoxTranscriptText, setVijoxTranscriptText] = useState(""),
     [editingVijoxTranscript, setEditingVijoxTranscript] = useState(false),
     [inspectionId, setInspectionId] = useState<string | null>(null);
+  const authorUnavailable = author !== "personal" && !organizations.some(org => org.id === author);
   const isJoxCreator = mode === "jox", busy = status !== "idle",
     active = useMemo(() => findActiveMention(body, cursor), [body, cursor]),
     images = files.filter((f) => kind(f) === "image"),
@@ -351,7 +355,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
     setInspectionId(null); setFiles((f) => f.filter((x) => kind(x) !== "audio"));
   };
   const submit = async () => {
-    if (busy || recording) return;
+    if (busy || recording || authorUnavailable) return;
     if (isJoxCreator && (!vijox || (inspectionId && status !== "idle"))) return setError("Jox your voice or upload audio before publishing.");
     if (!body.trim() && !files.length && !coverFile)
       return setError("Add text or an attachment before posting.");
@@ -461,43 +465,52 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
   };
   const coverEditor = coverFile && coverUrl && editingCover ? <div className="mt-4 rounded-2xl border border-violet-200 bg-white/85 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold text-brand-midnight">Adjust cover</p><p className="mt-1 text-caption text-brand-slate">Drag the photo to position it inside your Jox circle.</p></div><button type="button" onClick={() => setEditingCover(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button></div><div ref={coverCrop} className="relative mx-auto mt-4 h-44 w-44 touch-none overflow-hidden rounded-full border-4 border-violet-100 bg-violet-50 shadow-soft" onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); coverDrag.current={x:event.clientX,y:event.clientY,positionX:coverPresentation.positionX,positionY:coverPresentation.positionY}; }} onPointerMove={event => { const drag=coverDrag.current, rect=coverCrop.current?.getBoundingClientRect(); if(!drag||!rect)return; const room=Math.max(.2,coverPresentation.scale-1); setCoverPresentation(value=>({...value,positionX:Math.max(-1,Math.min(1,drag.positionX+(event.clientX-drag.x)/rect.width/room)),positionY:Math.max(-1,Math.min(1,drag.positionY+(event.clientY-drag.y)/rect.height/room))})); }} onPointerUp={() => { coverDrag.current=null; }} onPointerCancel={() => { coverDrag.current=null; }}><img src={coverUrl} alt="Adjust Jox cover" draggable={false} className="h-full w-full select-none object-cover" style={{ transform: `translate(${coverPresentation.positionX * (coverPresentation.scale - 1) * 50}%, ${coverPresentation.positionY * (coverPresentation.scale - 1) * 50}%) scale(${coverPresentation.scale})` }} /></div><label className="mt-4 block text-caption font-bold text-brand-midnight">Zoom<input aria-label="Cover zoom" type="range" min="1" max="3" step="0.05" value={coverPresentation.scale} onChange={event => setCoverPresentation(value=>({ ...value, scale:Number(event.target.value) }))} className="mt-2 block w-full accent-violet-600" /></label><button type="button" onClick={() => setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 })} className="mt-3 text-caption font-bold text-violet-700">Reset</button></div> : null;
   return (
-    <section className="rounded-3xl border border-brand-borderLight bg-white p-4 pb-24 text-brand-midnight shadow-elevated sm:p-7 sm:pb-7">
+    <section className="min-w-0 max-w-full rounded-2xl border border-brand-borderLight bg-white p-3 pb-6 text-brand-midnight shadow-elevated sm:p-7">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-caption font-bold tracking-[.15em] text-brand-coral">
             SOCIAL
           </p>
-          <h1 className="mt-1 text-h2 font-extrabold text-brand-midnight">
-            {isJoxCreator ? "Create a Jox" : "Create Post"}
+          <h1 className="mt-1 text-xl font-extrabold text-brand-midnight sm:text-h2">
+            {isJoxCreator ? "Create a Jox" : "Share a GigThought"}
           </h1>
-          {!isJoxCreator && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-caption font-bold text-brand-indigo"><Link href="/social/vijox/create" className="hover:underline">Create a Jox</Link><Link href="/social/glimps/create" className="hover:underline">Create a GLIMPS</Link></div>}
         </div>
         <button
           onClick={() => router.back()}
           aria-label="Close"
-          className="rounded-full p-2"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
         >
           <X />
         </button>
       </div>
-      <div className="mt-6 rounded-2xl border border-brand-borderLight bg-brand-ivory p-3">
-        <label className="text-caption font-bold text-brand-slate">
+      <div className="mt-3 min-w-0 rounded-xl border border-brand-borderLight bg-brand-ivory p-2">
+        <label htmlFor="post-author" className="text-caption font-bold text-brand-slate">
           Post as
         </label>
         <select
+          id="post-author"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           disabled={busy || recording}
           className="mt-1 w-full appearance-none rounded-lg border border-brand-borderLight bg-white px-3 py-2 font-bold text-brand-midnight outline-none focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
         >
-          <option value="personal">{profile.name} · Personal profile</option>
+          <option value="personal">{profile.name} · Professional Profile</option>
+          {authorUnavailable && <option value={author} disabled>{workplaces.loading ? "Checking Workplace…" : "Workplace unavailable"}</option>}
           {organizations.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name} · Workplace
             </option>
           ))}
         </select>
+        {loadWorkplaces && workplaces.error && <p role="alert" className="text-xs">{workplaces.error} <button type="button" onClick={workplaces.retry} className="min-h-11 px-2 font-bold text-brand-indigo">Retry</button></p>}
+        {authorUnavailable && <p role="status" className="mt-2 text-xs">Verify this Workplace or select your Professional Profile before posting.</p>}
       </div>
+      {!isJoxCreator && <div aria-label="Add to your GigThought" className="mt-3 grid grid-cols-4 gap-1 border-y border-brand-borderLight py-2">
+        <button type="button" disabled={busy || recording} onClick={() => textarea.current?.focus()} className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-xs font-bold text-brand-indigo disabled:opacity-40"><FileText className="h-4 w-4" />Text</button>
+        <button type="button" disabled={disabled("image")} onClick={() => choose("image")} className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-xs font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />Photo</button>
+        <button type="button" disabled={disabled("video")} onClick={() => choose("video")} className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-xs font-bold text-brand-indigo disabled:opacity-40"><Video className="h-4 w-4" />Video</button>
+        <button type="button" disabled={disabled("document")} onClick={() => choose("document")} className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-xs font-bold text-brand-indigo disabled:opacity-40"><FileText className="h-4 w-4" />PDF file</button>
+      </div>}
       <textarea
         ref={textarea}
         value={body}
@@ -528,10 +541,11 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
           }
         }}
         disabled={busy || recording}
-        rows={7}
+        aria-label="GigThought text"
+        rows={4}
         maxLength={isJoxCreator ? MAX_JOX_CAPTION_LENGTH : 280}
         placeholder={isJoxCreator ? "Add a short note…" : "Share something useful with your professional network..."}
-        className="mt-5 w-full resize-none rounded-2xl border border-violet-200 bg-white p-4 text-body-sm text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
+        className="mt-3 w-full max-w-full resize-y rounded-xl border border-violet-200 bg-white p-3 text-base text-brand-midnight outline-none placeholder:text-brand-slate placeholder:opacity-100 focus:border-brand-indigo focus:ring-2 focus:ring-brand-indigo/15 disabled:cursor-not-allowed disabled:bg-brand-ivory disabled:text-brand-slate disabled:opacity-100"
       />
       {!isJoxCreator && <div className="mt-2 flex flex-wrap items-center gap-2"><button type="button" onClick={() => { const start=textarea.current?.selectionStart??0,end=textarea.current?.selectionEnd??0;if(end<=start||end-start>80)return;setHighlights(value=>[...value.filter(item=>end<=item.start||start>=item.end),{start,end}].sort((a,b)=>a.start-b.start).slice(0,8)); }} className="rounded-lg border border-brand-coral/30 px-2.5 py-1 text-caption font-bold text-brand-coral">Highlight selection</button>{highlights.map((range,index)=><button key={`${range.start}-${range.end}`} type="button" onClick={()=>setHighlights(value=>value.filter((_,i)=>i!==index))} className="max-w-full truncate text-caption font-semibold text-brand-coral underline underline-offset-2">Remove “{body.slice(range.start,range.end)}”</button>)}</div>}
       {active && !closed && (
@@ -644,7 +658,7 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
           </button>
         </div>
       )}
-      <div className="mt-5 flex flex-wrap gap-2 border-y border-brand-borderLight py-3">
+      {isJoxCreator && <div className="mt-5 flex flex-wrap gap-2 border-y border-brand-borderLight py-3">
         {isJoxCreator ? <><button disabled={disabled("image")} onClick={() => choose("image", "cover")} className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />{coverFile ? "Change cover" : "Add cover"}</button>{coverFile && <button type="button" onClick={() => { setCoverFile(null); setEditingCover(false); setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 }); }} className="rounded-xl px-3 py-2 text-caption font-bold text-brand-coral">Remove cover</button>}<button disabled={disabled("image")} onClick={() => choose("image", "attachment")} className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />Add image</button></> : <button disabled={disabled("image")} onClick={() => choose("image")} className="flex items-center gap-2 rounded-xl px-3 py-2 font-bold text-brand-indigo disabled:opacity-40"><ImagePlus className="h-4 w-4" />Photo</button>}
         {isJoxCreator ? <><button
           disabled={disabled("audio")}
@@ -671,9 +685,9 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
           Attachments
         </button>
         </>}
-      </div>
+      </div>}
       <p className="mt-2 text-caption text-brand-slate">
-        {isJoxCreator ? "Jox your voice in up to 27 seconds. Cover and companion images are separate; add up to three companion images." : "Add photos, videos or documents to your GigThought."}
+        {isJoxCreator ? "Jox your voice in up to 27 seconds. Cover and companion images are separate; add up to three companion images." : "Add photos, a video or a PDF to your GigThought."}
       </p>
       <div className="mt-5 rounded-xl bg-brand-ivory/65 p-3">
         <p className="text-caption font-bold text-brand-slate">
@@ -702,8 +716,8 @@ export default function CreatePostComposer({ profile, organizations, mode = "pos
       )}
       <button
         onClick={submit}
-        disabled={busy || recording}
-        className="mt-6 flex w-full justify-center gap-2 rounded-xl bg-brand-indigo px-5 py-3 font-bold text-white shadow-sm disabled:opacity-60"
+        disabled={busy || recording || authorUnavailable}
+        className="mt-4 flex min-h-11 w-full scroll-mb-24 justify-center gap-2 rounded-xl bg-brand-indigo px-5 py-3 font-bold text-white shadow-sm disabled:opacity-60"
       >
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         {status === "uploading"
