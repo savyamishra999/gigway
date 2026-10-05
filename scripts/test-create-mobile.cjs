@@ -46,7 +46,7 @@ async function run() {
     for (const state of [ready, { ...ready, organizations: [], loading: true }, { ...ready, organizations: [], error: 'Failed' }]) {
       const tree = choices('', state, { user: null, profile: null });
       assert.deepEqual(walk(tree, n => n.props?.['data-create-action'] === true).map(n => n.props.href), ['/social/create','/jobs/new','/projects/new','/gigs/new']);
-      assert.match(walk(tree, n => n.props?.['data-create-actions'] === true)[0].props.className, /grid-cols-2/);
+      assert.match(walk(tree, n => n.props?.['data-create-actions'] === true)[0].props.className, /grid-cols-1.*sm:grid-cols-2/);
       assert.doesNotMatch(text(tree), /jox|glimps/i);
     }
   });

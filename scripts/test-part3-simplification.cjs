@@ -118,7 +118,7 @@ const records = {
     const { choices } = require('./test-create-mobile.cjs');
     for(const query of ['', 'personal=1', 'organization=org']) {
       const tree=choices(query); noLegacy(tree);
-      assert.deepEqual(walk(tree,n=>n.type==='h2').map(text),query==='organization=org'?['Share a GigThought','Post a Job']:['Share a GigThought','Post a Job','Post a Project','Offer a Service']);
+      assert.deepEqual(walk(tree,n=>n.type==='h2').map(text),query==='organization=org'?['Share a GigThought','Post a Job']:['Share a GigThought','Post a Job','Post a Gig Project','Offer a Service']);
     }
     assert.ok(walk(choices(),n=>n.props?.href==='/create?personal=1').length);
   });

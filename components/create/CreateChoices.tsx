@@ -7,7 +7,7 @@ import { useCreateWorkplaces } from "./useCreateWorkplaces"
 export const personalActions = [
   { href: "/social/create", label: "Share a GigThought", description: "Share an update, idea, photo or video.", example: "I'm available for new freelance projects." },
   { href: "/jobs/new", label: "Post a Job", description: "Hire someone for a role.", example: "Hiring a Sales Executive in Lucknow." },
-  { href: "/projects/new", label: "Post a Project", description: "Get a specific piece of work done.", example: "Need someone to build a business website." },
+  { href: "/projects/new", label: "Post a Gig Project", description: "Get a specific piece of work done.", example: "Need someone to build a business website." },
   { href: "/gigs/new", label: "Offer a Service", description: "Show people what you can do.", example: "Logo Design, Tuition, Legal Help, Photography." },
 ]
 
@@ -26,7 +26,7 @@ export default function CreateChoices({ viewerId }: { viewerId: string }) {
       <p className="truncate text-xs text-brand-slate">{requested ? "Workplace" : `${identity?.username ? `@${identity.username} · ` : ""}Professional Profile`}</p>
     </div>
     {requested && !selected && <p role="status" className="mt-3 text-sm">{workplaces.loading ? "Checking your permission to post as this Workplace…" : "This Workplace is unavailable or you do not have permission to post as it."} <Link prefetch={false} href="/create?personal=1" className="underline">Use Professional Profile</Link></p>}
-    <div data-create-actions className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
+    <div data-create-actions className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
       {actions.map(action => <Link data-create-action key={action.href} prefetch={false} href={selected ? `${action.href}?organization=${encodeURIComponent(selected.id)}` : action.href} className="min-w-0 rounded-xl border border-brand-borderLight bg-white p-3 shadow-soft hover:border-brand-indigo sm:p-5">
         <h2 className="text-sm font-bold leading-5 text-brand-indigo sm:text-base">{action.label}</h2>
         <p className="mt-1 text-xs leading-4 text-brand-slate sm:text-sm">{action.description}</p>
