@@ -125,7 +125,7 @@ function browser(){let user={id:'A',email:'A@local.invalid'},event,auth=0,profil
  });
  await check('Work public shell retains category links and independent previews; targets keep auth guards',async()=>{
   const source=fs.readFileSync('app/work/page.tsx','utf8');assert.doesNotMatch(source,/getUser|getViewer|createClient|fetch\(|saved|profile_intents/);
-  const Link=()=>null;const page=load('app/work/page.tsx',{'next/link':{__esModule:true,default:Link},react:React,'@/components/work/WorkPreviewRail':{__esModule:true,default:()=>null}}).default();
+  const Link=()=>null;const page=load('app/work/page.tsx',{'next/link':{__esModule:true,default:Link},react:React,'@/components/work/WorkPreviewRail':{__esModule:true,default:()=>null,WorkPreviewFallback:()=>null}}).default();
   const links=[];const walk=n=>{if(!n||typeof n!=='object')return;if(n.type===Link)links.push(n.props.href);React.Children.forEach(n.props?.children,walk)};walk(page);assert.deepEqual(links,['/jobs','/projects','/gigs','/freelancers','/jobs/new','/projects/new']);
   const {NextRequest,NextResponse}=require('next/server');let reads=0;const mid=load('middleware.ts',{'next/server':{NextRequest,NextResponse},'@/lib/async':fast,'@/lib/auth/return-to':dest,'@supabase/ssr':{createServerClient:()=>({auth:{getSession:async()=>{reads++;return{data:{session:null},error:null}}}})}}).middleware;
   await mid(new NextRequest('https://local.invalid/work'));assert.equal(reads,0);await mid(new NextRequest('https://local.invalid/work/private'));assert.equal(reads,1);

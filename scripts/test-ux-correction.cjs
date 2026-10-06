@@ -23,7 +23,7 @@ function dbFixture({fail, empty=false}={}) {
 }
 function previews(db) { return moduleAt('lib/work/previews.ts', {'server-only':{},'@/lib/supabase/server':{createClient:async()=>db}}); }
 const Timestamp=placeholder('timestamp'),Creation=placeholder('creation');
-function rail(loader) { return moduleAt('components/work/WorkPreviewRail.tsx',{'next/link':def('a'),'@/components/ui/ContentTimestamp':def(Timestamp),'@/components/work/WorkCreationLink':def(Creation),'@/lib/work/previews':{workPreviews:loader}}).default; }
+function rail(loader) { const render = moduleAt('components/work/WorkPreviewRail.tsx',{'next/link':def('a'),'@/components/ui/ContentTimestamp':def(Timestamp),'@/components/work/WorkCreationLink':def(Creation),'@/lib/work/previews':{workPreviews:loader}}).default; return async props => { const frame=await render(props); return frame.type(frame.props); }; }
 (async()=>{
   await check('exact dates are English/IST and independent of host timezone',()=>{
     assert.equal(time.formatContentDate(created),'1 Oct 2026, 3:42 PM IST');
@@ -51,7 +51,7 @@ function rail(loader) { return moduleAt('components/work/WorkPreviewRail.tsx',{'
   });
   await check('Work previews query exactly six published rows per category, with no auth calls',async()=>{
     const f=dbFixture(),load=previews(f.db);
-    for(const kind of ['jobs','projects','services']){const result=await load.workPreviews(kind);assert.equal(result.unavailable,false);assert.equal(result.items.length,6);assert.equal(result.items[0].id,'11');assert.equal(result.items[0].author,kind==='services'?'Owner':'Workplace');if(kind==='jobs')assert.equal(result.items[0].detail,'');}
+    for(const kind of ['jobs','projects','services']){const result=await load.workPreviews(kind);assert.equal(result.unavailable,false);assert.equal(result.items.length,6);assert.equal(result.items[0].id,'11');assert.equal(result.items[0].author,kind==='services'?'Freelancer':'Workplace');if(kind==='jobs')assert.equal(result.items[0].detail,'');}
     assert.deepEqual(f.calls.map(c=>[c.table,c.limit]),[['jobs',6],['projects',6],['gigs',6]]);
     for(const c of f.calls){assert.deepEqual(c.orders.map(o=>o[0]),['created_at','id']);assert.equal(c.filters[0][0],'status');}
   });
@@ -69,7 +69,7 @@ function rail(loader) { return moduleAt('components/work/WorkPreviewRail.tsx',{'
     const failure=await rail(async()=>({items:[],unavailable:true}))({kind:'jobs'});assert.ok(text(failure).includes('could not be loaded'));assert.equal(walk(failure,n=>n.type===Creation).length,0);
   });
   await check('public Work shell preserves destinations and has three independent server boundaries',()=>{
-    const Preview=placeholder('preview');const tree=moduleAt('app/work/page.tsx',{react:React,'next/link':def('a'),'@/components/work/WorkPreviewRail':def(Preview)}).default();
+    const Preview=placeholder('preview');const tree=moduleAt('app/work/page.tsx',{react:React,'next/link':def('a'),'@/components/work/WorkPreviewRail':{...def(Preview),WorkPreviewFallback:placeholder('fallback')}}).default();
     assert.deepEqual(walk(tree,n=>n.type==='a').map(n=>n.props.href),['/jobs','/projects','/gigs','/freelancers','/jobs/new','/projects/new']);assert.equal(walk(tree,n=>n.type===React.Suspense).length,3);assert.deepEqual(walk(tree,n=>n.type===Preview).map(n=>n.props.kind),['jobs','projects','services']);assert.ok(text(tree).includes('Find work. Hire people. Offer your skills.'));assert.doesNotMatch(text(tree),/Gigs|JOX|GLIMPS/);
   });
   await check('Create has four clear English examples, secondary styling and intact personal/workplace selection',async()=>{
