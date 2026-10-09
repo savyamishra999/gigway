@@ -1,7 +1,8 @@
 "use client"
 
 import ContentTimestamp from "@/components/ui/ContentTimestamp";
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useMemo } from "react"
+import { useWorkListings, WorkListingContinuation } from "@/components/work/WorkListingContinuation"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Search, Clock, Users, Calendar, CheckCircle2, ArrowRight, Rocket, Sparkles } from "lucide-react"
@@ -70,18 +71,17 @@ function skillMatchScore(required: string[] | null, mySkills: string[]) {
 }
 
 interface Props {
+  initialHasMore?: boolean
   initialProjects: Project[]
   mySkills?: string[]
 }
 
-export default function ProjectsClient({ initialProjects, mySkills = [] }: Props) {
-  const [projects, setProjects]   = useState<Project[]>(initialProjects)
+export default function ProjectsClient({ initialProjects, initialHasMore = false, mySkills = [] }: Props) {
   const [search, setSearch]       = useState("")
   const [category, setCategory]   = useState("")
   const [skillFilter, setSkillFilter] = useState("")
   const [minBudget, setMinBudget] = useState(0)
   const [deadlineTier, setDeadlineTier] = useState("")
-  const [loading, setLoading]     = useState(false)
   const supabase = createClient()
 
   const SKILL_FILTERS = useMemo(() => {
@@ -99,8 +99,7 @@ export default function ProjectsClient({ initialProjects, mySkills = [] }: Props
 
   const hasActiveFilters = !!(search || category || skillFilter || minBudget > 0 || deadlineTier)
 
-  const fetchProjects = useCallback(async () => {
-    setLoading(true)
+  const listing = useWorkListings<Project>(initialProjects, initialHasMore, (hasActiveFilters) ? JSON.stringify([search, category, skillFilter, minBudget, deadlineTier]) : "", () => {
     let query = supabase
       .from("projects")
       .select("*, client:client_id(full_name, is_verified), poster_name, proposals(count)")
@@ -113,8 +112,9 @@ export default function ProjectsClient({ initialProjects, mySkills = [] }: Props
     if (deadlineTier === "month") query = query.gte("deadline", new Date().toISOString()).lte("deadline", new Date(Date.now() + 30 * 86400000).toISOString())
     if (deadlineTier === "flexible") query = query.is("deadline", null)
 
-    const { data } = await query
-    let results = (data as unknown as Project[]) || []
+    return query.order("id", { ascending: false })
+  }, (item) => {
+    let results = [item]
 
     if (search) {
       const s = search.toLowerCase()
@@ -126,17 +126,9 @@ export default function ProjectsClient({ initialProjects, mySkills = [] }: Props
     if (skillFilter) {
       results = results.filter(p => p.skills_required?.some(sk => sk.toLowerCase().includes(skillFilter.toLowerCase())))
     }
-    setProjects(results)
-    setLoading(false)
-  }, [search, category, skillFilter, minBudget, deadlineTier]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (hasActiveFilters) {
-      fetchProjects()
-    } else {
-      setProjects(initialProjects)
-    }
-  }, [search, category, skillFilter, minBudget, deadlineTier]) // eslint-disable-line react-hooks/exhaustive-deps
+    return results.length > 0
+  }, 30)
+  const projects = listing.items, loading = listing.loading, error = listing.error
 
   // When browsing with no active filters and the viewer has profile skills,
   // surface the best-matching projects first (deterministic, recency as tiebreaker).
@@ -258,13 +250,14 @@ export default function ProjectsClient({ initialProjects, mySkills = [] }: Props
             <div key={i} className="bg-white border border-brand-borderLight rounded-card h-52 animate-pulse" />
           ))}
         </div>
-      ) : displayedProjects.length === 0 ? (
-        <EmptyState hasActiveFilters={hasActiveFilters} onClear={clearFilters} />
+      ) : error ? <p role="alert" className="text-sm text-red-700">Project listings could not be loaded.</p> : displayedProjects.length === 0 ? (
+        listing.hasMore ? <p className="py-8 text-sm text-brand-slate">No matches in loaded batches. Load more to search older listings.</p> : <EmptyState hasActiveFilters={hasActiveFilters} onClear={clearFilters} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {displayedProjects.map(project => <ProjectCard key={project.id} project={project} />)}
         </div>
       )}
+      <WorkListingContinuation {...listing} />
     </>
   )
 }

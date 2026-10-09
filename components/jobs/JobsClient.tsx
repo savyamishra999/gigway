@@ -1,7 +1,8 @@
 "use client"
 
 import ContentTimestamp from "@/components/ui/ContentTimestamp";
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useMemo } from "react"
+import { useWorkListings, WorkListingContinuation } from "@/components/work/WorkListingContinuation"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Search, MapPin, Clock, Star, Briefcase, CheckCircle2, ArrowRight, Globe2 } from "lucide-react"
@@ -63,20 +64,18 @@ function formatSalary(min: number | null, max: number | null) {
 }
 
 interface Props {
+  initialHasMore?: boolean
   initialJobs: Job[]
   canPostJob?: boolean
   isJobSeeker?: boolean
 }
 
-export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeker = false }: Props) {
-  const [jobs, setJobs]           = useState<Job[]>(initialJobs)
+export default function JobsClient({ initialJobs, initialHasMore = false, canPostJob = false, isJobSeeker = false }: Props) {
   const [search, setSearch]       = useState("")
   const [location, setLocation]   = useState("")
   const [jobType, setJobType]     = useState("")
   const [skillFilter, setSkillFilter] = useState("")
   const [minSalary, setMinSalary] = useState(0)
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState("")
   const supabase = createClient()
 
   const SKILL_FILTERS = useMemo(() => {
@@ -92,9 +91,7 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
       .map(([sk]) => sk)
   }, [initialJobs])
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true)
-    setError("")
+  const listing = useWorkListings<Job>(initialJobs, initialHasMore, (search || location || jobType || skillFilter || minSalary > 0) ? JSON.stringify([search, location, jobType, skillFilter, minSalary]) : "", () => {
     let query = supabase
       .from("jobs")
       .select("id, title, company_name, location, job_type, salary_min, salary_max, skills_required, experience_required, created_at, is_featured, featured_until, client_id, profiles:client_id(is_verified)")
@@ -106,15 +103,9 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
     if (location.trim()) query = query.ilike("location", `%${location.trim()}%`)
     if (minSalary > 0) query = query.gte("salary_min", minSalary)
 
-    const { data, error: fetchError } = await query
-    if (fetchError) {
-      setError(fetchError.message)
-      setJobs([])
-      setLoading(false)
-      return
-    }
-
-    let results = (data as unknown as Job[]) || []
+    return query.order("id", { ascending: false })
+  }, (item) => {
+    let results = [item]
     if (search) {
       const s = search.toLowerCase()
       results = results.filter(
@@ -129,17 +120,9 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
         j.skills_required?.some(sk => sk.toLowerCase().includes(skillFilter.toLowerCase()))
       )
     }
-    setJobs(results)
-    setLoading(false)
-  }, [search, location, jobType, skillFilter, minSalary]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (search || location || jobType || skillFilter || minSalary > 0) {
-      fetchJobs()
-    } else {
-      setJobs(initialJobs)
-    }
-  }, [search, location, jobType, skillFilter, minSalary]) // eslint-disable-line react-hooks/exhaustive-deps
+    return results.length > 0
+  }, 50)
+  const jobs = listing.items, loading = listing.loading, error = listing.error
 
   const featuredJobs = jobs.filter(isFeaturedActive)
   const regularJobs  = jobs.filter(j => !isFeaturedActive(j))
@@ -254,11 +237,11 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
           <p className="text-brand-slate text-sm">Please try again in a moment.</p>
         </div>
       ) : jobs.length === 0 ? (
-        <EmptyState canPostJob={canPostJob} isJobSeeker={isJobSeeker} />
+        listing.hasMore ? <p className="py-8 text-sm text-brand-slate">No matches in loaded batches. Load more to search older listings.</p> : <EmptyState canPostJob={canPostJob} isJobSeeker={isJobSeeker} />
       ) : (
         <>
           <p className="text-brand-slate text-body-sm mb-6">
-            {jobs.length} job{jobs.length !== 1 ? "s" : ""} found
+            {jobs.length} job{jobs.length !== 1 ? "s" : ""} loaded
             {featuredJobs.length > 0 && (
               <span className="ml-2 text-brand-coral font-medium">· {featuredJobs.length} featured</span>
             )}
@@ -304,6 +287,7 @@ export default function JobsClient({ initialJobs, canPostJob = false, isJobSeeke
           )}
         </>
       )}
+      <WorkListingContinuation {...listing} />
     </>
   )
 }

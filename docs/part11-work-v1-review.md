@@ -1,0 +1,15 @@
+﻿# Part 11 — Work V1
+
+Baseline: Work mental model, four categories, three independently streamed six-item rails, canonical freelancer_id Services relation and Part5.1 stable288px cards already work. Listing SSR previously capped Jobs/Services50 and Projects30 without continuation; filtered client reads were unlimited, lacked cancellation and could produce false empty states after errors.
+
+Implemented lookahead SSR plus bounded continuation in the existing client listing components. Each action scans at most four30/50-row batches with one lookahead each; client-side keyword/partial-skill filtering keeps its semantics and never permanently drops later matches. Empty partial batches explicitly invite older loading; displayed counts say loaded. Query errors/timeouts settle, prior successful rows remain available for retry, obsolete filter reads abort and deduplicate. Unfiltered Services continuation preserves the same featured/orders/created/id order as SSR. No automatic fetch of the initial server page, no full result fetch. Page/offset pagination can shift under concurrent edits/inserts; deduplication protects duplicates, refresh is required for snapshot-like consistency. No new index/migration claimed.
+
+Service placeholder now truthfully says services or skills (provider name is not queried); guest detail CTA says Sign In to Contact rather than promising an order. Initial server query failures use error boundaries instead of pretending zero listings. Existing filters, detail/owner controls and provider contact routes preserved. No ad/promotion feature added.
+
+Apply/proposal audit: existing applications API verifies caller but does not explicitly verify open status/owner; proposal component still writes directly and decrements connects separately, and the proposal API also lacks atomic credit+insert guarantees. These historical paths were NOT exercised or changed to move money. They require transaction/authorization review before launch; do not claim paid proposal safety or free-participation reset complete. Escrow/order/payment readiness is Part14's gated plan, not silently enabled here.
+
+Validation: actual bounded scanner finds all221 sparse matches beyond row400 at batch sizes30/50 with maximum4 queries/action; lookahead/cancellation/failure/timeout tests PASS. Part5.1 Services fixtures and streaming geometry PASS; architecture11 PASS; TypeScript PASS. Browser21 actual listing component/CSS samples (three categories × seven widths) PASS without overflow: C:/Users/Admin/AppData/Local/Temp/gigway-part11-component-t0HZ6m/report.json. No live apply/proposal/contact, Next hydration/router or physical-device claim.
+
+Application files: app/jobs/page.tsx; app/projects/page.tsx; app/gigs/page.tsx; app/gigs/[id]/page.tsx; components/jobs/JobsClient.tsx; components/projects/ProjectsClient.tsx; components/gigs/GigsClient.tsx; components/work/WorkListingContinuation.tsx.
+Tests: scripts/test-part11-work-listings.cjs; scripts/part11-component-browser-qa.cjs.
+No schema/RLS/migration, production mutation, commit, push or deployment.

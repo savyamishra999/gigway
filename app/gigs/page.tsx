@@ -19,7 +19,7 @@ export default async function GigsPage() {
   const supabase = await createClient()
 
   const [
-    { data: initialGigs },
+    { data: initialGigs, error: gigsError },
     { data: { user } },
   ] = await Promise.all([
     supabase.from("gigs")
@@ -28,9 +28,12 @@ export default async function GigsPage() {
       .order("is_featured", { ascending: false })
       .order("orders_count",  { ascending: false })
       .order("created_at",    { ascending: false })
-      .limit(50),
+      .order("id", { ascending: false })
+      .limit(51),
     supabase.auth.getUser(),
   ])
+
+  if (gigsError) throw new Error("Service listings could not be loaded. Please try again.")
 
   // Only freelancers can create gigs
   let canCreateGig = false
@@ -38,7 +41,7 @@ export default async function GigsPage() {
   let gigFwType: string | null = null
   if (user) {
     const { data: profile } = await supabase
-      .from("profiles")
+      .from("own_profiles")
       .select("user_roles, find_work_type")
       .eq("id", user.id)
       .single()
@@ -74,7 +77,7 @@ export default async function GigsPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {ad && <BannerAd ad={ad} className="mb-6" />}
-        <GigsClient initialGigs={initialGigs ?? []} />
+        <GigsClient initialGigs={(initialGigs ?? []).slice(0, 50)} initialHasMore={(initialGigs ?? []).length > 50} />
       </div>
     </div>
   )

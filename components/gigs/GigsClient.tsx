@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useMemo } from "react"
+import { useWorkListings, WorkListingContinuation } from "@/components/work/WorkListingContinuation"
 import { createClient } from "@/lib/supabase/client"
 import { Search, SlidersHorizontal, Star, X } from "lucide-react"
 import GigCard, { type Gig } from "@/components/gigs/GigCard"
@@ -26,19 +27,17 @@ const SORT_OPTIONS = [
 ]
 
 interface Props {
+  initialHasMore?: boolean
   initialGigs: Gig[]
 }
 
-export default function GigsClient({ initialGigs }: Props) {
-  const [gigs, setGigs] = useState<Gig[]>(initialGigs)
+export default function GigsClient({ initialGigs, initialHasMore = false }: Props) {
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("All")
   const [priceIdx, setPriceIdx] = useState(0)
   const [ratingIdx, setRatingIdx] = useState(0)
   const [skillFilter, setSkillFilter] = useState("")
   const [sort, setSort] = useState("newest")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
   const [drawerOpen, setDrawerOpen] = useState(false)
   const supabase = createClient()
 
@@ -53,9 +52,7 @@ export default function GigsClient({ initialGigs }: Props) {
   const hasActiveFilters = !!(search || category !== "All" || priceIdx !== 0 || ratingIdx !== 0 || skillFilter || sort !== "newest")
   const activeCount = [category !== "All", priceIdx !== 0, ratingIdx !== 0, !!skillFilter].filter(Boolean).length
 
-  const fetchGigs = useCallback(async () => {
-    setLoading(true)
-    setError("")
+  const listing = useWorkListings<Gig>(initialGigs, initialHasMore, (hasActiveFilters) ? JSON.stringify([search, category, priceIdx, ratingIdx, skillFilter, sort]) : "", () => {
     let query = supabase
       .from("gigs")
       .select("*, profiles:freelancer_id(full_name, username, avg_rating, is_verified)")
@@ -64,20 +61,15 @@ export default function GigsClient({ initialGigs }: Props) {
     if (category !== "All") query = query.ilike("category", category)
     if (RATING_FILTERS[ratingIdx].value > 0) query = query.gte("rating", RATING_FILTERS[ratingIdx].value)
 
-    if (sort === "top_rated") query = query.order("rating", { ascending: false })
+    if (!hasActiveFilters) query = query.order("is_featured", { ascending: false }).order("orders_count", { ascending: false }).order("created_at", { ascending: false })
+    else if (sort === "top_rated") query = query.order("rating", { ascending: false })
     else if (sort === "price_asc") query = query.order("price", { ascending: true })
     else if (sort === "price_desc") query = query.order("price", { ascending: false })
     else query = query.order("created_at", { ascending: false })
 
-    const { data, error: fetchError } = await query
-    if (fetchError) {
-      setError(fetchError.message)
-      setGigs([])
-      setLoading(false)
-      return
-    }
-
-    let results = (data as unknown as Gig[]) || []
+    return query.order("id", { ascending: false })
+  }, (item) => {
+    let results = [item]
     const { min, max } = PRICE_FILTERS[priceIdx]
     results = results.filter(g => g.price >= min && g.price <= max)
     if (skillFilter) {
@@ -90,17 +82,9 @@ export default function GigsClient({ initialGigs }: Props) {
         g.tags?.some(t => t.toLowerCase().includes(s))
       )
     }
-    setGigs(results)
-    setLoading(false)
-  }, [search, category, priceIdx, ratingIdx, skillFilter, sort]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (hasActiveFilters) {
-      fetchGigs()
-    } else {
-      setGigs(initialGigs)
-    }
-  }, [search, category, priceIdx, ratingIdx, skillFilter, sort]) // eslint-disable-line react-hooks/exhaustive-deps
+    return results.length > 0
+  }, 50)
+  const gigs = listing.items, loading = listing.loading, error = listing.error
 
   const clearFilters = () => {
     setSearch(""); setCategory("All"); setPriceIdx(0); setRatingIdx(0); setSkillFilter(""); setSort("newest")
@@ -113,7 +97,7 @@ export default function GigsClient({ initialGigs }: Props) {
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-indigo" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search services, skills or professionals..."
+            placeholder="Search services or skills..."
             className="w-full bg-white border-2 border-brand-indigo/15 focus:border-brand-indigo rounded-pill pl-11 pr-4 py-3.5 text-brand-midnight text-sm placeholder:text-brand-slate outline-none transition-all shadow-soft focus:ring-4 focus:ring-brand-indigo/10"
           />
         </div>
@@ -274,7 +258,7 @@ export default function GigsClient({ initialGigs }: Props) {
           {hasActiveFilters ? (
             <>
               <Search className="h-10 w-10 text-brand-slate/40 mb-4" />
-              <h3 className="text-brand-midnight font-bold text-xl mb-2">No services match these filters.</h3>
+              <h3 className="text-brand-midnight font-bold text-xl mb-2">{listing.hasMore ? "No matches in loaded batches. Load more to search older listings." : "No services match these filters."}</h3>
               <button onClick={clearFilters} className="mt-2 text-brand-indigo font-semibold text-sm hover:text-brand-indigoDark">Clear filters</button>
             </>
           ) : (
@@ -292,12 +276,13 @@ export default function GigsClient({ initialGigs }: Props) {
         </div>
       ) : (
         <>
-          <p className="text-brand-slate text-body-sm mb-5">{gigs.length} service{gigs.length !== 1 ? "s" : ""} found</p>
+          <p className="text-brand-slate text-body-sm mb-5">{gigs.length} service{gigs.length !== 1 ? "s" : ""} loaded</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {gigs.map(gig => <GigCard key={gig.id} gig={gig} />)}
           </div>
         </>
       )}
+      <WorkListingContinuation {...listing} />
     </>
   )
 }

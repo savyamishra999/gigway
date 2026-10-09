@@ -17,17 +17,20 @@ export default async function ProjectsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: initialProjects }, { data: profile }] = await Promise.all([
+  const [{ data: initialProjects, error: projectsError }, { data: profile }] = await Promise.all([
     supabase
       .from("projects")
       .select("*, client:client_id(full_name, is_verified), poster_name")
       .eq("status", "open")
       .order("created_at", { ascending: false })
-      .limit(30),
+      .order("id", { ascending: false })
+      .limit(31),
     user
       ? supabase.from("profiles").select("skills").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
   ])
+
+  if (projectsError) throw new Error("Project listings could not be loaded. Please try again.")
 
   const mySkills = (profile?.skills as string[] | null) ?? []
 
@@ -54,7 +57,7 @@ export default async function ProjectsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <ProjectsClient initialProjects={initialProjects ?? []} mySkills={mySkills} />
+        <ProjectsClient initialProjects={(initialProjects ?? []).slice(0, 30)} initialHasMore={(initialProjects ?? []).length > 30} mySkills={mySkills} />
       </div>
     </div>
   )

@@ -19,7 +19,7 @@ export default async function JobsPage() {
   const supabase = await createClient()
 
   const [
-    { data: initialJobs },
+    { data: initialJobs, error: jobsError },
     { data: { user } },
   ] = await Promise.all([
     supabase.from("jobs")
@@ -27,9 +27,12 @@ export default async function JobsPage() {
       .eq("status", "active")
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(50),
+      .order("id", { ascending: false })
+      .limit(51),
     supabase.auth.getUser(),
   ])
+
+  if (jobsError) throw new Error("Job listings could not be loaded. Please try again.")
 
   let canPostJob   = false
   let isJobSeeker  = false
@@ -41,7 +44,7 @@ export default async function JobsPage() {
 
   if (user) {
     const { data: profile } = await supabase
-      .from("profiles")
+      .from("own_profiles")
       .select("user_roles, hire_talent_type, find_work_type")
       .eq("id", user.id)
       .single()
@@ -98,7 +101,7 @@ export default async function JobsPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {ad && <BannerAd ad={ad} className="mb-6" />}
         <JobsClient
-          initialJobs={initialJobs ?? []}
+          initialJobs={(initialJobs ?? []).slice(0, 50)} initialHasMore={(initialJobs ?? []).length > 50}
           canPostJob={canPostJob}
           isJobSeeker={isJobSeeker}
         />
