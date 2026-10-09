@@ -13,9 +13,15 @@ const adminDb = createServiceClient(
 export async function POST(request: NextRequest) {
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const readProfile = async () => {
+    const result = await supabase.from("own_profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+    // Compatibility read only; keep the verified owner filter and existing RLS.
+    if (result.error?.code === "PGRST205") return supabase.from("profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+    return result
+  }
   // profile_intents.profile_id references public.profiles.id. Resolve the existing
   // personal profile first; never assume an auth UUID is a profile UUID.
-  let { data: profile, error: profileError } = await supabase.from("own_profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+  let { data: profile, error: profileError } = await readProfile()
   if (profileError) return NextResponse.json({ error: `Could not find your personal profile: ${profileError.message}` }, { status: 500 })
   if (!profile) {
     const { error: ensureError } = await adminDb.from("profiles").upsert({
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
       user_roles: [],
     }, { onConflict: "id", ignoreDuplicates: true })
     if (ensureError) return NextResponse.json({ error: "Your professional profile could not be prepared. Please try again." }, { status: 503 })
-    const recovered = await supabase.from("own_profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+    const recovered = await readProfile()
     profile = recovered.data
     profileError = recovered.error
   }

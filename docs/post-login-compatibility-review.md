@@ -53,3 +53,23 @@ post-migration security/real-device QA gates remain open.
 Patch files: `lib/supabase/account-status.ts`, `lib/supabase/mutation-guard.ts`,
 `lib/supabase/server.ts`, `scripts/test-account-status-compat.cjs`,
 `scripts/test-auth-navigation.cjs`, and this review.
+
+## Follow-up: onboarding failure after session recovery
+
+The first patch deployed as `cba47e3`. Subsequent production errors at 17:14–17:15
+were on `/profile/complete`, rather than the earlier session-check failure.
+The initial scope was insufficient for users redirected into onboarding.
+
+The completion page and identity completion handler now fall back from the
+missing owner view only on PGRST205. They use the same authenticated client,
+fixed projections and the verified user's ID against `profiles`; no new
+privileged read or write is introduced. Permission errors and other failures
+remain errors. Both the initial and recovered profile reads in the save handler
+use the same compatibility rule. Other owner screens remain migration-dependent.
+
+A production zero-row query verified the onboarding projection returns HTTP 200
+without reading user records. Synthetic tests execute the actual page and save
+handler for missing/existing view, incomplete/completed profile, guest, permission
+and timeout cases; they verify body-supplied owner/ban fields cannot alter writes.
+No live user records were changed by verification. Signed-in browser confirmation
+is still required after deployment; public guest checks cannot substitute for it.

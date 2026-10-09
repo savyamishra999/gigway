@@ -13,11 +13,21 @@ export default async function ProfileCompletePage({ searchParams }: { searchPara
 
   if (!user) redirect(loginHref(next))
 
-  const { data: profile, error: profileError } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from("own_profiles")
     .select("profile_completed, username, full_name, avatar_url, tagline, location, skills, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
     .maybeSingle()
+
+  // Until the owner-view migration lands, use the same authenticated client and
+  // fixed onboarding projection. RLS and column privileges still apply.
+  if (profileError?.code === "PGRST205") {
+    const legacy = await supabase.from("profiles")
+      .select("profile_completed, username, full_name, avatar_url, tagline, location, skills, user_roles, find_work_type, hire_talent_type, account_type")
+      .eq("id", user.id).maybeSingle()
+    profile = legacy.data
+    profileError = legacy.error
+  }
 
   if (profileError) throw new Error("Your profile could not be checked. Please try again.")
 
