@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr"
 import { boundedFetch } from "@/lib/async"
 import { cookies } from "next/headers"
 import { mutationGuard } from "./mutation-guard"
+import { readLegacyAccountStatus } from "./account-status"
 
 // React cache is scoped to the current server render, never shared across users.
 export const createClient = cache(async () => {
@@ -35,6 +36,6 @@ export const createClient = cache(async () => {
       },
     }
   )
-  guardedFetch = mutationGuard(db, boundedFetch)
+  guardedFetch = mutationGuard(db, boundedFetch, readLegacyAccountStatus)
   return db
 })

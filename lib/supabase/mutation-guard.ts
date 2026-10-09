@@ -2,13 +2,25 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 // Application defense only. Direct browser REST/storage still require audited RLS.
 // Lifetime is the request-scoped server client; no cross-user/global cache.
-export function mutationGuard(db: SupabaseClient, baseFetch: typeof fetch): typeof fetch {
+type AccountStatus = { data: { is_banned?: boolean | null } | null; error: { message: string; code?: string } | null }
+export function mutationGuard(db: SupabaseClient, baseFetch: typeof fetch, legacyStatus?: (verifiedUserId: string) => PromiseLike<AccountStatus>): typeof fetch {
   const originalGetUser = db.auth.getUser.bind(db.auth)
   let identity: ReturnType<typeof originalGetUser> | undefined
+  const accountStatus = async (verifiedUserId: string): Promise<AccountStatus> => {
+    const profile = await db.from("own_profiles").select("is_banned").eq("id", verifiedUserId).maybeSingle()
+    // Only the confirmed missing-relation error permits the compatibility read.
+    // Permissions, timeouts, malformed results and other errors remain denied.
+    const result = profile.error?.code === "PGRST205" && legacyStatus
+      ? await legacyStatus(verifiedUserId) : profile
+    if (!result.error && result.data && typeof result.data.is_banned !== "boolean" && result.data.is_banned !== null) {
+      return { data: null, error: { message: "Account status is unavailable." } }
+    }
+    return result
+  }
   const verifiedIdentity = async () => {
     const result = await originalGetUser()
     if (!result.data.user || result.error) return result
-    const profile = await db.from("own_profiles").select("is_banned").eq("id", result.data.user.id).maybeSingle()
+    const profile = await accountStatus(result.data.user.id)
     if (profile.error || profile.data?.is_banned === true) {
       return { data: { user: null }, error: { name: "AccountAccessDenied", message: "This account cannot perform this action.", status: profile.error ? 503 : 403 } } as unknown as Awaited<ReturnType<typeof originalGetUser>>
     }
@@ -25,7 +37,7 @@ export function mutationGuard(db: SupabaseClient, baseFetch: typeof fetch): type
       const { data: { user }, error } = await db.auth.getUser()
       if (error || !user) return deny(error?.message || "Sign in to perform this action.", error?.name === "AccountAccessDenied" ? error.status || 403 : 401)
       // Fresh stored status for every write, never user-editable JWT metadata.
-      const profile = await db.from("own_profiles").select("is_banned").eq("id", user.id).maybeSingle()
+      const profile = await accountStatus(user.id)
       if (profile.error) return deny("Account status could not be verified. Please try again.", 503)
       if (profile.data?.is_banned === true) return deny("This account cannot perform this action.", 403)
       // An account without its initial profile can complete identity setup.
