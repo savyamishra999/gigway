@@ -1,0 +1,591 @@
+{
+  "date": "2026-10-08",
+  "timezone": "Asia/Calcutta",
+  "head": "1071a551435511cf103f7c8446777c8225b9f02b",
+  "originMain": "1071a551435511cf103f7c8446777c8225b9f02b",
+  "originFetched": false,
+  "initialStatus": " M .claude/settings.local.json\n M app/admin/page.tsx\n M app/admin/revenue/page.tsx\n M app/api/applications/route.ts\n M app/api/connections/route.ts\n M app/api/escrow/hold/route.ts\n M app/api/escrow/release/route.ts\n M app/api/payment/create-order/route.ts\n M app/api/payment/verify/route.ts\n M app/api/proposals/route.ts\n M app/api/social/report/route.ts\n M app/api/verify-me/route.ts\n M app/api/verify-me/upload/route.ts\n M app/api/webhooks/razorpay/route.ts\n M app/freelancers/[id]/page.tsx\n M app/gigs/[id]/page.tsx\n M app/gigs/page.tsx\n M app/home/page.tsx\n M app/jobs/page.tsx\n M app/layout.tsx\n M app/organizations/[username]/edit/page.tsx\n M app/organizations/new/page.tsx\n M app/profile/page.tsx\n M app/projects/[id]/page.tsx\n M app/projects/[id]/proposals/page.tsx\n M app/projects/page.tsx\n M app/u/[username]/page.tsx\n M app/verify-me/page.tsx\n M components/admin/AdminSidebar.tsx\n M components/connections/NetworkClient.tsx\n M components/gigs/GigsClient.tsx\n M components/identity/IdentityOnboarding.tsx\n M components/jobs/JobApplyButton.tsx\n M components/jobs/JobsClient.tsx\n M components/layout/ModernNavbar.tsx\n M components/profile/ProfileWorkPreview.tsx\n M components/projects/ProjectsClient.tsx\n M components/projects/ProposalForm.tsx\n M components/social/GigVideoPlayer.tsx\n M components/social/GlimpsExperience.tsx\n M components/social/GlimpsRail.tsx\n M components/social/JoxCompanionImages.tsx\n M components/social/JoxOrbitRail.tsx\n M components/social/ProfileSocialFeed.tsx\n M components/social/SocialHomeFeed.tsx\n M components/social/VijoxExperience.tsx\n M lib/billing/entitlements.ts\n M lib/billing/limits.ts\n M lib/supabase/server.ts\n M scripts/test-auth-navigation.cjs\n M scripts/test-loading-mobile.cjs\n M scripts/test-makkhan-pass2.cjs\n M scripts/test-network-home-architecture.cjs\n M scripts/test-part3-simplification.cjs\n M scripts/test-part4-visible-performance.cjs\n M scripts/test-professional-identity.cjs\n M scripts/test-workplace-setup.cjs\n M supabase/.temp/cli-latest\n?? app/admin/moderation/\n?? app/api/admin/reports/\n?? app/gig-card/\n?? app/how-it-works/\n?? app/organizations/[username]/team/\n?? components/admin/ModerationReviewActions.tsx\n?? components/identity/ActivationGuide.tsx\n?? components/profile/ProfileShareActions.tsx\n?? components/social/GlimpsPreview.tsx\n?? components/social/useMediaLoading.ts\n?? components/work/WorkListingContinuation.tsx\n?? docs/makkhan-performance-part3-media-js-review.md\n?? docs/master-launch-blocker-closure-review.md\n?? docs/master-roadmap-consolidated-review.md\n?? docs/master-roadmap-phase-inventory.md\n?? docs/part10-network-v1-review.md\n?? docs/part11-work-v1-review.md\n?? docs/part12-workplace-team-management-review.md\n?? docs/part13-trust-safety-review.md\n?? docs/part14-monetization-reset-review.md\n?? docs/part15-admin-launch-review.md\n?? docs/part5-real-device-production-qa.md\n?? docs/part52-hydration-418-triage.md\n?? docs/part53-mobile-bottom-navigation-review.md\n?? docs/part6-professional-profile-v2-review.md\n?? docs/part7-new-user-activation-review.md\n?? docs/part8-workplace-education-review.md\n?? docs/part9-home-v2-review.md\n?? docs/workplace-phase4-audit.md\n?? docs/workplace-team-live-audit-instructions.md\n?? lib/admin/\n?? lib/billing/launch.ts\n?? lib/identity/company-name.ts\n?? lib/identity/verification-document.ts\n?? lib/profile/\n?? lib/supabase/mutation-guard.ts\n?? scripts/blocker-browser-fixtures.cjs\n?? scripts/blocker-component-browser-qa-prepare.cjs\n?? scripts/blocker-component-browser-qa.cjs\n?? scripts/blocker-review-report.cjs\n?? scripts/master-browser-qa-generator.cjs\n?? scripts/master-component-browser-qa.cjs\n?? scripts/master-extra-fixtures.cjs\n?? scripts/master-final-qa-prepare.cjs\n?? scripts/master-regression.cjs\n?? scripts/master-review-report.cjs\n?? scripts/part10-component-browser-qa.cjs\n?? scripts/part11-component-browser-qa.cjs\n?? scripts/part12-component-browser-qa.cjs\n?? scripts/part5-local-browser-qa.cjs\n?? scripts/part5-local-scenarios.cjs\n?? scripts/part5-public-browser-qa.cjs\n?? scripts/part52-hydration-browser-qa.cjs\n?? scripts/part53-browser-qa.cjs\n?? scripts/part53-component-browser-qa.cjs\n?? scripts/part53-mobile-nav-scenarios.cjs\n?? scripts/part6-component-browser-qa.cjs\n?? scripts/part7-component-browser-qa.cjs\n?? scripts/part8-component-browser-qa.cjs\n?? scripts/test-launch-blocker-client.cjs\n?? scripts/test-launch-blockers.cjs\n?? scripts/test-part10-network-pagination.cjs\n?? scripts/test-part11-work-listings.cjs\n?? scripts/test-part12-workplace-team.cjs\n?? scripts/test-part13-trust-safety.cjs\n?? scripts/test-part14-monetization.cjs\n?? scripts/test-part15-admin.cjs\n?? scripts/test-part3-media.cjs\n?? scripts/test-part52-hydration.cjs\n?? scripts/test-part53-mobile-nav.cjs\n?? scripts/test-part6-profile.cjs\n?? scripts/test-part7-activation.cjs\n?? scripts/test-part8-workplace-education.cjs\n?? supabase/audits/\n",
+  "baselineCaptureNote": "File fingerprints captured after CLI created an empty candidate migration, before application edits. Empty migration excluded from initialStatus.",
+  "taskFiles": [
+    {
+      "file": "app/api/identity/complete/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "8edd69264a10a22d1e20bc323be4112fd0d16b8f0b22e20133d79ab6c9a60822",
+      "finalSha256": "d3c794a3476fbac86ccde2721ba5321e14302ab6dad079c2921d1f76b6e47232"
+    },
+    {
+      "file": "app/api/onboarding/complete/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "b14b7aced3bb005a55d47883c0fa5ba81054e6712e930c6e81b83eb67be87cbd",
+      "finalSha256": "1673c63827e922d5cb12237a39d9830da0b8b47b145f9c2e8bfa14e304fb060f"
+    },
+    {
+      "file": "app/api/profile/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "74dc29febd1845fdb5555123d1ee2df46ebcaba75dcbc6229e1dedbe63345a22",
+      "finalSha256": "004260f10907e4c15b20e6dc8146a5d51dcbafaefa837f305d4e0c3c7a937216"
+    },
+    {
+      "file": "app/api/tools/career-gap-map/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "3016d23aace8e568706434557c06b91a9ece44e88705ed55f27bfb3e98b3de26",
+      "finalSha256": "82e832a05feeace5cde708af6fa8e4b0f2fb81672a29540085f009512b0fe149"
+    },
+    {
+      "file": "app/api/tools/profile-intelligence/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "47a9208d6ae9497f1af675534efbab92dcce3389a351b73cebc80c3b55358f84",
+      "finalSha256": "b35aff33eb47582ac186863b04c263865bc748ab292305286e7fc402d120c9d6"
+    },
+    {
+      "file": "app/api/verify-me/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "bc544a469884888a5130e8c29901919732c536b4f176eb062c5a8fca6c2c22b7",
+      "finalSha256": "6906e53195fb1f375f46febfdb9ac93fb8ee5db7f91c92d36843909bf0d6cec9"
+    },
+    {
+      "file": "app/api/verify-me/upload/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "d41fb9a5dc1a49743bc4c6cb993242259644393fee427f4bdd350b720fcb2203",
+      "finalSha256": "6fa8d209b5a10963855d622acac9ea0f112b0926dba69463a583ba643716d03a"
+    },
+    {
+      "file": "app/auth/callback/route.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "e961f99e2915f985bc55921899cf5b0c52d7f27d5d7e020b47e1f5402e7d29f2",
+      "finalSha256": "7d1a63d378a86c050d37448bffe1fdb608845c767acac798cccc6c5eb5e87d4f"
+    },
+    {
+      "file": "app/buy-connects/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "81e804772bc83821b0674cb782e060cfce7f7946bd668606ea88555c6eaecadf",
+      "finalSha256": "625a07f7e7d49872270d14e7ebd8cdf11d2052353ddc2f7a17c42d4b5b3d7fb4"
+    },
+    {
+      "file": "app/dashboard/jobs/boost/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "fabfe285eaf46f6db9856d52ff27ec4d242b4bb4a329831693a3ebefc05d5ee0",
+      "finalSha256": "19f90a12b8a360bef621928a6751423cf6662b1891df4a35cfcdc90fe95ebac0"
+    },
+    {
+      "file": "app/dashboard/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "2f7c8efbb1eb17d5a102f77f626c28e5ab25da7d286333aec1fe23d322f1401a",
+      "finalSha256": "1043cc74b152551547b747629d8870c2c4a449cc7df68c613d0bb98f8b95f516"
+    },
+    {
+      "file": "app/freelancers/[id]/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "975f442fb923fa67f9f7f4a7f7eeecf21551fcd5d62ee58ebb555f5db835a902",
+      "finalSha256": "452b8459592b54bf9f4530f31fd0d1aff44136261a99289cc8835c28c5353227"
+    },
+    {
+      "file": "app/freelancers/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "58ec915c7f7e057c9bda7c4fea316577dd4e6d402db65c8ca3e0955e3b6cca26",
+      "finalSha256": "9fc3636fa4e6833ba3c9c6acb6f409e00491071640275a0ac906702ada6e23c5"
+    },
+    {
+      "file": "app/gigs/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "170bc0cb05b8d7fe8b5598342a68179002762eab1bdfda9483eb8870e49938b3",
+      "finalSha256": "c1e19ac2c76a93d1bcb2ccd84ade1b078315beed4e6ad64c3cbe39346310bef8"
+    },
+    {
+      "file": "app/jobs/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "3c1051e0a66bdbae32d20ccb81156b4fe281fcc5eb1d227cd4520aa1703676d3",
+      "finalSha256": "e0f4ff50f4895923efabd07f4f1d4f0073f625d9b596a8a90b82257a3309f00c"
+    },
+    {
+      "file": "app/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "d82fe5fb36964ca4755a8c2dda01c94ec8a8a326e1a57e7a71bb9f3801852377",
+      "finalSha256": "1f5b6a21acb7c78a90aaef1ea1af00be3c69738b3ed086e9ff47bea2e73bca1b"
+    },
+    {
+      "file": "app/profile/complete/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "5f818edb991b8a7139250516c2013b9106a4ad5950afff2cfcb4daf5cd22f1a6",
+      "finalSha256": "1353966b3d4b25ae428f03e1e624d39eb7e6f86e594dcf27fcef2f01436610b4"
+    },
+    {
+      "file": "app/profile/edit/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "1e402a46d84c2daad5cb0961a76d79557c46281f04d01366034202f0d2b8e1c5",
+      "finalSha256": "480e2ec4be457e43a210a59a6a5295447e45562ebd373f0b8c643a5116e8cfa7"
+    },
+    {
+      "file": "app/refer/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "b366fb3e1500388db3cfbc02543393acbe0e0a2b269ec0c5edfb240b747e6d10",
+      "finalSha256": "e24b39d2ce52d6a8a7cf43cbb4b207ee80d9412eb746a24bd4af836fcee4cc3b"
+    },
+    {
+      "file": "app/verify-me/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "4f23da083124a03d9609f89af24c1d8d7460961f9929a08ac8fe006de8a86916",
+      "finalSha256": "c47f5302b12e23acec30f553ce14372874992fb71f59d4e25f9633dc9d476e13"
+    },
+    {
+      "file": "app/verify/page.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "7afa8398f68403022fcdb28cfa76914bf9c858d152857d7435e40a0697fcc325",
+      "finalSha256": "72fc16d8aa1c9f340e990bf1e5185ffcd5003d21e06815954af7be25d1a1f00c"
+    },
+    {
+      "file": "components/home/TrustVerification.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "f302b8c6fe4694550616665da336c5204ca4905f0fda72cbff0ebb5a026aff63",
+      "finalSha256": "54fd6857a41317bcd5bdff3b839c1710230a90bfe5b6256842cbfaf0ed16758a"
+    },
+    {
+      "file": "components/layout/Navbar.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "38e68e2af9a62e78838fe7e5c6409f1faa4e7bab0715e52155d59858feba6e88",
+      "finalSha256": "3cbfaf0d698350b3b6c65e5ce31d4e58c4d7526a9240af2a286ebc2549d23487"
+    },
+    {
+      "file": "components/onboarding/ProfileCompleteForm.tsx",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "4eacae725f5e8fe45575e6c9b15d9b9e65dcaf35ff8af666e6d7f5fd2357754d",
+      "finalSha256": "96f3bce21dcd8317883d74e61b3f42f9193cf1ccf3e08c0e6f5a43205ecb5399"
+    },
+    {
+      "file": "docs/p0-live-security-remediation-review.md",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "f3a91f439b5f9ff7dbee253890b2be4c6faf45f55bf45fd5595a72e036244a41"
+    },
+    {
+      "file": "docs/p0-live-security-worktree.json",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": null
+    },
+    {
+      "file": "docs/p0-profile-field-classification.md",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "ece36153c6257caa2072f2b16d4f3e75559839d3ebc3b0d5a06fc12e648cbcbe"
+    },
+    {
+      "file": "docs/p0-profile-query-inventory.md",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "b90784ff39da7c49c2c564e3095c3dca08d7efc7a5cffc2488fee97cb5076526"
+    },
+    {
+      "file": "docs/sql/p0-security-catalog-validation.sql",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "968e2c1eb2a6ee1bb13f8773218135cc8860ef0f353f5084565fba94eaa50c9d"
+    },
+    {
+      "file": "lib/billing/entitlements.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "a38343587fbf557ed85c0413f09d6594ea7ab4d35710af0d920f0f1619155259",
+      "finalSha256": "939241d2f3ec5b4d2256a644f5de28d8cdf4b346ae21bf663a731648dddbb700"
+    },
+    {
+      "file": "lib/profile/fields.ts",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "3eea97c4662751ecf0ab6cb3ec376b45ed35044fcd62c2906e3bcca2b8463fea"
+    },
+    {
+      "file": "lib/supabase/mutation-guard.ts",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "4129dc3a58c0bc63454896b54b00f141be387e22e5b33195d64caca264111534",
+      "finalSha256": "d1220850714227168cc00c6c9809d2c13db4e15b253fdf927cf497b131f338c3"
+    },
+    {
+      "file": "scripts/p0-profile-query-inventory.cjs",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "2ed655e385597b3400785255d29b6f16115bd3da781beea7b2e9c2a5dfe335a7"
+    },
+    {
+      "file": "scripts/p0-security-disposable.cjs",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "b47cf6e05b829362938b317595df2dfb3386961c5168c7ad8cebf187930bebbb"
+    },
+    {
+      "file": "scripts/test-p0-live-security.cjs",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "d68588fe2b2f8399668359d1dd7ecd97d3e9fc4b22836634893633396e9f4be7"
+    },
+    {
+      "file": "scripts/test-p0-security-components.cjs",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "170393f32829224da07e211d5f4aaa9f832b935d6714d3b4d6f8213ae7ec9d5d"
+    },
+    {
+      "file": "scripts/test-professional-identity.cjs",
+      "preExisting": true,
+      "baselineDirtyOverlap": true,
+      "baselineSha256": "2d5bca877a3a938b15c51b7942b5c67d3ed8cf665d52002d931826b948d135d4",
+      "finalSha256": "c53ddfd74050ae3d074ee0ff7b89157105bf4b539f67e085b1a76b4e4db1ac3d"
+    },
+    {
+      "file": "scripts/test-workplace-foundation.cjs",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "aa8f6f9a937fc779f6e79d2c2a0cd0e8fce59ad5125180684804766c1aa9e8c7",
+      "finalSha256": "0c644b4eb0def4f916100e673c4807c1634aeb22b95e5bbe9df08447b4bf184a"
+    },
+    {
+      "file": "supabase/migrations/20261008053956_p0_profile_privileges_and_membership_lockdown.sql",
+      "preExisting": true,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "finalSha256": "0bab8fb664116cdb658963603ad2eed62b7ee4c6c7ae062006331a6e95cce5a3"
+    },
+    {
+      "file": "supabase/tests/p0-security-denials.sql",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "d417fb072ec8a7039b20023ea48204b15e920ba70c2f66ac6908e868b0b2d466"
+    },
+    {
+      "file": "supabase/tests/p0-security-fixture.sql",
+      "preExisting": false,
+      "baselineDirtyOverlap": false,
+      "baselineSha256": null,
+      "finalSha256": "e2665c08a826dcdb70160e9160726978e901648417a25e26462184f357fa8495"
+    }
+  ],
+  "doNotStageWithoutSeparateReview": [
+    ".claude/settings.local.json",
+    "app/admin/page.tsx",
+    "app/admin/revenue/page.tsx",
+    "app/api/applications/route.ts",
+    "app/api/connections/route.ts",
+    "app/api/escrow/hold/route.ts",
+    "app/api/escrow/release/route.ts",
+    "app/api/payment/create-order/route.ts",
+    "app/api/payment/verify/route.ts",
+    "app/api/proposals/route.ts",
+    "app/api/social/report/route.ts",
+    "app/api/webhooks/razorpay/route.ts",
+    "app/gigs/[id]/page.tsx",
+    "app/home/page.tsx",
+    "app/layout.tsx",
+    "app/organizations/[username]/edit/page.tsx",
+    "app/organizations/new/page.tsx",
+    "app/profile/page.tsx",
+    "app/projects/[id]/page.tsx",
+    "app/projects/[id]/proposals/page.tsx",
+    "app/projects/page.tsx",
+    "app/u/[username]/page.tsx",
+    "components/admin/AdminSidebar.tsx",
+    "components/connections/NetworkClient.tsx",
+    "components/gigs/GigsClient.tsx",
+    "components/identity/IdentityOnboarding.tsx",
+    "components/jobs/JobApplyButton.tsx",
+    "components/jobs/JobsClient.tsx",
+    "components/layout/ModernNavbar.tsx",
+    "components/profile/ProfileWorkPreview.tsx",
+    "components/projects/ProjectsClient.tsx",
+    "components/projects/ProposalForm.tsx",
+    "components/social/GigVideoPlayer.tsx",
+    "components/social/GlimpsExperience.tsx",
+    "components/social/GlimpsRail.tsx",
+    "components/social/JoxCompanionImages.tsx",
+    "components/social/JoxOrbitRail.tsx",
+    "components/social/ProfileSocialFeed.tsx",
+    "components/social/SocialHomeFeed.tsx",
+    "components/social/VijoxExperience.tsx",
+    "lib/billing/limits.ts",
+    "lib/supabase/server.ts",
+    "scripts/test-auth-navigation.cjs",
+    "scripts/test-loading-mobile.cjs",
+    "scripts/test-makkhan-pass2.cjs",
+    "scripts/test-network-home-architecture.cjs",
+    "scripts/test-part3-simplification.cjs",
+    "scripts/test-part4-visible-performance.cjs",
+    "scripts/test-workplace-setup.cjs",
+    "supabase/.temp/cli-latest",
+    "app/admin/moderation/",
+    "app/api/admin/reports/",
+    "app/gig-card/",
+    "app/how-it-works/",
+    "app/organizations/[username]/team/",
+    "components/admin/ModerationReviewActions.tsx",
+    "components/identity/ActivationGuide.tsx",
+    "components/profile/ProfileShareActions.tsx",
+    "components/social/GlimpsPreview.tsx",
+    "components/social/useMediaLoading.ts",
+    "components/work/WorkListingContinuation.tsx",
+    "docs/makkhan-performance-part3-media-js-review.md",
+    "docs/master-launch-blocker-closure-review.md",
+    "docs/master-roadmap-consolidated-review.md",
+    "docs/master-roadmap-phase-inventory.md",
+    "docs/part10-network-v1-review.md",
+    "docs/part11-work-v1-review.md",
+    "docs/part12-workplace-team-management-review.md",
+    "docs/part13-trust-safety-review.md",
+    "docs/part14-monetization-reset-review.md",
+    "docs/part15-admin-launch-review.md",
+    "docs/part5-real-device-production-qa.md",
+    "docs/part52-hydration-418-triage.md",
+    "docs/part53-mobile-bottom-navigation-review.md",
+    "docs/part6-professional-profile-v2-review.md",
+    "docs/part7-new-user-activation-review.md",
+    "docs/part8-workplace-education-review.md",
+    "docs/part9-home-v2-review.md",
+    "docs/workplace-phase4-audit.md",
+    "docs/workplace-team-live-audit-instructions.md",
+    "lib/admin/",
+    "lib/billing/launch.ts",
+    "lib/identity/company-name.ts",
+    "lib/identity/verification-document.ts",
+    "scripts/blocker-browser-fixtures.cjs",
+    "scripts/blocker-component-browser-qa-prepare.cjs",
+    "scripts/blocker-component-browser-qa.cjs",
+    "scripts/blocker-review-report.cjs",
+    "scripts/master-browser-qa-generator.cjs",
+    "scripts/master-component-browser-qa.cjs",
+    "scripts/master-extra-fixtures.cjs",
+    "scripts/master-final-qa-prepare.cjs",
+    "scripts/master-regression.cjs",
+    "scripts/master-review-report.cjs",
+    "scripts/part10-component-browser-qa.cjs",
+    "scripts/part11-component-browser-qa.cjs",
+    "scripts/part12-component-browser-qa.cjs",
+    "scripts/part5-local-browser-qa.cjs",
+    "scripts/part5-local-scenarios.cjs",
+    "scripts/part5-public-browser-qa.cjs",
+    "scripts/part52-hydration-browser-qa.cjs",
+    "scripts/part53-browser-qa.cjs",
+    "scripts/part53-component-browser-qa.cjs",
+    "scripts/part53-mobile-nav-scenarios.cjs",
+    "scripts/part6-component-browser-qa.cjs",
+    "scripts/part7-component-browser-qa.cjs",
+    "scripts/part8-component-browser-qa.cjs",
+    "scripts/test-launch-blocker-client.cjs",
+    "scripts/test-launch-blockers.cjs",
+    "scripts/test-part10-network-pagination.cjs",
+    "scripts/test-part11-work-listings.cjs",
+    "scripts/test-part12-workplace-team.cjs",
+    "scripts/test-part13-trust-safety.cjs",
+    "scripts/test-part14-monetization.cjs",
+    "scripts/test-part15-admin.cjs",
+    "scripts/test-part3-media.cjs",
+    "scripts/test-part52-hydration.cjs",
+    "scripts/test-part53-mobile-nav.cjs",
+    "scripts/test-part6-profile.cjs",
+    "scripts/test-part7-activation.cjs",
+    "scripts/test-part8-workplace-education.cjs",
+    "supabase/audits/"
+  ],
+  "protectedAudits": [
+    {
+      "file": "supabase/audits/launch-security-live-readonly-audit.sql",
+      "unchanged": true,
+      "sha256": "7b2434b5d2eadfc7eb8e1a2ff567961472f927387decb58f5259cdc3f3cdb0ae"
+    },
+    {
+      "file": "supabase/audits/workplace-phase4-catalog.sql",
+      "unchanged": true,
+      "sha256": "ca8b81b595928d2b1a0077fa78e9ffcba6ff93e741230dd8dd8641e6a421d536"
+    },
+    {
+      "file": "supabase/audits/workplace-team-live-readonly-audit.sql",
+      "unchanged": true,
+      "sha256": "aefa1418f06925937ab12c5c32f0c1ff4cd8b316bdba1497a1820dbd15248753"
+    }
+  ],
+  "tests": {
+    "typescript": "PASS",
+    "regressions": [
+      {
+        "file": "test-auth-navigation.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-create-mobile.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-discover-pagination.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-launch-blocker-client.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-launch-blockers.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-loading-mobile.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-makkhan-pass1.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-makkhan-pass2-final.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-makkhan-pass2.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-network-home-architecture.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-p0-auth.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-p0-live-security.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-p0-security-components.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-p0-social.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part10-network-pagination.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part11-work-listings.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part12-workplace-team.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part13-trust-safety.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part14-monetization.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part15-admin.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part3-simplification.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part4-visible-performance.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part51-work.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part52-hydration.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part53-mobile-nav.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part6-profile.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part7-activation.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-part8-workplace-education.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-professional-identity.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-service-worker-generation.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-ux-correction.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-workplace-foundation.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-workplace-public.cjs",
+        "status": 0
+      },
+      {
+        "file": "test-workplace-setup.cjs",
+        "status": 0
+      }
+    ],
+    "disposablePostgres": "NOT RUN: Docker unavailable",
+    "browser": "NOT VERIFIED: incomplete Chrome matrix interrupted",
+    "componentSsr": "PASS: test-p0-security-components.cjs",
+    "diffCheck": "PASS",
+    "newFileWhitespace": "PASS"
+  },
+  "noCommit": true,
+  "noPush": true,
+  "noDeploy": true,
+  "noRemoteMigration": true,
+  "noProductionMutation": true,
+  "stagedFiles": []
+}
