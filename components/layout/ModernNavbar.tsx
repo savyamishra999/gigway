@@ -172,6 +172,14 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
 
         {open && (
           <div id="account-menu" className="max-h-[calc(100dvh-9rem)] overflow-y-auto border-t border-brand-borderLight bg-white px-4 py-3 lg:absolute lg:right-4 lg:top-14 lg:w-72 lg:rounded-xl lg:border lg:shadow-elevated">
+            {user && (
+              <div className="sticky -top-3 z-10 mb-2 flex items-center justify-between gap-3 border-b border-brand-borderLight bg-white py-2">
+                <span className="min-w-0 truncate text-body-sm font-semibold text-brand-midnight">{profile?.full_name || "My account"}</span>
+                <button type="button" onClick={logout} disabled={signingOut} className="min-h-11 shrink-0 rounded-lg px-4 py-2 text-body-sm font-semibold text-brand-coral hover:bg-brand-coral/5 disabled:opacity-60">
+                  {signingOut ? "Signing out…" : "Log out"}
+                </button>
+              </div>
+            )}
             <div className="lg:hidden grid gap-1 mb-2">
               {links.map(({ href, label }) => (
                 <Link prefetch={false} key={href} href={resolveHref(href)} onClick={() => setOpen(false)}
@@ -197,9 +205,6 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 <Link prefetch={false} href="/login?switch=1" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-indigo hover:bg-brand-indigo/5">
                   Switch Google account
                 </Link>
-                <button onClick={logout} disabled={signingOut} className="w-full rounded-lg px-3 py-2 text-left text-body-sm text-brand-coral hover:bg-brand-coral/5 disabled:opacity-60">
-                  {signingOut ? "Signing out…" : "Sign out"}
-                </button>
               </div>
             ) : (
               <Link prefetch={false} href={authHref()} onClick={event => { setOpen(false); preserveLocation(event) }} className="block rounded-lg px-3 py-2 text-body-sm font-semibold text-brand-indigo">
