@@ -224,7 +224,7 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
                 <Link href="/login"
                   className="flex items-center justify-center w-full py-4 rounded-2xl bg-brand-indigo text-white font-bold text-base shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)] hover:bg-brand-indigoDark transition-colors"
                 >
-                  Sign In to Order
+                  Sign In to Contact
                 </Link>
               )}
 

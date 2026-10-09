@@ -1,3 +1,4 @@
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import Razorpay from "razorpay"
@@ -6,6 +7,7 @@ import { createClient as serviceClient } from "@supabase/supabase-js"
 import { getProduct } from "@/lib/billing/catalog"
 import { provisionProduct } from "@/lib/billing/entitlements"
 export async function POST(req: NextRequest) {
+  if (!BILLING_LAUNCH_ENABLED) return NextResponse.json({ error: "Payments are temporarily paused while fulfillment safety is reviewed." }, { status: 503 })
   const session = await createClient(); const { data: { user } } = await session.auth.getUser(); if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = await req.json().catch(() => ({}))
   if (![razorpay_payment_id, razorpay_order_id, razorpay_signature].every(Boolean)) return NextResponse.json({ error: "Missing payment details" }, { status: 400 })

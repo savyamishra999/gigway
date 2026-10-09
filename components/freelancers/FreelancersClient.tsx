@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import FreelancerCard from "@/components/freelancers/FreelancerCard"
 import { Input } from "@/components/ui/input"
-import { Search, Star, Lock } from "lucide-react"
-import Link from "next/link"
+import { Search, Star } from "lucide-react"
 
 interface Freelancer {
   id: string
@@ -30,7 +29,7 @@ interface Props {
   isProUser: boolean
 }
 
-export default function FreelancersClient({ initialFreelancers, isProUser }: Props) {
+export default function FreelancersClient({ initialFreelancers }: Props) {
   const [freelancers, setFreelancers] = useState<Freelancer[]>(initialFreelancers)
   const [search, setSearch] = useState("")
   const [skillFilter, setSkillFilter] = useState("")
@@ -225,46 +224,13 @@ export default function FreelancersClient({ initialFreelancers, isProUser }: Pro
                 ))}
               </div>
 
-              {/* Page 2+ — blurred lock wall for non-pro users */}
+              {/* Discovery is free; show the remaining loaded public profiles. */}
               {regularFreelancers.length > PAGE_1_SIZE && (
-                isProUser ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
-                    {regularFreelancers.slice(PAGE_1_SIZE).map(f => (
-                      <FreelancerCard key={f.id} freelancer={f} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="relative mt-5">
-                    {/* Blurred preview of page 2 cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 select-none pointer-events-none blur-sm opacity-60">
-                      {regularFreelancers.slice(PAGE_1_SIZE, PAGE_1_SIZE + 6).map(f => (
-                        <FreelancerCard key={f.id} freelancer={f} />
-                      ))}
-                    </div>
-
-                    {/* Lock overlay */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-brand-ivory via-brand-ivory/80 to-transparent rounded-2xl px-4 py-8">
-                      <div className="bg-white border border-brand-borderLight rounded-2xl p-8 text-center max-w-sm shadow-2xl">
-                        <div className="w-12 h-12 rounded-full bg-[#4F46E5]/15 flex items-center justify-center mx-auto mb-4">
-                          <Lock className="h-6 w-6 text-brand-indigo" />
-                        </div>
-                        <h3 className="text-brand-midnight font-black text-lg mb-2">
-                          See {regularFreelancers.length - PAGE_1_SIZE} more freelancers
-                        </h3>
-                        <p className="text-brand-slate text-sm mb-5">
-                          Boost or Verify your profile to unlock full search and find the perfect match.
-                        </p>
-                        <Link
-                          href="/pricing"
-                          className="block w-full py-3 rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white font-black text-sm shadow-lg shadow-[#4F46E5]/25 hover:opacity-90 transition-opacity"
-                        >
-                          Upgrade to Pro →
-                        </Link>
-                        <p className="text-[#475569] text-xs mt-3">Boost from ₹199/mo · Verified ₹299 once</p>
-                      </div>
-                    </div>
-                  </div>
-                )
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
+                  {regularFreelancers.slice(PAGE_1_SIZE).map(f => (
+                    <FreelancerCard key={f.id} freelancer={f} />
+                  ))}
+                </div>
               )}
             </>
           )}

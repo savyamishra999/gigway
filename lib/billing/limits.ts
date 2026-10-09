@@ -6,6 +6,10 @@ const LIMITS: Record<LimitKey, { free: number; pro?: number; business?: number; 
 }
 const monthStart = () => new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString()
 export async function getUsageLimit(db: SupabaseClient, userId: string, key: LimitKey) {
+  // Basic marketplace participation is free. Paid optional tools retain limits.
+  if (["applications", "proposals", "gigs", "saved", "jobs", "projects"].includes(key)) {
+    return { key, used: 0, limit: Infinity, remaining: Infinity, allowed: true, tier: "free" as const }
+  }
   const entitlements = await getUserEntitlements(db, userId); const rule = LIMITS[key]
   const limit = rule.business && entitlements.business ? rule.business : rule.pro && entitlements.pro ? rule.pro : rule.free
   let used = 0

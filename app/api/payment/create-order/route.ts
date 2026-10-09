@@ -1,9 +1,11 @@
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
 import { NextRequest, NextResponse } from "next/server"
 import Razorpay from "razorpay"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { getProduct } from "@/lib/billing/catalog"
 export async function POST(req: NextRequest) {
+  if (!BILLING_LAUNCH_ENABLED) return NextResponse.json({ error: "Payments are temporarily paused while fulfillment safety is reviewed." }, { status: 503 })
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   // Existing payment/verification records reference profiles(id). Refuse to

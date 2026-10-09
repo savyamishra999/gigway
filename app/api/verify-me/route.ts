@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { verificationDocument } from "@/lib/identity/verification-document"
+import { VERIFICATION_COLLECTION_ENABLED } from "@/lib/billing/launch"
 
 export async function POST(req: NextRequest) {
+  if (!VERIFICATION_COLLECTION_ENABLED) return NextResponse.json({ error: "Document collection is temporarily paused while privacy controls are reviewed." }, { status: 503 })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -19,22 +22,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "doc_type and doc_value are required" }, { status: 400 })
   }
 
-  // Validate
-  if (doc_type === "linkedin") {
-    if (!doc_value.includes("linkedin.com")) {
-      return NextResponse.json({ error: "Invalid LinkedIn URL" }, { status: 400 })
-    }
-  } else if (doc_type === "aadhaar") {
-    if (!/^\d{4}$/.test(doc_value)) {
-      return NextResponse.json({ error: "Aadhaar must be exactly 4 digits" }, { status: 400 })
-    }
-  } else {
-    return NextResponse.json({ error: "Invalid doc_type" }, { status: 400 })
-  }
+  const doc = verificationDocument(doc_type, doc_value)
+  if (!doc) return NextResponse.json({ error: "Use a valid HTTPS LinkedIn profile URL or only the last four Aadhaar digits." }, { status: 400 })
 
   // Check that user has paid (verification_status should be "pending")
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("verification_status")
     .eq("id", user.id)
     .single()
@@ -46,7 +39,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const doc = `${doc_type}:${doc_value}`
   const { error } = await supabase
     .from("profiles")
     .update({ verification_doc: doc })

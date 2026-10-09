@@ -12,7 +12,7 @@ export default async function TrustVerification() {
   const supabase = await createClient()
   const { count: verifiedCount } = await supabase
     .from("profiles")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("is_verified", true)
 
   return (

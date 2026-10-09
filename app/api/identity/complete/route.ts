@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   // profile_intents.profile_id references public.profiles.id. Resolve the existing
   // personal profile first; never assume an auth UUID is a profile UUID.
-  let { data: profile, error: profileError } = await supabase.from("profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+  let { data: profile, error: profileError } = await supabase.from("own_profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
   if (profileError) return NextResponse.json({ error: `Could not find your personal profile: ${profileError.message}` }, { status: 500 })
   if (!profile) {
     const { error: ensureError } = await adminDb.from("profiles").upsert({
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       user_roles: [],
     }, { onConflict: "id", ignoreDuplicates: true })
     if (ensureError) return NextResponse.json({ error: "Your professional profile could not be prepared. Please try again." }, { status: 503 })
-    const recovered = await supabase.from("profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
+    const recovered = await supabase.from("own_profiles").select("id, user_roles").eq("id", user.id).maybeSingle()
     profile = recovered.data
     profileError = recovered.error
   }
@@ -87,7 +87,9 @@ export async function POST(request: NextRequest) {
     if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
     updatePayload.username = check.username
   }
-  const { error: saveError } = await supabase.from("profiles").update(updatePayload).eq("id", profileId)
+  // Authority/legacy fields are no longer client-writable. Payload is constructed
+  // above from validated modes; neither a target ID nor authority flags come from body.
+  const { error: saveError } = await adminDb.from("profiles").update(updatePayload).eq("id", profileId)
   if (saveError) return NextResponse.json({ error: saveError.code === "23505" ? USERNAME_UNAVAILABLE : saveError.message }, { status: 409 })
 
   // Replace only this user's explicit preferences; no legacy fields are touched.

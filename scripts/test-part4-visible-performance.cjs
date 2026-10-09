@@ -53,13 +53,14 @@ async function check(name, fn) { await fn(); groups++; console.log('PASS', name)
   await check('Network mount coalesces replay, cancels stale reads, and failures release action state', async () => {
     let states, pos, effects, requests = [], timers = new Map(), serial = 0;
     const item = {id:'r',profile:{id:'p',username:'person',full_name:'Person'}};
-    const Component = moduleAt('components/connections/NetworkClient.tsx', {react:{useState(initial){const i=pos++;return[states[i],v=>states[i]=typeof v==='function'?v(states[i]):v]},useEffect(fn){effects.push(fn)}},'next/link':def('a'),'lucide-react':icons,'@/components/ui/profile-avatar':{ProfileAvatar:placeholder('avatar')},'@/lib/async':{boundedFetch:async(url,options)=>{requests.push({url,options});throw Error('offline')}}}, {AbortController,setTimeout:fn=>{timers.set(++serial,fn);return serial},clearTimeout:id=>timers.delete(id)}).default;
+    const Component = moduleAt('components/connections/NetworkClient.tsx', {react:{useRef:v=>({current:v}),useState(initial){const i=pos++;return[states[i],v=>states[i]=typeof v==='function'?v(states[i]):v]},useEffect(fn){effects.push(fn)}},'next/link':def('a'),'lucide-react':icons,'@/components/ui/profile-avatar':{ProfileAvatar:placeholder('avatar')},'@/lib/async':{boundedFetch:async(url,options)=>{requests.push({url,options});throw Error('offline')}}}, {AbortController,setTimeout:fn=>{timers.set(++serial,fn);return serial},clearTimeout:id=>timers.delete(id)}).default;
     const render = () => {pos=0;effects=[];return Component({embedded:true})};
     states=[[item],[item],false,null,'']; let tree=render();
     const cleanup=effects[0](); cleanup(); const unmount=effects[0](); assert.equal(timers.size,1);
     const fire=[...timers.values()][0]; timers.clear(); fire(); await new Promise(r=>setImmediate(r));
     assert.equal(requests.length,1); assert.equal(states[2],false); assert.match(states[4],/Could not load/);
-    unmount(); assert.equal(requests[0].options.signal.aborted,true);
+    unmount(); assert.equal(requests[0].options.signal.aborted,false); // Completed failed request has detached its upstream listener.
+    assert.match(source('components/connections/NetworkClient.tsx'),/requestRef\.current\?\.abort\(\)/);
     for(const label of ['Accept','Decline','Disconnect']) {tree=render();await walk(tree,n=>n.type==='button'&&text(n)===label)[0].props.onClick();assert.equal(states[3],null);assert.match(states[4],/Could not/);}
     const count=requests.length; render(); assert.equal(requests.length,count); assert.equal(timers.size,0);
     assert.ok(walk(tree,n=>n.type==='a').every(n=>n.props.prefetch===false));
@@ -75,7 +76,7 @@ async function check(name, fn) { await fn(); groups++; console.log('PASS', name)
     const img=walk(Avatar({src:'/avatar',name:'Person'}),n=>n.type==='img')[0];
     assert.equal(img.props.width,40);assert.equal(img.props.height,40);assert.equal(img.props.loading,'lazy');assert.equal(img.props.decoding,'async');
     assert.doesNotMatch(source('components/ui/profile-avatar.tsx'),/Glimps|Jox|Vijox|useMedia/);
-    assert.match(source('components/social/ProfileSocialFeed.tsx'),/dynamic\(\(\) => import\("@\/components\/social\/GlimpsExperience"\)\)/);
+    assert.doesNotMatch(source('components/social/ProfileSocialFeed.tsx'),/GlimpsExperience|glimps|vijox/);
     assert.match(source('components/layout/ModernNavbar.tsx'),/<img width=\{40\} height=\{40\} decoding="async"/);
   });
   console.log(`${groups} Part 4 groups PASS. Synthetic behavior, not production timings.`);

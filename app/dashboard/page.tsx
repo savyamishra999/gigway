@@ -79,7 +79,7 @@ export default async function DashboardPage() {
   if (!user) redirect(await loginForCurrent("/dashboard"))
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("*")
     .eq("id", user.id)
     .single()

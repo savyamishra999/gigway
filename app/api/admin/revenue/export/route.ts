@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tellitorg1@gmail.com").split(",").map(e => e.trim())
 
@@ -17,13 +18,17 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { data: subs } = await supabase
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) return NextResponse.json({ error: "Revenue export is unavailable." }, { status: 503 })
+  const adminDb = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key)
+  const { data: subs, error } = await adminDb
     .from("subscriptions")
     .select("plan, payment_id, order_id, created_at, profiles:user_id(full_name, email)")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(5000)
 
+  if (error) return NextResponse.json({ error: "Revenue export failed." }, { status: 503 })
   const rows = (subs ?? []) as unknown as Array<{
     plan: string; payment_id: string; order_id: string; created_at: string
     profiles: { full_name: string | null; email: string } | null

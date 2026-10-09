@@ -42,7 +42,7 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
 
   const { data: freelancer } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id,full_name,avatar_url,tagline,bio,skills,hourly_rate,availability,avg_rating,is_verified,location,created_at,portfolio_links")
     .eq("id", id)
     .single()
 
@@ -99,7 +99,7 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <h1 className="text-xl font-black text-white">{freelancer.full_name || "Freelancer"}</h1>
-                  {(freelancer.is_verified || freelancer.verification_status === "verified") && (
+                  {(freelancer.is_verified) && (
                     <CheckCircle className="h-5 w-5 text-[#4F46E5]" />
                   )}
                 </div>

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
 
 declare global {
   interface Window {
@@ -40,6 +41,7 @@ export default function RazorpayButton({ planType, label, className }: RazorpayB
   const router = useRouter()
 
   const handlePayment = async () => {
+    if (!BILLING_LAUNCH_ENABLED) return
     setLoading(true)
     setError("")
 
@@ -134,10 +136,10 @@ export default function RazorpayButton({ planType, label, className }: RazorpayB
       )}
       <Button
         onClick={handlePayment}
-        disabled={loading}
+        disabled={loading || !BILLING_LAUNCH_ENABLED}
         className={className}
       >
-        {loading ? "Processing..." : label}
+        {!BILLING_LAUNCH_ENABLED ? "Purchases paused" : loading ? "Processing..." : label}
       </Button>
     </div>
   )

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { withDeadline, OPERATION_TIMEOUT_MS } from "@/lib/async"
 
 interface JobApplyButtonProps {
   jobId: string
@@ -25,14 +26,18 @@ export default function JobApplyButton({ jobId, userId, jobTitle }: JobApplyButt
     setLoading(true)
     setMessage(null)
 
-    const response = await fetch("/api/applications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: jobId, cover_letter: coverLetter }) })
-    const data = await response.json().catch(() => ({})); setLoading(false)
+    const abort = new AbortController()
+    try {
+    const response = await withDeadline(fetch("/api/applications", { method: "POST", signal: abort.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: jobId, cover_letter: coverLetter }) }), OPERATION_TIMEOUT_MS)
+    const data = await withDeadline(response.json().catch(() => ({})), OPERATION_TIMEOUT_MS)
     if (!response.ok) {
-      setMessage({ type: "error", text: data.error === "upgrade_required" ? "You've used your free applications this month. Unlock more opportunities with GigWay Pro." : data.error || "Unable to submit application." })
+      setMessage({ type: "error", text: data.error || "Unable to submit application." })
     } else {
       setMessage({ type: "success", text: "Application submitted successfully!" })
       router.refresh()
     }
+    } catch { setMessage({ type: "error", text: "Your application could not be submitted. Please try again." }) }
+    finally { abort.abort(); setLoading(false) }
   }
 
   if (!showForm) {

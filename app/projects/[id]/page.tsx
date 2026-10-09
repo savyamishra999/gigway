@@ -10,6 +10,7 @@ import ShareButton from "@/components/projects/ShareButton"
 import MarketplaceShareButton from "@/components/social/MarketplaceShareButton"
 import ReviewForm from "@/components/reviews/ReviewForm"
 import ReleasePaymentButton from "@/components/escrow/ReleasePaymentButton"
+import { ESCROW_LAUNCH_ENABLED } from "@/lib/billing/launch"
 import DeleteButton from "@/components/ui/DeleteButton"
 import type { Metadata } from "next"
 
@@ -152,7 +153,7 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
               <p className="text-brand-slate leading-relaxed whitespace-pre-wrap text-sm">{project.description}</p>
 
               {/* Save / Share */}
-              <div className="flex items-center gap-3 mt-5 pt-5 border-t border-brand-borderLight">
+              <div className="flex flex-wrap items-center gap-3 mt-5 pt-5 border-t border-brand-borderLight">
                 {user && <SaveButton projectId={id} userId={user.id} />}
                 <ShareButton title={project.title} url={`https://gigway.in/projects/${id}`} />
                 {user && <MarketplaceShareButton objectType="project" objectId={id} isOwner={isOwner} />}
@@ -239,15 +240,16 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
               <div className="bg-white border border-brand-borderLight rounded-card p-5 shadow-soft">
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck className="h-5 w-5 text-brand-indigo" />
-                  <h2 className="text-brand-midnight font-bold">Escrow</h2>
+                  <h2 className="text-brand-midnight font-bold">Recorded escrow status</h2>
                 </div>
+                {!ESCROW_LAUNCH_ENABLED && <p role="status" className="mb-3 text-sm text-brand-slate">Escrow payment actions are paused. <Link href="/contact" className="text-brand-indigo underline">Contact support</Link> about an existing transaction.</p>}
                 {project.escrow_status === "held" ? (
                   <>
                     <div className="bg-brand-indigo/10 rounded-xl p-3 mb-4">
                       <p className="text-brand-indigo font-bold text-lg">₹{project.escrow_amount?.toLocaleString()}</p>
-                      <p className="text-brand-slate text-xs">Held in escrow</p>
+                      <p className="text-brand-slate text-xs">Recorded as held</p>
                     </div>
-                    {isOwner ? (
+                    {isOwner && ESCROW_LAUNCH_ENABLED ? (
                       <ReleasePaymentButton
                         projectId={id}
                         amount={project.escrow_amount || 0}
@@ -256,20 +258,20 @@ export default async function ProjectDetailPage(props: { params: Promise<{ id: s
                     ) : isAcceptedFreelancer ? (
                       <div className="flex items-center gap-2 text-emerald-600 text-sm">
                         <ShieldCheck className="h-4 w-4" />
-                        <span>Payment held in escrow ✓</span>
+                        <span>Recorded as held</span>
                       </div>
                     ) : null}
                   </>
                 ) : project.escrow_status === "released" ? (
                   <div className="text-emerald-600 text-sm flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4" />
-                    <span>Payment released</span>
+                    <span>Recorded as released</span>
                   </div>
                 ) : (
                   <p className="text-brand-slate text-sm">
-                    {isOwner
+                    {isOwner && ESCROW_LAUNCH_ENABLED
                       ? <Link href={`/projects/${id}/proposals`} className="text-brand-indigo hover:underline">Accept a proposal to set up escrow →</Link>
-                      : "Awaiting escrow setup by client"}
+                      : "Escrow payments are paused. Contact support about an existing transaction."}
                   </p>
                 )}
               </div>

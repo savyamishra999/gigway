@@ -1,20 +1,24 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Product } from "./catalog"
+import { BILLING_LAUNCH_ENABLED } from "./launch"
 
 export type UserEntitlements = { pro: boolean; business: boolean; verified: boolean; verificationPaid: boolean; tier: "free" | "pro" | "business"; expiresAt: string | null }
 export async function getUserEntitlements(db: SupabaseClient, userId: string): Promise<UserEntitlements> {
   const now = new Date().toISOString()
   const [{ data }, { data: profile }] = await Promise.all([
     db.from("entitlements").select("tier,expires_at").eq("user_id", userId).eq("status", "active"),
-    db.from("profiles").select("is_verified,verification_status").eq("id", userId).maybeSingle(),
+    // Public badge is sufficient here; do not require owner-only status when a
+    // verified server flow supplies a service client (which has no auth.uid()).
+    db.from("profiles").select("is_verified").eq("id", userId).maybeSingle(),
   ])
   const active = (data || []).filter(e => e.tier === "verified" || (!!e.expires_at && e.expires_at > now))
   const business = active.some(e => e.tier === "business"); const pro = business || active.some(e => e.tier === "pro")
   const tier = business ? "business" : pro ? "pro" : "free"
   const expiresAt = active.filter(e => e.tier === tier && e.expires_at).map(e => e.expires_at as string).sort().at(-1) || null
-  return { pro, business, verified: !!(profile?.is_verified || profile?.verification_status === "verified"), verificationPaid: active.some(e => e.tier === "verified"), tier, expiresAt }
+  return { pro, business, verified: !!profile?.is_verified, verificationPaid: active.some(e => e.tier === "verified"), tier, expiresAt }
 }
 export async function provisionProduct(db: SupabaseClient, args: { userId: string; product: Product; paymentId: string; orderId: string }) {
+  if (!BILLING_LAUNCH_ENABLED) throw new Error("Payment fulfillment is paused pending atomicity review.")
   const { data: already } = await db.from("entitlements").select("id").eq("razorpay_payment_id", args.paymentId).maybeSingle()
   if (already) return { already: true }
   const now = new Date(); let expiresAt: string | null = null

@@ -16,6 +16,7 @@ import ProfileSocialFeed from "@/components/social/ProfileSocialFeed"
 import PublicWorkplace from "@/components/organizations/PublicWorkplace"
 import { WORKPLACE_FIELDS, workplaceSection, workplacePage } from "@/lib/organizations/public"
 import ProfileWorkPreview from "@/components/profile/ProfileWorkPreview"
+import { profileTab, type ProfileTab } from "@/lib/profile/tabs"
 
 function portfolioTitle(url: string) {
   try {
@@ -52,12 +53,13 @@ async function PersonCounts({ id, username }: { id: string; username: string }) 
     return <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#9EA6B8]"><Link href={`/u/${username}/followers`}>{counts[1].count || 0} Followers</Link><Link href={`/u/${username}/following`}>{counts[2].count || 0} Following</Link><Link href="/network?tab=connections">{counts[0].count || 0} Connections</Link></div>
   } catch { return <p className="text-sm text-[#9EA6B8]">Counts unavailable.</p> }
 }
-async function PersonContent({ id, name }: { id: string; name: string }) {
+async function PersonContent({ id, name, username, initialTab }: { id: string; name: string; username: string; initialTab: ProfileTab }) {
   const viewer = await getViewer().catch(() => null)
-  return <ProfileSocialFeed profileId={id} name={name} isOwner={viewer?.id === id} />
+  const isOwner = viewer?.id === id
+  return <ProfileSocialFeed profileId={id} name={name} isOwner={isOwner} initialTab={initialTab} workPreview={<Suspense fallback={<p role="status" className="text-sm text-[#B8C0D0]">Loading public work…</p>}><ProfileWorkPreview profileId={id} username={username} isOwner={isOwner} /></Suspense>} />
 }
 
-export default async function PublicIdentity({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ section?: string; page?: string }> }) {
+export default async function PublicIdentity({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ section?: string; page?: string; tab?: string }> }) {
   const { username } = await params
   const supabase = createPublicClient()
 
@@ -86,6 +88,7 @@ export default async function PublicIdentity({ params, searchParams }: { params:
   }
 
   if (profile) {
+    const query = await searchParams
     const [{ data: intents }, { data: memberships }] = await Promise.all([
       supabase.from("profile_intents").select("intent_type").eq("profile_id", profile.id).eq("is_active", true),
       supabase.from("organization_members").select("member_role, organizations(name, username, logo_url)").eq("profile_id", profile.id).eq("status", "active"),
@@ -213,8 +216,7 @@ export default async function PublicIdentity({ params, searchParams }: { params:
                 </div>
               </div>
             )}
-            <Suspense fallback={null}><ProfileWorkPreview profileId={profile.id} /></Suspense>
-            <Suspense fallback={null}><PersonContent id={profile.id} name={profile.full_name||"GigWay member"} /></Suspense>
+            <Suspense fallback={null}><PersonContent id={profile.id} name={profile.full_name||"GigWay member"} username={profile.username} initialTab={profileTab(query.tab)} /></Suspense>
           </div>
         </section>
       </main>

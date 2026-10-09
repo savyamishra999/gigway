@@ -4,6 +4,8 @@ import { redirect } from "next/navigation"
 import { Zap } from "lucide-react"
 import RazorpayButton from "@/components/payment/RazorpayButton"
 import Link from "next/link"
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
+import PurchasesPaused from "@/components/billing/PurchasesPaused"
 
 const PACKS = [
   {
@@ -36,13 +38,14 @@ const PACKS = [
 ]
 
 export default async function BuyConnectsPage() {
+  if (!BILLING_LAUNCH_ENABLED) return <PurchasesPaused />
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect(await loginForCurrent("/buy-connects"))
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("connects_balance, subscription_tier")
     .eq("id", user.id)
     .single()

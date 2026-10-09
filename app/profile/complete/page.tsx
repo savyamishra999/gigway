@@ -14,7 +14,7 @@ export default async function ProfileCompletePage({ searchParams }: { searchPara
   if (!user) redirect(loginHref(next))
 
   const { data: profile, error: profileError } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("profile_completed, username, full_name, avatar_url, tagline, location, skills, user_roles, find_work_type, hire_talent_type, account_type")
     .eq("id", user.id)
     .maybeSingle()

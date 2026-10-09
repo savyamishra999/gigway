@@ -26,7 +26,7 @@ export default async function VerifyPage() {
   if (!user) redirect(await loginForCurrent("/verify"))
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("verification_status,verification_paid_at,account_type,full_name,hire_talent_type,find_work_type,user_roles")
     .eq("id", user.id)
     .single()

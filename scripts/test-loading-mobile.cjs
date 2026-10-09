@@ -25,7 +25,7 @@ async function check(name,fn){await fn();groups++;console.log('PASS',name)}
  });
  await check('navbar avoids background route requests and mobile nav remains reachable',()=>{
   const s=fs.readFileSync('components/layout/ModernNavbar.tsx','utf8');assert.equal((s.match(/<Link\b/g)||[]).length,(s.match(/<Link prefetch=\{false\}/g)||[]).length);
-  const bottom=s.slice(s.indexOf('fixed bottom-0'));assert.match(bottom,/safe-area-inset-bottom/);assert.match(bottom,/min-h-11/);assert.doesNotMatch(bottom,/mobileChromeHidden|translate-y-full/);
+  const bottom=s.slice(s.indexOf('fixed bottom-0'));assert.match(bottom,/safe-area-inset-bottom/);assert.match(bottom,/relative flex h-16 min-w-0/);assert.doesNotMatch(bottom,/mobileChromeHidden|translate-y-full/);
   assert.match(fs.readFileSync('app/layout.tsx','utf8'),/viewportFit: 'cover'/);
  });
  await check('mobile headings and search text are readable on light pages',()=>{

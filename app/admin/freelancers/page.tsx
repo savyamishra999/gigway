@@ -21,9 +21,9 @@ export default async function AdminFreelancersPage({ searchParams }: { searchPar
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
-  const db = process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    : supabase
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) throw new Error("Admin freelancer access is unavailable. Server configuration is required.")
+  const db = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key)
 
   const params = await searchParams
   const tab    = (params.tab ?? "all") as TabFilter
@@ -43,10 +43,11 @@ export default async function AdminFreelancersPage({ searchParams }: { searchPar
   else if (tab === "boosted") query = query.eq("is_boosted", true).gt("boost_expires_at", new Date().toISOString())
   else if (tab === "banned") query = query.eq("is_banned", true)
 
-  const { data: freelancers, count } = await query
+  const { data: freelancers, count, error } = await query
     .order("created_at", { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1)
 
+  if (error) throw new Error("Admin freelancers could not be loaded. Please try again.")
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
   const TABS: { key: TabFilter; label: string }[] = [

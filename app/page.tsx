@@ -19,7 +19,7 @@ async function LandingData({ kind }: { kind: "stats" | "opportunities" }) {
     const db = createPublicClient()
     if (kind === "stats") {
       const results = await withDeadline(Promise.all([
-        db.from("profiles").select("*", { count: "exact", head: true }).eq("profile_completed", true),
+        db.from("profiles").select("id", { count: "exact", head: true }).eq("profile_completed", true),
         db.from("gigs").select("*", { count: "exact", head: true }).eq("status", "active"),
         db.from("jobs").select("*", { count: "exact", head: true }).eq("status", "active"),
         db.from("projects").select("*", { count: "exact", head: true }).eq("status", "open"),

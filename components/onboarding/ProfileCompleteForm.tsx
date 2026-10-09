@@ -164,9 +164,11 @@ export default function ProfileCompleteForm({ userId }: { userId: string }) {
       ? `GST: ${form.gst_number.trim()}`
       : null
 
-    const { error: updateErr } = await supabase
-      .from("profiles")
-      .update({
+    // Legacy component must use the same validated server path as onboarding.
+    const response = await fetch("/api/onboarding/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         user_roles:             roles,
         account_type:           accountType,
         full_name:              form.full_name.trim(),
@@ -174,7 +176,7 @@ export default function ProfileCompleteForm({ userId }: { userId: string }) {
         location:               form.location.trim(),
         bio:                    bioValue,
         avatar_url:             form.avatar_url || null,
-        resume_url:             form.resume_url || null,
+        cv_url:                 form.resume_url || null,
         skills:                 isFindWork ? form.skills : [],
         company_name:           form.company_name.trim() || null,
         industry:               form.industry || null,
@@ -182,8 +184,10 @@ export default function ProfileCompleteForm({ userId }: { userId: string }) {
         company_website:        form.company_website.trim() || null,
         experience_description: extraDesc,
         profile_completed:      true,
-      })
-      .eq("id", userId)
+      }),
+    }).catch(() => null)
+    const updateErr = !response ? { message: "Check your connection and try again." }
+      : response.ok ? null : await response.json().then(data => ({ message: data.error || "Unable to save profile." })).catch(() => ({ message: "Unable to save profile." }))
 
     setLoading(false)
     if (updateErr) {

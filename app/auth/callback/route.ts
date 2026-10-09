@@ -81,28 +81,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=profile_setup_failed${next ? `&next=${encodeURIComponent(next)}` : ""}`)
     }
 
-    // Referral bonus
-    const refCookie = cookieStore.get("gigway_ref")?.value
-    if (refCookie) {
-      const { data: referrer } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_ref_code", refCookie)
-        .neq("id", user.id)
-        .single()
-
-      if (referrer) {
-        await Promise.allSettled([
-          supabase.rpc("increment_connects", { uid: user.id,      amount: 5 }),
-          supabase.rpc("increment_connects", { uid: referrer.id,  amount: 5 }),
-          supabase.from("connects_transactions").insert([
-            { user_id: user.id,      amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Joined via referral" },
-            { user_id: referrer.id,  amount: 5, type: "referral_bonus", ref_code: refCookie, note: "Friend joined via your link" },
-          ]),
-        ])
-        cookieStore.set({ name: "gigway_ref", value: "", maxAge: 0 })
-      }
-    }
+    // Referral crediting is paused: the old arbitrary-UID balance RPC is now
+    // server-only. Do not replace this with privileged non-atomic increments.
+    if (cookieStore.get("gigway_ref")?.value) cookieStore.set({ name: "gigway_ref", value: "", maxAge: 0 })
 
     return NextResponse.redirect(`${origin}/auth/post-login${next ? `?next=${encodeURIComponent(next)}` : ""}`)
   }

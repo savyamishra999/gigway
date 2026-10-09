@@ -22,6 +22,7 @@ function ui(file, overrides = {}, states = []) {
     'next/navigation': { usePathname: () => '/home', useRouter: () => ({ push() {} }), useSearchParams: () => new URLSearchParams() },
     'lucide-react': new Proxy({}, { get: (_, name) => name === '__esModule' ? true : placeholder(String(name)) }),
     '@/lib/product-visibility': policy,
+    '@/lib/profile/tabs': moduleAt('lib/profile/tabs.ts', {}),
     ...overrides,
   });
   return moduleAt(file, deps, { URLSearchParams });
@@ -107,11 +108,11 @@ const records = {
     assert.equal(calls.filter(c=>c.table==='vijox_timed_reactions').length,0);
     assert.equal(signed.length,0);
   });
-  await check('owner and visitor profile tabs/empty states are GigThoughts and Reposts', () => {
+  await check('owner and visitor profile tabs/empty states are GigThoughts, Work and Reposts', () => {
     for (const isOwner of [true,false]) {
       const tree = ui('components/social/ProfileSocialFeed.tsx').default({ profileId: 'author', name: 'Author', isOwner });
       noLegacy(tree);
-      assert.deepEqual(walk(tree,n => n.type === 'button').map(n => text(n)), ['GigThoughts','Reposts']);
+      assert.deepEqual(walk(tree,n => n.type === 'button').map(n => text(n)), ['GigThoughts','Work','Reposts']);
     }
   });
   await check('Create personal/workplace actions retain product visibility', () => {

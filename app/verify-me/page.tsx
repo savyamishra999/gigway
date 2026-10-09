@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { ShieldCheck, CheckCircle2 } from "lucide-react"
 import AadhaarUploadForm from "@/components/verify/AadhaarUploadForm"
 import type { Metadata } from "next"
+import { VERIFICATION_COLLECTION_ENABLED } from "@/lib/billing/launch"
 
 export const metadata: Metadata = {
   title: "Upload Documents — GigWay Verification",
@@ -11,12 +12,13 @@ export const metadata: Metadata = {
 }
 
 export default async function VerifyMePage() {
+  if (!VERIFICATION_COLLECTION_ENABLED) return <section role="status" className="mx-auto max-w-xl px-4 py-12"><h1 className="text-2xl font-bold">Document collection is temporarily paused</h1><p className="mt-4">We are reviewing privacy controls. Please do not upload verification documents or make a verification payment.</p></section>
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(await loginForCurrent("/verify-me"))
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("verification_status, verification_paid_at, is_verified")
     .eq("id", user.id)
     .single()

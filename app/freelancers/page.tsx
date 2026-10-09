@@ -3,6 +3,7 @@ import FreelancersClient from "@/components/freelancers/FreelancersClient"
 import BannerAd from "@/components/ads/BannerAd"
 import { fetchAd } from "@/lib/ads"
 import type { Metadata } from "next"
+import { socialDb } from "@/lib/social/server"
 
 export const metadata: Metadata = {
   title: "Find Freelancers in India | GigWay",
@@ -26,7 +27,7 @@ export default async function FreelancersPage() {
   let flHtType: string | null = null
   if (user) {
     const { data: myProfile } = await supabase
-      .from("profiles")
+      .from("own_profiles")
       .select("is_boosted, boost_expires_at, is_verified, subscription_tier, user_roles, hire_talent_type")
       .eq("id", user.id)
       .single()
@@ -47,9 +48,13 @@ export default async function FreelancersPage() {
   // Tier 3 — Verified profiles
   // Tier 4 — Rest, by rating
 
-  const { data: boosted } = await supabase
+  // Private plan fields are used only for server-side ranking; never selected or
+  // passed to the client. Explicit visibility filters are required with this client.
+  const directoryDb = socialDb()
+  const { data: boosted } = await directoryDb
     .from("profiles")
-    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability, plan, plan_expires_at")
+    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability")
+    .not("is_private", "is", true).not("is_banned", "is", true)
     .eq("profile_completed", true)
     .eq("is_boosted", true)
     .gt("boost_expires_at", now)
@@ -61,9 +66,10 @@ export default async function FreelancersPage() {
     : `("00000000-0000-0000-0000-000000000000")`
 
   // Tier 2: plan-active but not in boosted list
-  const { data: planActive } = await supabase
+  const { data: planActive } = await directoryDb
     .from("profiles")
-    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability, plan, plan_expires_at")
+    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability")
+    .not("is_private", "is", true).not("is_banned", "is", true)
     .eq("profile_completed", true)
     .eq("plan", "find_work")
     .gt("plan_expires_at", now)
@@ -76,9 +82,10 @@ export default async function FreelancersPage() {
     : boostedIds
 
   // Tier 3 + 4: rest
-  const { data: rest } = await supabase
+  const { data: rest } = await directoryDb
     .from("profiles")
-    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability, plan, plan_expires_at")
+    .select("id, full_name, avatar_url, tagline, bio, hourly_rate, skills, is_verified, is_boosted, boost_expires_at, avg_rating, availability")
+    .not("is_private", "is", true).not("is_banned", "is", true)
     .eq("profile_completed", true)
     .not("id", "in", planActiveIds)
     .order("is_verified", { ascending: false })

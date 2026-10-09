@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { VERIFICATION_COLLECTION_ENABLED } from "@/lib/billing/launch"
 
 const BUCKET = "verification-docs"
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
@@ -14,13 +15,14 @@ function ext(mime: string) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!VERIFICATION_COLLECTION_ENABLED) return NextResponse.json({ error: "Document collection is temporarily paused while privacy controls are reviewed." }, { status: 503 })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   // Must have paid
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("verification_paid_at, verification_status")
     .eq("id", user.id)
     .single()

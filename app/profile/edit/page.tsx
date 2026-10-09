@@ -13,7 +13,7 @@ export default async function EditProfilePage({ searchParams }: { searchParams: 
   }
 
   const { data: profile, error: profileError } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle()

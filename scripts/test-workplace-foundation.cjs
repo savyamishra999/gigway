@@ -74,6 +74,7 @@ const { checkUsernameClaim } = load('lib/identity/username-server.ts', {
        '@supabase/supabase-js': {createClient:()=>db},
        'next/server': {NextResponse:{json:(body,options)=>({body,status:options?.status||200})}},
        '@/lib/identity': identity,
+       '@/lib/profile/fields': load('lib/profile/fields.ts', {}),
        '@/lib/roles': {resolveRoles:()=>({isConfigured:true})},
        '@/lib/billing/limits': {getUsageLimit:async()=>({allowed:true}),limitResponse:()=>({})},
        '@/lib/identity/username-server': {

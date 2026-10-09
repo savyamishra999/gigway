@@ -56,7 +56,7 @@ export default function GigForm({ userId }: { userId: string }) {
 
     const response = await fetch("/api/gigs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, description, category, price, delivery_days: deliveryDays, tags, image_url: imageUrl || null }) })
     const data = await response.json().catch(() => ({})); setLoading(false)
-    if (!response.ok) { setError(data.error === "upgrade_required" ? "Your free service slot is already active. Upgrade to Pro for up to 10 active services." : data.error || "Unable to publish service."); return }
+    if (!response.ok) { setError(data.error === "upgrade_required" ? "Publishing is currently unavailable. Please try again later." : data.error || "Unable to publish service."); return }
     setCreatedId(data.gig_id)
   }
 

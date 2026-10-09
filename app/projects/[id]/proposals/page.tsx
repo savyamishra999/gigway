@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Star, ShieldCheck } from "lucide-react"
 import ProposalActions from "@/components/projects/ProposalActions"
 import EscrowPayButton from "@/components/escrow/EscrowPayButton"
+import { ESCROW_LAUNCH_ENABLED } from "@/lib/billing/launch"
 
 interface Proposal {
   id: string
@@ -86,8 +87,8 @@ export default async function ProjectProposalsPage(props: { params: Promise<{ id
           <div className="mb-6 bg-[#4F46E5]/10 border border-[#4F46E5]/30 rounded-2xl p-4 flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-[#818CF8] flex-shrink-0" />
             <div>
-              <p className="text-[#818CF8] font-semibold text-sm">Escrow Active</p>
-              <p className="text-[#6B7280] text-xs">₹{project.escrow_amount?.toLocaleString()} is securely held. Release payment when work is complete.</p>
+              <p className="text-[#818CF8] font-semibold text-sm">Recorded escrow status</p>
+              <p className="text-[#6B7280] text-xs">₹{project.escrow_amount?.toLocaleString()} is recorded as held. Escrow payment actions are paused; contact support about an existing transaction.</p>
             </div>
           </div>
         )}
@@ -158,7 +159,7 @@ export default async function ProjectProposalsPage(props: { params: Promise<{ id
                 )}
 
                 {/* Escrow payment for accepted proposal (if not yet held) */}
-                {proposal.status === "accepted" && project.escrow_status !== "held" && project.escrow_status !== "released" && (
+                {ESCROW_LAUNCH_ENABLED && proposal.status === "accepted" && project.escrow_status !== "held" && project.escrow_status !== "released" && (
                   <div className="mt-5 bg-[#4F46E5]/5 border border-[#4F46E5]/20 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <ShieldCheck className="h-4 w-4 text-[#818CF8]" />

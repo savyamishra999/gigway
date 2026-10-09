@@ -1,52 +1,20 @@
-import { loginForCurrent } from "@/lib/auth/server"
-import { Metadata } from "next"
+﻿import { loginForCurrent } from "@/lib/auth/server"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import ReferClient from "@/components/refer/ReferClient"
+import Link from "next/link"
 
-export const metadata: Metadata = {
-  title: "Refer & Earn — GigWay",
-  description: "Refer friends to GigWay and both get 5 free connects.",
-}
-
-function genRefCode(name: string | null): string {
-  const prefix = (name ?? "user").replace(/[^a-zA-Z]/g, "").slice(0, 4).toLowerCase().padEnd(4, "x")
-  const suffix = Math.floor(1000 + Math.random() * 9000).toString()
-  return prefix + suffix
-}
+export const metadata = { title: "Referrals — GigWay", description: "GigWay referral rewards status." }
 
 export default async function ReferPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const db = await createClient()
+  const { data: { user } } = await db.auth.getUser()
   if (!user) redirect(await loginForCurrent("/refer"))
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, user_ref_code, connects_balance")
-    .eq("id", user.id)
-    .single()
-
-  let refCode = profile?.user_ref_code
-  if (!refCode) {
-    refCode = genRefCode(profile?.full_name ?? null)
-    await supabase.from("profiles").update({ user_ref_code: refCode }).eq("id", user.id)
-  }
-
-  const { count: totalReferred } = await supabase
-    .from("connects_transactions")
-    .select("id", { count: "exact", head: true })
-    .eq("ref_code", refCode)
-    .eq("type", "referral_bonus")
-    .neq("user_id", user.id)
-
-  return (
-    <div className="min-h-screen bg-[#0A0A0F] py-16 px-4">
-      <ReferClient
-        refCode={refCode}
-        name={profile?.full_name ?? "Friend"}
-        connectsBalance={profile?.connects_balance ?? 0}
-        totalReferred={totalReferred ?? 0}
-      />
-    </div>
-  )
+  // No code generation or balance writes while atomic, idempotent rewards are pending.
+  return <main className="min-h-screen bg-brand-ivory px-4 py-12 pb-24">
+    <section className="mx-auto max-w-lg rounded-2xl border border-brand-borderLight bg-white p-6">
+      <h1 className="text-h2 font-bold text-brand-midnight">Referral rewards are paused</h1>
+      <p className="mt-3 text-brand-slate">New referral rewards are currently unavailable. Your existing balance remains unchanged.</p>
+      <Link href="/home" className="mt-5 inline-block font-semibold text-brand-indigo">Back to Home</Link>
+    </section>
+  </main>
 }

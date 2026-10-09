@@ -1,3 +1,4 @@
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
@@ -5,10 +6,7 @@ import { getProduct } from "@/lib/billing/catalog"
 import { provisionProduct } from "@/lib/billing/entitlements"
 
 // Use service-role client — webhook has no user session
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function billingClient() { return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!) }
 
 const CONNECTS_MAP: Record<string, number> = {
   connects_20: 20, connects_60: 60, connects_150: 150,
@@ -19,6 +17,8 @@ const CONNECTS_MAP: Record<string, number> = {
 const BOOST_PLANS = new Set(["boost_basic", "boost_standard", "boost_premium"])
 
 export async function POST(req: NextRequest) {
+  if (!BILLING_LAUNCH_ENABLED) return NextResponse.json({ error: "Payments are temporarily paused while fulfillment safety is reviewed." }, { status: 503 })
+  const supabase = billingClient()
   // Read raw body for signature verification
   const rawBody = await req.text()
   const signature = req.headers.get("x-razorpay-signature") ?? ""

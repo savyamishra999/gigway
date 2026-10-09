@@ -3,15 +3,18 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Star, Zap, TrendingUp } from "lucide-react"
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
+import PurchasesPaused from "@/components/billing/PurchasesPaused"
 
 export default async function BoostJobPage() {
+  if (!BILLING_LAUNCH_ENABLED) return <PurchasesPaused />
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(await loginForCurrent("/dashboard/jobs/boost"))
 
   // Only company users can boost
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("own_profiles")
     .select("user_roles, hire_talent_type, profile_completed")
     .eq("id", user.id)
     .single()

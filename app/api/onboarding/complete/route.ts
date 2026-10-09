@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { getUsageLimit, limitResponse } from "@/lib/billing/limits"
+import { validLegacyWorkPreferences } from "@/lib/profile/fields"
 
 const adminDb = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,7 +18,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== "object" || !validLegacyWorkPreferences(body)) {
+    return NextResponse.json({ error: "Invalid work preferences." }, { status: 400 })
+  }
 
   // Build the update payload with only safe fields
   const {
@@ -39,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (!full_name?.trim()) {
+  if (typeof full_name !== "string" || !full_name.trim()) {
     return NextResponse.json({ error: "Full name is required" }, { status: 400 })
   }
   if (!user_roles || user_roles.length === 0) {

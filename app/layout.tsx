@@ -55,7 +55,7 @@ export default function RootLayout({
         >
           <AuthUiProvider>
             <ModernNavbar moment={getActiveMoment()} />
-            <main className="min-h-screen">
+            <main className="min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0">
               {children}
             </main>
             <Footer />

@@ -22,10 +22,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/")
 
-  const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY
-  const db = hasServiceRole
-    ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    : supabase
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) throw new Error("Admin user access is unavailable. Server configuration is required.")
+  const db = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key)
 
   const params = await searchParams
   const filter = (params.filter ?? "all") as Filter
@@ -53,10 +52,11 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   else if (filter === "individual")  query = query.contains("user_roles", ["hire_talent"]).eq("hire_talent_type", "individual")
   else if (filter === "company")     query = query.contains("user_roles", ["hire_talent"]).eq("hire_talent_type", "company")
 
-  const { data: users, count } = await query
+  const { data: users, count, error } = await query
     .order("created_at", { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1)
 
+  if (error) throw new Error("Admin users could not be loaded. Please try again.")
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
   const TABS: { key: Filter; label: string; group?: string }[] = [

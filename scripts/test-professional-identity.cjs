@@ -30,15 +30,15 @@ check('intents are additive and visually bounded', () => {
 check('Work preview is deferred, bounded, and uses canonical routes', () => {
   const page = source('app/u/[username]/page.tsx')
   const work = source('components/profile/ProfileWorkPreview.tsx')
-  assert.match(page, /<Suspense fallback=\{null\}><ProfileWorkPreview/)
+  assert.match(page, /workPreview=\{<Suspense[\s\S]*<ProfileWorkPreview/)
   assert.match(work, /Promise\.all/)
-  assert.equal((work.match(/\.limit\(2\)/g) || []).length, 3)
-  assert.match(work, /\.slice\(0, 4\)/)
-  assert.match(work, /Service offered/)
-  assert.match(work, /Job posted/)
-  assert.match(work, /Project posted/)
-  assert.doesNotMatch(work, /completed work|work proof/i)
-  for (const route of ['/gigs/', '/jobs/', '/projects/']) assert.ok(work.includes(route))
+  assert.equal((work.match(/\.limit\(6\)/g) || []).length, 3)
+  assert.match(work, /\.slice\(0, 6\)/)
+  assert.match(work, /Services Offered/)
+  assert.match(work, /Jobs Posted/)
+  assert.match(work, /Projects Posted/)
+  assert.doesNotMatch(work, />Completed Work<|>Work Proof</i)
+  for (const route of ['/gigs/new', '/jobs/new', '/projects/new']) assert.ok(work.includes(route))
 })
 
 check('completion is actual milestones with a next action and no percentage', () => {
@@ -66,20 +66,21 @@ check('edit groups are simplified and deep-linkable', () => {
 
 check('profile update endpoint filters writable columns', () => {
   const route = source('app/api/profile/route.ts')
-  assert.match(route, /const allowed = new Set/)
-  assert.match(route, /Object\.entries\(body\)\.filter/)
+  assert.match(route, /const updates = ownerProfileUpdates\(body\)/)
+  const fields = source('lib/profile/fields.ts')
+  assert.match(fields, /new Set<string>\(OWNER_EDITABLE_PROFILE_FIELDS\)/)
+  assert.match(fields, /Object\.entries\(body\)\.filter/)
   assert.match(route, /typeof updates\.phone === "string" && updates\.phone\.trim\(\)/)
   assert.match(route, /digits\.length !== 10 && digits\.length !== 12/)
   assert.match(route, /\.update\(updates\)\.eq\("id", user\.id\)/)
 })
 
-check('current social identity tabs are simplified; legacy definitions are preserved', () => {
-  const feed = source('components/social/ProfileSocialFeed.tsx')
-  for (const label of ['GigThoughts', 'Reposts']) assert.ok(feed.includes(label))
-  assert.match(feed, /filter\(item => isCurrentProductCategory\(item.value\)\)/)
-  assert.match(feed, /isOwner && createHref\[tab\]/)
-  assert.match(feed, /\/social\/vijox\/create/)
-  assert.match(feed, /\/social\/glimps\/create/)
+check('current profile tabs have Work; dormant direct routes remain independent', () => {
+  const feed = source('components/social/ProfileSocialFeed.tsx'), tabs = source('lib/profile/tabs.ts')
+  for (const label of ['GigThoughts', 'Work', 'Reposts']) assert.ok(tabs.includes(label))
+  assert.match(feed, /isOwner && createHref/)
+  assert.doesNotMatch(feed, /GlimpsExperience|vijox|glimps|JOX/)
+  for (const route of ['app/social/vijox/create/page.tsx', 'app/social/glimps/create/page.tsx']) assert.ok(fs.existsSync(route))
 })
 
 console.log(`${passed} Professional Identity implementation checks passed.`)

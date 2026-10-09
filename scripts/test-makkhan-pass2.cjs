@@ -10,6 +10,7 @@ function moduleAt(file, deps, globals = {}) {
   vm.runInNewContext(code, { module, exports: module.exports, performance, console, setTimeout, clearTimeout, ...globals, require: name => {
     if (name === "@/lib/product-visibility" && !deps[name]?.productVisibility) return moduleAt("lib/product-visibility.ts", {});
     if (name in deps) return deps[name];
+    if (name === "@/lib/billing/launch") return moduleAt("lib/billing/launch.ts", {});
     if (name === 'react/jsx-runtime') return require(name);
     throw Error('Unmocked import: ' + name);
   }});

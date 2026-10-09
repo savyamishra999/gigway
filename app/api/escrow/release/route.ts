@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import crypto from "crypto"
+import { ESCROW_LAUNCH_ENABLED } from "@/lib/billing/launch"
 
 // Called after Razorpay payment success to record escrow hold
 export async function POST(req: NextRequest) {
+  if (!ESCROW_LAUNCH_ENABLED) return NextResponse.json({ error: "Escrow payments are paused. Contact support about an existing transaction." }, { status: 503 })
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

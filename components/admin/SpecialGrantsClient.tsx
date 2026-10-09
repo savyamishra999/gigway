@@ -53,8 +53,8 @@ export default function SpecialGrantsClient({
         const d = await res.json()
         if (d.user) setUser(d.user)
         else setNotFound(true)
-      } else setNotFound(true)
-    } catch { setNotFound(true) }
+      } else showToast("User search is unavailable. Please try again.")
+    } catch { showToast("User search failed. Check your connection.") }
     setSearching(false)
   }
 
@@ -69,6 +69,11 @@ export default function SpecialGrantsClient({
       })
       const d = await res.json()
       if (res.ok) {
+        if (d.warning) {
+          showToast(d.warning)
+          setNote("")
+          return
+        }
         showToast(`Granted "${GRANT_TYPES.find(g => g.value === grantType)?.label}" to ${user.full_name} ✅`)
         setHistory(h => [{
           id: d.id || Date.now().toString(),
@@ -83,7 +88,7 @@ export default function SpecialGrantsClient({
         showToast(d.error || "Grant failed")
       }
     } catch { showToast("Network error") }
-    setGranting(false)
+    finally { setGranting(false) }
   }
 
   return (

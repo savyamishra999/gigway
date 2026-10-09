@@ -120,7 +120,7 @@ export default function Navbar() {
         .split(",").map(e => e.trim().toLowerCase())
       setIsAdmin(adminEmails.includes((user.email ?? "").toLowerCase()))
 
-      supabase.from("profiles")
+      supabase.from("own_profiles")
         .select("full_name,avatar_url,user_roles,find_work_type,hire_talent_type,verification_status,profile_completed")
         .eq("id", user.id).single()
         .then(({ data }) => setProfile(data))
