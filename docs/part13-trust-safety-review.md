@@ -1,0 +1,15 @@
+﻿# Part 13 — Trust, verification and safety
+
+Baseline: stored verified flags, real reviews and join dates already drive trust UI; no fabricated/government verification added. Existing reports accepted a raw existing ID through a service client without checking viewer access. Moderation queue absent. Block schema/global enforcement absent. Existing profile-ban flag is administrative data, not demonstrated global enforcement.
+
+Report API now verifies visible post or published comment with accessible parent, validated single UUID target and reason/plain-text length, assigns verified reporter server-side, and returns finite503 on failures. Added admin-only paginated open-report queue and separate verified-admin PATCH for reviewed/dismissed states. Transition is conditional on status=open, returns409 for concurrent changes; fields/statuses are allowlisted. Review actions do not claim hidden/banned/actioned content. No automatic moderation/notification or real report submitted.
+
+Verification accepts only Aadhaar last4 or strict HTTPS LinkedIn /in/ profile hostname, removes tracking query before storing; rejects spoofed domains/full Aadhaar/non-string values. Public freelancer detail now selects only needed public fields rather than the whole profile. No new personal data collected or ₹299 flow enabled. Existing paid verification/upload/storage remain historical code; full private bucket, grants and retention are NOT verified. Public UI does not receive verification_doc through these explicit selections, but deployed REST/RLS/column exposure must still be audited.
+
+Block/global ban enforcement and spam rate limits remain gated: no supported deployed block table/RPC or comprehensive enforcement across content/messages/connections was established. No fake Block button. Existing full-document upload and private storage/admin signing require launch review; no assumption that row RLS proves column privacy. Current verification badges describe GigWay review only.
+
+Actual tests PASS for visible/inaccessible targets, hidden comments/parents, verified reporter, invalid details/UUID/input, anonymous401, backend503, admin rejection BEFORE privileged reads/writes,25 report rows, review transition and concurrent409. Existing social visibility regression and TypeScript PASS. No physical/live moderation, private document or money operation performed. Browser samples are fixture/component QA; final admin smoke will cover this surface.
+
+Application: app/api/social/report/route.ts; app/api/verify-me/route.ts; lib/identity/verification-document.ts; app/freelancers/[id]/page.tsx; lib/admin/access.ts; app/admin/moderation/page.tsx; app/api/admin/reports/[id]/route.ts; components/admin/ModerationReviewActions.tsx; components/admin/AdminSidebar.tsx.
+Tests: scripts/test-part13-trust-safety.cjs.
+No schema/RLS/migration, commit, push, deploy or production mutation. Verdict: scoped report/privacy/review fixes ready locally; Block/ban/storage/spam completeness remains a launch gate.
