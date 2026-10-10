@@ -9,7 +9,6 @@ import { ImageUploader } from "@/components/ui/image-uploader"
 import { WORK_MODES, normalizeUsername, usernameError, mapModesToLegacyRoles, type WorkMode } from "@/lib/identity"
 import { boundedFetch, withDeadline } from "@/lib/async"
 import { safeReturnTo } from "@/lib/auth/return-to"
-import ActivationGuide from "@/components/identity/ActivationGuide"
 import Link from "next/link"
 import { looksLikeCompanyName } from "@/lib/identity/company-name"
 
@@ -34,7 +33,6 @@ type Props = {
 export default function IdentityOnboarding({ username: initialUsername, fullName: initialName, avatarUrl: initialAvatar, googleAvatarUrl, initialModes = [], next: nextValue, requiresWorkRole = false }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(1)
-  const [ready, setReady] = useState(false)
   const [username, setUsername] = useState(initialUsername || "")
   const [fullName, setFullName] = useState(initialName || "")
   const [avatarUrl, setAvatarUrl] = useState(initialAvatar || "")
@@ -107,10 +105,8 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
       }))
       const data = await response.json().catch(() => ({}))
       if (!response.ok) { setError(data.error || "Could not make your identity live."); return }
-      if (next || requiresWorkRole) {
-        router.replace(next || "/home")
-        router.refresh()
-      } else setReady(true)
+      router.replace(next || "/home")
+      router.refresh()
     } catch { setError("Your identity could not be saved. Check your connection and try again.") }
     finally { setSaving(false) }
   }
@@ -120,7 +116,6 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
     else void finish()
   }
 
-  if (ready) return <ActivationGuide ready />
   return <div className="space-y-6">
     {requiresWorkRole && <><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-brand-indigo transition-all" style={{ width: `${step / 2 * 100}%` }} /></div><p className="text-caption font-bold text-brand-slate">{step} of 2</p></>}
     {step === 1 && <section className="space-y-5">

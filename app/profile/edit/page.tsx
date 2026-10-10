@@ -12,11 +12,21 @@ export default async function EditProfilePage({ searchParams }: { searchParams: 
     redirect(await loginForCurrent("/profile/edit"))
   }
 
-  const { data: profile, error: profileError } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from("own_profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle()
+
+  // Missing-view compatibility only. Keep the verified owner and cookie client;
+  // select the editor's fields explicitly, without balances or document-review data.
+  if (profileError?.code === "PGRST205") {
+    const legacy = await supabase.from("profiles")
+      .select("id,profile_completed,username,full_name,bio,avatar_url,tagline,location,phone,phone_is_public,is_private,verification_status,is_verified,user_roles,find_work_type,hire_talent_type,account_type,job_function,skills,portfolio_links,hourly_rate,availability,experience_years,experience_description,linkedin_url,cv_url,expected_salary,preferred_job_type,company_name,company_size,company_website,industry,gst_number")
+      .eq("id", user.id).maybeSingle()
+    profile = legacy.data
+    profileError = legacy.error
+  }
 
   if (profileError) throw new Error("Your profile could not be checked. Please try again.")
 

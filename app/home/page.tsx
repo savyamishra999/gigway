@@ -12,6 +12,7 @@ import { PeoplePreview, FindWorkEntry, LatestOpportunities } from "@/components/
 import { accessibleGlimpsPage, accessibleJoxPage, safePosts, socialPerf } from "@/lib/social/server";
 import type { Post } from "@/components/social/SocialHomeFeed";
 import IdentityCompletionPrompt from "@/components/home/IdentityCompletionPrompt";
+import HomeActionGuide from "@/components/home/HomeActionGuide";
 
 import JoxOrbitRail from "@/components/social/JoxOrbitRail";
 import GlimpsRail from "@/components/social/GlimpsRail";
@@ -68,12 +69,12 @@ export default async function HomeHub() {
   return <main className="min-h-screen max-w-full overflow-x-clip bg-brand-ivory pb-24 lg:pb-16"><div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
     <header className="mx-auto max-w-3xl"><p className="text-caption font-bold tracking-[.16em] text-brand-coral">HOME</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight sm:text-h1">Welcome back.</h1><p className="mt-1 text-body-sm text-brand-slate sm:text-body-lg">Professional conversations and opportunities, in one place.</p></header>
 
-    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="primary" load={() => Primary({ user })} />
+    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /><HomeActionGuide key={user.id} userId={user.id} /><HomeModule name="primary" load={() => Primary({ user })} />
       <HomeModule name="network" load={() => Network({ user })} />
       <FindWorkEntry />
       <HomeModule name="opportunities" load={() => Opportunities()} />
       {productVisibility.joxCurrentProduct && <HomeModule name="jox" load={() => Jox({ user })} />}
       {productVisibility.glimpsCurrentProduct && <HomeModule name="glimps" load={() => Glimps({ user })} />}
-      <HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /></div><aside className="mt-8 min-w-0 space-y-4"><section className="rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft"><h2 className="font-extrabold text-brand-midnight">Your activity</h2><HomeModule name="activity" load={() => Activity({ user })} /></section><section className="rounded-2xl border border-brand-indigo/20 bg-brand-indigo/[.04] p-4"><CheckCircle2 className="h-5 w-5 text-brand-indigo"/><h2 className="mt-2 font-extrabold text-brand-midnight">Get to know GigWay.</h2><Link href="/how-it-works" className="mt-3 inline-flex items-center gap-1 text-caption font-bold text-brand-indigo">How GigWay works <ArrowRight className="h-3.5 w-3.5"/></Link></section></aside></div>
+      </div><aside className="mt-8 min-w-0 space-y-4"><section className="rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft"><h2 className="font-extrabold text-brand-midnight">Your activity</h2><HomeModule name="activity" load={() => Activity({ user })} /></section><section className="rounded-2xl border border-brand-indigo/20 bg-brand-indigo/[.04] p-4"><CheckCircle2 className="h-5 w-5 text-brand-indigo"/><h2 className="mt-2 font-extrabold text-brand-midnight">Get to know GigWay.</h2><Link href="/how-it-works" className="mt-3 inline-flex items-center gap-1 text-caption font-bold text-brand-indigo">How GigWay works <ArrowRight className="h-3.5 w-3.5"/></Link></section></aside></div>
   </div></main>
 }

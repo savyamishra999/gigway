@@ -92,6 +92,7 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, legacy
       accessibleJoxPage: async () => { counts.jox=(counts.jox||0)+1; if(hanging==='jox') await new Promise(()=>{}); if(delayed==='jox') await sleep(5000); if(fault==='jox') throw Error('Injected'); return {posts:[]}; },
     },
     '@/lib/identity': { compactIntentLabels: () => [] },
+    '@/components/home/HomeActionGuide': def(placeholder('action-guide')),
     '@/components/home/IdentityCompletionPrompt': def(async ({loadProfile,loadIntents}) => { if(fault==='completion') throw Error('Injected'); return completion({userId:'viewer',loadProfile,loadIntents}); }),
     '@/components/social/JoxOrbitRail': def(placeholder('jox')), '@/components/social/GlimpsRail':def(placeholder('glimps')),
     '@/lib/home/primary': { initialHomePosts: async id => { assert.equal(id,'viewer'); if(fault==='primary') throw Error('Injected'); return {items:[{id:'post',body:'Useful content'}],nextCursor:null}; } },

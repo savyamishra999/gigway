@@ -119,7 +119,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
     quality = useRef({ meaningful: 0, quiet: 0, total: 0, updatedAt: 0 }),
     chunks = useRef<Blob[]>([]),
     preview = useRef<HTMLAudioElement>(null), uploadRun = useRef(0), coverDrag = useRef<{ x: number; y: number; positionX: number; positionY: number } | null>(null), highlightSelection = useRef({ start: 0, end: 0 });
-  const [body, setBody] = useState(""),
+  const [body, setBody] = useState(() => mode === "post" && params.get("intro") === "1" && !params.get("organization") ? `Hi, I'm ${profile.name}. I work in ___. I'm here to connect with ___.` : ""),
     [highlights, setHighlights] = useState<PostHighlight[]>([]),
     [cursor, setCursor] = useState(0),
     [closed, setClosed] = useState(false),
@@ -436,6 +436,9 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
         if (!p.ok) throw Error(pb.error || "Could not publish post.");
       }
       setStatus("posted");
+      if (!isJoxCreator && params.get("intro") === "1" && author === "personal") {
+        try { localStorage.setItem(`gigway:introduction:${profile.id}`, "posted"); } catch {}
+      }
       setTimeout(() => router.push(isJoxCreator ? `/social/posts/${cb.post.id}` : "/home"), 700);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
