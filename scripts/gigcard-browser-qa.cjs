@@ -25,6 +25,15 @@ async function main(){
   await command('Emulation.setDeviceMetricsOverride',{width:1280,height:1100,deviceScaleFactor:1,mobile:false});await command('Page.navigate',{url:'http://127.0.0.1:'+server.address().port});
   await until(`!!document.querySelector('canvas') && !Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Download PNG')?.disabled`);
   assert.equal(await evaluate('window.qaError||null'),null);
+  const initialCard = await evaluate(`document.querySelector('canvas').toDataURL()`);
+  await evaluate(`document.querySelector('input[type="checkbox"]').click()`);
+  await wait(600);
+  assert.notEqual(await evaluate(`document.querySelector('canvas').toDataURL()`), initialCard, 'branding toggle must update the exported preview');
+  assert.equal(await evaluate(`getComputedStyle(document.querySelector('input:not([type])')).fontSize`), '16px');
+  await evaluate(`(()=>{const c=document.createElement('canvas');c.width=c.height=50;c.getContext('2d').fillRect(0,0,50,50);c.toBlob(blob=>{const transfer=new DataTransfer();transfer.items.add(new File([blob],'my-photo.png',{type:'image/png'}));const input=document.querySelector('input[type="file"]');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))})})()`);
+  await wait(700);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Upload your photo')`),true);
+  assert.notEqual(await evaluate(`document.querySelector('canvas').toDataURL()`), initialCard);
   const cardDetails={name:'Ananya Sharma',headline:'Brand designer & visual storyteller',skills:'Brand strategy · Visual identity · Packaging',location:'Bengaluru, India',email:'hello@example.com',phone:''};
   for(const template of ['noir','studio','prism']){
     const result=await evaluate(`(async()=>{const c=document.createElement('canvas');qa.renderCard(c,${JSON.stringify(cardDetails)},'ananya_design','${template}','#8b7cff',null);const png=await qa.canvasBlob(c,'image/png'),jpg=await qa.canvasBlob(c,'image/jpeg'),pdf=await qa.cardPdf(jpg,'https://www.gigway.in/u/ananya_design');const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height);const decoded=qa.jsQR(pixels.data,c.width,c.height);return{decoded:decoded?.data,png:c.toDataURL(),pdf:Array.from(new Uint8Array(await pdf.arrayBuffer())),pngSize:png.size,jpgSize:jpg.size,width:c.width,height:c.height}})()`);

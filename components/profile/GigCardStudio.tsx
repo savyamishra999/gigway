@@ -11,6 +11,8 @@ const labels: Record<keyof CardDetails, string> = { name: "Name", headline: "Pro
 export default function GigCardStudio({ profile }: { profile: CardProfile }) {
   const [details, setDetails] = useState(() => initialCardDetails(profile))
   const [template, setTemplate] = useState<CardTemplate>("noir")
+  const [showBrand, setShowBrand] = useState(true)
+  const photoInput = useRef<HTMLInputElement>(null)
   const [accent, setAccent] = useState<string>(CARD_ACCENTS[0])
   const [photo, setPhoto] = useState(profile.avatar_url || "")
   const [exports, setExports] = useState<ExportSet | null>(null)
@@ -19,7 +21,7 @@ export default function GigCardStudio({ profile }: { profile: CardProfile }) {
   const [photoWarning, setPhotoWarning] = useState("")
   const [busy, setBusy] = useState(false)
   const canvas = useRef<HTMLCanvasElement>(null), uploaded = useRef<string | null>(null)
-  const signature = JSON.stringify([details, template, accent, photo, profile.username])
+  const signature = JSON.stringify([details, template, accent, photo, profile.username, showBrand])
   const ready = exports?.signature === signature && !!details.name.trim() && !renderError
   useEffect(() => () => { if (uploaded.current) URL.revokeObjectURL(uploaded.current) }, [])
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function GigCardStudio({ profile }: { profile: CardProfile }) {
         if (cancelled || !canvas.current) return
         // Render off-screen so cancelled work never replaces the displayed card.
         const next = document.createElement("canvas")
-        renderCard(next, details, profile.username, template, accent, image)
+        renderCard(next, details, profile.username, template, accent, image, showBrand)
         const [png, jpeg] = await Promise.all([canvasBlob(next, "image/png"), canvasBlob(next, "image/jpeg")])
         if (cancelled || !canvas.current) return
         canvas.current.width = next.width; canvas.current.height = next.height
@@ -41,7 +43,7 @@ export default function GigCardStudio({ profile }: { profile: CardProfile }) {
       } catch (error) { if (!cancelled) setRenderError(error instanceof Error ? error.message : "Preview unavailable. Try again.") }
     }, 180)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [signature, details, profile.username, template, accent, photo])
+  }, [signature, details, profile.username, template, accent, photo, showBrand])
 
   function upload(file?: File) {
     if (!file) return
@@ -75,10 +77,10 @@ export default function GigCardStudio({ profile }: { profile: CardProfile }) {
       <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold tracking-[.2em] text-brand-indigo">GIGCARD STUDIO</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Make your first impression count.</h1><p className="mt-3 max-w-xl text-sm text-brand-slate">Choose your style. Make it yours. Take your professional identity anywhere.</p></div><Link href="/profile" className="min-h-11 rounded-xl border bg-white px-4 py-3 text-sm font-semibold">Back to profile</Link></header>
       <div className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <section id="card-details" aria-label="Card editor" className="order-2 scroll-mt-24 rounded-2xl border border-white bg-white p-5 shadow-soft lg:order-1">
-          <h2 className="text-lg font-bold">Your details</h2><p className="mt-1 text-xs leading-5 text-brand-slate">These edits stay in this tab and do not change your profile. Downloads include only what you choose here.</p>
-          <div className="mt-4 space-y-3">{(Object.keys(labels) as (keyof CardDetails)[]).map(key => <label key={key} className="block text-xs font-semibold">{labels[key]}<input value={details[key]} maxLength={CARD_LIMITS[key]} onChange={e => setDetails(current => ({ ...current, [key]: e.target.value }))} className="mt-1 block min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal" autoComplete="off" /></label>)}</div>
+          <h2 className="text-2xl font-bold">Your details</h2><p className="mt-2 text-base leading-7 text-brand-slate">These edits stay in this tab and do not change your profile. Downloads include only what you choose here.</p>
+          <div className="mt-6 space-y-6">{(Object.keys(labels) as (keyof CardDetails)[]).map(key => <label key={key} className="block text-base font-semibold leading-6">{labels[key]}<input value={details[key]} maxLength={CARD_LIMITS[key]} onChange={e => setDetails(current => ({ ...current, [key]: e.target.value }))} className="mt-2 block min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-normal" autoComplete="off" /></label>)}</div>
           <p className="mt-3 text-xs leading-5 text-brand-slate">Only add contact details you want recipients to see. Contact details are never loaded from your private account.</p>
-          <label className="mt-4 block text-xs font-bold">Card photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { upload(e.target.files?.[0]); e.target.value = "" }} className="mt-2 block w-full text-xs" /></label>
+          <label className="mt-6 block text-base font-bold">Add your own photo<input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { upload(e.target.files?.[0]); e.target.value = "" }} className="mt-3 block w-full min-w-0 text-base file:mr-3 file:rounded-xl file:border-0 file:bg-indigo-100 file:px-4 file:py-3 file:font-semibold file:text-indigo-800" /></label>
           <button onClick={() => setPhoto("")} className="mt-2 min-h-11 text-sm font-semibold text-brand-indigo">Use initials instead</button>
           <button onClick={() => { setDetails(initialCardDetails(profile)); setPhoto(profile.avatar_url || ""); setNotice("") }} className="ml-3 mt-2 min-h-11 text-sm text-brand-slate">Reset details</button>
           <a href="#card-preview" className="mt-3 block min-h-11 py-3 text-sm font-bold text-brand-indigo lg:hidden">Back to card preview ↑</a>
@@ -87,6 +89,8 @@ export default function GigCardStudio({ profile }: { profile: CardProfile }) {
           <a href="#card-details" className="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm font-bold text-brand-indigo lg:hidden">Edit your details and photo ↓</a>
           <fieldset><legend className="mb-3 text-sm font-bold">1. Choose a design</legend><div className="grid grid-cols-3 gap-2">{CARD_TEMPLATES.map(t => <button key={t.id} aria-pressed={template === t.id} onClick={() => setTemplate(t.id)} className={`min-w-0 rounded-xl border-2 p-3 text-left ${template === t.id ? "border-brand-indigo ring-2 ring-indigo-100" : "border-transparent"}`} style={{ background: t.background, color: t.foreground }}><span className="block text-sm font-bold">{t.name}</span><span className="mt-1 hidden text-[11px] leading-4 sm:block">{t.description}</span></button>)}</div></fieldset>
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#dddce8] p-3 shadow-soft sm:p-5"><canvas ref={canvas} role="img" aria-label={`GigCard ${template} preview for ${details.name || "your name"}. ${details.headline}. Profile QR links to ${cardProfileUrl(profile.username)}`} className="aspect-[9/5] h-auto w-full rounded-xl shadow-xl" /></div>
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-white p-4"><button type="button" onClick={() => photoInput.current?.click()} className="min-h-12 rounded-xl bg-brand-indigo px-5 py-3 text-base font-bold text-white">Upload your photo</button><p className="text-sm text-brand-slate">JPG, PNG or WebP, up to 5 MB. Used on this card only.</p></div>
+          <label className="flex min-h-12 items-center gap-3 rounded-xl bg-white p-4 text-base font-semibold"><input type="checkbox" checked={showBrand} onChange={e => setShowBrand(e.target.checked)} className="h-5 w-5" />Show GigWay branding</label><p className="text-sm text-brand-slate">Turn off to hide the GigWay name and printed profile address. The QR still opens your GigWay profile; the design-preview label remains.</p>
           <fieldset className="flex flex-wrap items-center gap-3"><legend className="mb-2 text-sm font-bold">2. Pick an accent</legend>{CARD_ACCENTS.map((color, i) => <button key={color} aria-label={`${["Violet", "Teal", "Amber"][i]} accent`} aria-pressed={accent === color} onClick={() => setAccent(color)} className={`h-11 w-11 rounded-full border-4 ${accent === color ? "border-brand-midnight" : "border-white"}`} style={{ background: color }} />)}</fieldset>
           {photoWarning && <p role="status" className="text-sm text-amber-800">{photoWarning}</p>}
           {renderError && <p role="alert" className="text-sm text-red-700">{renderError}</p>}

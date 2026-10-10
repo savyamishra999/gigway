@@ -24,7 +24,7 @@ function lines(ctx: CanvasRenderingContext2D, value: string, x: number, y: numbe
     ctx.fillText(line, x, y + i * size * 1.22)
   })
 }
-export function renderCard(canvas: HTMLCanvasElement, input: CardDetails, username: string, template: CardTemplate, accent: string, photo: CanvasImageSource | null) {
+export function renderCard(canvas: HTMLCanvasElement, input: CardDetails, username: string, template: CardTemplate, accent: string, photo: CanvasImageSource | null, showBrand = true) {
   canvas.width = CARD_WIDTH; canvas.height = CARD_HEIGHT
   const ctx = canvas.getContext("2d"); if (!ctx) throw Error("Card preview is not supported in this browser.")
   const details = cleanCardDetails(input), theme = CARD_TEMPLATES.find(t => t.id === template) || CARD_TEMPLATES[0]
@@ -39,18 +39,18 @@ export function renderCard(canvas: HTMLCanvasElement, input: CardDetails, userna
   ctx.fillStyle = light ? "#efe8da" : "rgba(255,255,255,0.05)"
   ctx.beginPath(); ctx.arc(1600, 30, 520, 0, Math.PI * 2); ctx.fill()
   ctx.fillStyle = accent; ctx.fillRect(0, 0, 20, CARD_HEIGHT)
-  ctx.fillStyle = light ? "#40347b" : accent; ctx.font = "bold 38px Arial"; ctx.fillText("GigWay", 95, 110)
+  ctx.fillStyle = light ? "#40347b" : accent; ctx.font = "bold 38px Arial"; if (showBrand) ctx.fillText("GigWay", 95, 110)
   ctx.fillStyle = light ? "#64748b" : "#ddd9f2"; ctx.font = "22px Arial"; ctx.fillText("PROFESSIONAL IDENTITY", 95, 157)
   const textX = light ? 570 : 100, textWidth = light ? 1110 : 1010
   if (light) { ctx.fillStyle = "#dfd7e5"; ctx.fillRect(485, 225, 2, 560) }
   ctx.fillStyle = theme.foreground; lines(ctx, details.name || "Your name", textX, 295, textWidth, light ? 78 : 86, 2, 700)
-  ctx.fillStyle = light ? "#40347b" : "#f1ecff"; lines(ctx, details.headline, textX, 505, textWidth, 38)
-  ctx.fillStyle = light ? "#4b5563" : "#e0def1"; lines(ctx, details.skills, textX, 645, textWidth, 27)
-  lines(ctx, details.location, textX, 741, textWidth, 27, 1)
+  ctx.fillStyle = light ? "#40347b" : "#f1ecff"; lines(ctx, details.headline, textX, 505, textWidth, 46)
+  ctx.fillStyle = light ? "#4b5563" : "#e0def1"; lines(ctx, details.skills, textX, 645, textWidth, 36)
+  lines(ctx, details.location, textX, 741, textWidth, 34, 1)
   const contact = [details.email, details.phone].filter(Boolean).join("  ·  ")
-  lines(ctx, contact, textX, 798, textWidth, 25, 1)
+  lines(ctx, contact, textX, 798, textWidth, 32, 1)
   ctx.fillStyle = light ? "#dcd5e5" : "rgba(255,255,255,0.18)"; ctx.fillRect(95, 854, 1610, 2)
-  ctx.fillStyle = light ? "#40347b" : "#ffffff"; lines(ctx, `gigway.in/u/${username}`, 100, 916, 1110, 28, 1, 600)
+  ctx.fillStyle = light ? "#40347b" : "#ffffff"; if (showBrand) lines(ctx, `gigway.in/u/${username}`, 100, 916, 1110, 28, 1, 600)
   ctx.font = "18px Arial"; ctx.fillStyle = light ? "#64748b" : "#d5d1e8"; ctx.fillText("DESIGN PREVIEW", 1490, 925)
   const portraitX = light ? 280 : 1470, portraitY = light ? 375 : 312, radius = light ? 152 : 185
   ctx.save(); ctx.beginPath(); ctx.arc(portraitX, portraitY, radius, 0, Math.PI * 2); ctx.clip()
