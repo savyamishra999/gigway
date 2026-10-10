@@ -81,7 +81,7 @@ const records = {
       noLegacy(nav);
       const navs = walk(nav, n => n.type === 'nav');
       assert.deepEqual(walk(navs[0], n => n.type === 'a').map(n => text(n)), ['Home', 'Network', 'Work']);
-      if (user) assert.deepEqual(walk(navs[1], n => n.type === 'a').map(n => text(n).trim()), ['Home', 'Network', 'Create', 'Work', 'Account']);
+      if (user) assert.deepEqual(walk(navs[1], n => n.type === 'a').map(n => text(n).trim()), ['Home', 'Network', 'Create', 'Work', 'Profile']);
     }
   });
   await check('Home omits legacy boundaries entirely; all five retained loaders run', async () => {

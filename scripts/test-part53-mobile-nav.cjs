@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const React = require('react');
 const { moduleAt, walk, def } = require('./test-makkhan-pass2.cjs');
 const hooks = { ...React, useState: v => [v, () => {}], useEffect() {} };
-function navbar(pathname, signedIn = true) {
+function navbar(pathname, signedIn = true, profile = null) {
   let pushes = 0;
   const loaded = moduleAt('components/layout/ModernNavbar.tsx', {
     react: hooks, 'next/image': def('img'), 'next/link': def('a'),
@@ -12,7 +12,7 @@ function navbar(pathname, signedIn = true) {
     'lucide-react': new Proxy({}, { get: (_, name) => name }),
     '@/lib/auth/return-to': { authenticatedRootDestination: () => null, loginHref: () => '/login' },
     '@/lib/async': {}, '@/lib/supabase/client': { createClient: () => ({}) },
-    '@/components/layout/AuthUiProvider': { useAuthUi: () => ({ user: signedIn ? { id: 'qa' } : null, profile: null }) },
+    '@/components/layout/AuthUiProvider': { useAuthUi: () => ({ user: signedIn ? { id: 'qa' } : null, profile }) },
     '@/components/moments/MomentExperience': { MomentHeader: () => null },
   });
   const tree = loaded.default({ moment: null });
@@ -26,7 +26,7 @@ for (const route of [...expected, '/social/create', '/jobs/new', '/projects/new'
   const desktop = walk(f.tree, n => n.type === 'nav' && n.props?.className?.includes('hidden lg:flex'))[0];
   assert.deepEqual(walk(desktop, n => n.props?.href).map(n => n.props.href), ['/home', '/network', '/work']);
   assert.deepEqual(tabs.map(n => n.props.href), expected);
-  assert.deepEqual(tabs.map(n => n.props['aria-label']), ['Home', 'Network', 'Create', 'Work', 'Account']);
+  assert.deepEqual(tabs.map(n => n.props['aria-label']), ['Home', 'Network', 'Create', 'Work', 'Profile']);
   assert.ok(tabs.every(n => !n.props.onClick && n.props.prefetch === false));
   assert.equal(f.pushes(), 0);
   assert.match(nav.props.className, /grid-cols-5.*safe-area-inset-bottom.*lg:hidden/);
@@ -47,3 +47,31 @@ const source = fs.readFileSync('components/layout/ModernNavbar.tsx', 'utf8');
 assert.doesNotMatch(source.slice(source.indexOf('{MOBILE_TABS.map')), /router.push|onClick|Date.now|Math.random|innerWidth|localStorage|sessionStorage|navigator/);
 assert.match(fs.readFileSync('app/layout.tsx', 'utf8'), /pb-\[calc\(6rem\+env\(safe-area-inset-bottom\)\)\] lg:pb-0/);
 console.log('Part 5.3 actual navbar: order, routes, single Link path, labels, active boundaries, focus, CSS breakpoint and safe area PASS.');
+
+for (const route of ['/u/owner', '/u/other']) {
+  const tree = navbar(route, true, { username: 'owner' }).tree;
+  const nav = walk(tree, n => n.props?.['data-mobile-navigation'] !== undefined)[0];
+  const selected = walk(nav, n => n.props?.['aria-current'] === 'page');
+  assert.equal(selected.length, route === '/u/owner' ? 1 : 0);
+  if (selected.length) assert.equal(selected[0].props['aria-label'], 'Profile');
+}
+
+(async () => {
+  for (const kind of ['guest', 'owner', 'missing', 'error']) {
+    let reads = 0;
+    const db = { from(table) { assert.equal(table, 'profiles'); return {
+      select(fields) { reads++; assert.equal(fields, 'username'); return this },
+      eq(key, id) { assert.equal(key, 'id'); assert.equal(id, 'qa'); return this },
+      async maybeSingle() { return { data: kind === 'missing' ? null : { username: 'owner' }, error: kind === 'error' ? Error('failed') : null } }
+    } } };
+    const page = moduleAt('app/profile/page.tsx', {
+      '@/lib/auth/server': { getViewer: async () => kind === 'guest' ? null : { id: 'qa' }, loginForCurrent: async () => '/login?next=/profile' },
+      '@/lib/supabase/server': { createClient: async () => db },
+      'next/navigation': { redirect(href) { throw Error('redirect:' + href) } }
+    }).default;
+    const expected = kind === 'guest' ? /redirect:\/login/ : kind === 'missing' ? /redirect:\/profile\/complete/ : kind === 'error' ? /could not be loaded/ : /redirect:\/u\/owner/;
+    await assert.rejects(page(), expected);
+    assert.equal(reads, kind === 'guest' ? 0 : 1);
+  }
+  console.log('PASS canonical profile redirects, narrow owner lookup and own-profile active tab.');
+})().catch(error => { console.error(error); process.exitCode = 1 });

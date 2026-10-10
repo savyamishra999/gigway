@@ -119,7 +119,7 @@ export default function IdentityOnboarding({ username: initialUsername, fullName
   return <div className="space-y-6">
     {requiresWorkRole && <><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-brand-indigo transition-all" style={{ width: `${step / 2 * 100}%` }} /></div><p className="text-caption font-bold text-brand-slate">{step} of 2</p></>}
     {step === 1 && <section className="space-y-5">
-      <div><h2 className="text-h2 font-extrabold text-brand-midnight">Complete your Professional Identity</h2><p className="text-body-sm text-brand-slate">Add the essentials people use to recognize you. You can complete the rest later.</p></div>
+      <div><h2 className="text-h2 font-extrabold text-brand-midnight">Complete your profile</h2><p className="text-body-sm text-brand-slate">Add the essentials people use to recognize you. You can complete the rest later.</p></div>
       <div className="rounded-2xl border border-brand-indigo/15 bg-brand-indigo/[.03] p-4">
         <ImageUploader value={avatarUrl} onChange={setAvatarUrl} label="Upload Photo" guidance="A clear photo helps people recognize and trust your profile." prominent onBusyChange={setPhotoBusy} />
         {googleAvatarUrl && !initialAvatar && <button type="button" onClick={useGooglePhoto} disabled={saving || importingGooglePhoto} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-brand-indigo px-3 py-2 text-sm font-semibold text-brand-indigo disabled:opacity-50"><ImageIcon className="h-4 w-4" />{importingGooglePhoto ? "Importing Google photo…" : "Use Google Photo"}</button>}

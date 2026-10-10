@@ -15,6 +15,7 @@ import { socialDb } from "@/lib/social/server"
 import ProfileSocialFeed from "@/components/social/ProfileSocialFeed"
 import PublicWorkplace from "@/components/organizations/PublicWorkplace"
 import { WORKPLACE_FIELDS, workplaceSection, workplacePage } from "@/lib/organizations/public"
+import ProfileShareActions from "@/components/profile/ProfileShareActions"
 import ProfileWorkPreview from "@/components/profile/ProfileWorkPreview"
 import { profileTab, type ProfileTab } from "@/lib/profile/tabs"
 
@@ -31,7 +32,7 @@ async function PersonActions({ id, username }: { id: string; username: string })
   try {
     const viewer = await getViewer()
     if (!viewer) return null
-    if (viewer.id === id) return <Link href="/profile/edit" className="rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white">Edit Professional Identity</Link>
+    if (viewer.id === id) return <div className="min-w-0"><Link href="/profile/edit" className="inline-flex min-h-11 items-center rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white">Edit profile</Link><ProfileShareActions username={username} /></div>
     const [connection, follow] = await withDeadline(Promise.all([
       connectionRow(viewer.id, id),
       socialDb().from("profile_follows").select("followed_profile_id").eq("follower_user_id", viewer.id).eq("followed_profile_id", id).maybeSingle(),

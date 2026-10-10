@@ -13,9 +13,9 @@ export default async function WorkplacesPage() {
   return <main className="min-h-screen bg-brand-ivory px-4 py-8 pb-28">
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-3">
-        <Link href="/profile" className="text-sm font-semibold text-brand-indigo">My Account</Link>
+        <Link href="/profile" className="text-sm font-semibold text-brand-indigo">My profile</Link>
         <h1 className="text-3xl font-bold text-brand-midnight">My Workplaces</h1>
-        <p className="text-sm text-brand-slate">Workplaces you belong to, administered through your Professional Identity.</p>
+        <p className="text-sm text-brand-slate">Workplaces you belong to, managed through your profile.</p>
         <Link href="/organizations/new" className="inline-flex rounded-xl bg-brand-indigo px-4 py-3 text-sm font-semibold text-white">Create Workplace</Link>
       </header>
       {workplaces.length ? <div className="space-y-3">{workplaces.map(workplace => <article key={workplace.id} className="min-w-0 rounded-2xl border border-brand-borderLight bg-white p-4 sm:p-5">

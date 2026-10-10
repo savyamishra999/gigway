@@ -72,7 +72,7 @@ export default function GigCardStudio({ profile }: { profile: CardProfile }) {
   }
   return <main className="min-h-screen bg-[#f5f4fa] px-4 py-7 pb-28 text-brand-midnight sm:py-10">
     <div className="mx-auto max-w-6xl">
-      <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold tracking-[.2em] text-brand-indigo">GIGCARD STUDIO</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Make your first impression count.</h1><p className="mt-3 max-w-xl text-sm text-brand-slate">Choose your style. Make it yours. Take your professional identity anywhere.</p></div><Link href="/profile" className="min-h-11 rounded-xl border bg-white px-4 py-3 text-sm font-semibold">Back to account</Link></header>
+      <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold tracking-[.2em] text-brand-indigo">GIGCARD STUDIO</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Make your first impression count.</h1><p className="mt-3 max-w-xl text-sm text-brand-slate">Choose your style. Make it yours. Take your professional identity anywhere.</p></div><Link href="/profile" className="min-h-11 rounded-xl border bg-white px-4 py-3 text-sm font-semibold">Back to profile</Link></header>
       <div className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <section id="card-details" aria-label="Card editor" className="order-2 scroll-mt-24 rounded-2xl border border-white bg-white p-5 shadow-soft lg:order-1">
           <h2 className="text-lg font-bold">Your details</h2><p className="mt-1 text-xs leading-5 text-brand-slate">These edits stay in this tab and do not change your profile. Downloads include only what you choose here.</p>

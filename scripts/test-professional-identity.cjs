@@ -17,7 +17,7 @@ check('public profile keeps relationship actions and hides completion UI', () =>
   const page = source('app/u/[username]/page.tsx')
   assert.match(page, /ProfileConnectionActions/)
   assert.match(page, /> Message</)
-  assert.match(page, /Edit Professional Identity/)
+  assert.match(page, /Edit profile/)
   assert.doesNotMatch(page, /professionalMilestones|67% complete|Profile incomplete/)
 })
 

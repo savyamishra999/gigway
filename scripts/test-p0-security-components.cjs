@@ -11,7 +11,7 @@ async function main(){
   const auth={getViewer:async()=>user,loginForCurrent:async()=>'/login',completionForCurrent:async()=>'/profile/complete'};
   const edit=moduleAt('app/profile/edit/page.tsx',{'@/lib/auth/server':auth,'@/lib/supabase/server':{createClient:async()=>db},'next/navigation':nav,'@/components/profile/EditProfileForm':def(props=>React.createElement('form',null,props.profile.full_name)),'@/components/identity/WorkModesEditor':def(()=>null)}).default;
   const tree=await edit({searchParams:Promise.resolve({})});
-  assert.equal(reads[0].table,'own_profiles');assert.match(renderToStaticMarkup(tree),/Edit Professional Identity/);
+  assert.equal(reads[0].table,'own_profiles');assert.match(renderToStaticMarkup(tree),/Edit profile/);
   assert.ok(walk(tree,n=>n.props?.profile?.id==='owner').length);
   user=null;await assert.rejects(edit({searchParams:Promise.resolve({})}),/redirect/);
   user={id:'owner'};

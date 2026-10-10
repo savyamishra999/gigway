@@ -26,15 +26,12 @@ const MOBILE_TABS = [
   { href: "/network", label: "Network", icon: UsersRound },
   { href: "/create", label: "Create", icon: Plus },
   { href: "/work", label: "Work", icon: BriefcaseBusiness },
-  { href: "/profile", label: "Account", icon: UserRound },
+  { href: "/profile", label: "Profile", icon: UserRound },
 ]
 
 const MENU_ITEMS = [
-  { href: "/profile/edit", label: "Edit Professional Identity", icon: UserRound },
   { href: "/workplaces", label: "My Workplaces", icon: Building2 },
-  { href: "/organizations/new", label: "+ Create Workplace", icon: Building2 },
   { href: "/saved", label: "Saved", icon: Package },
-  { href: "/profile", label: "My Account", icon: UserRound },
   { href: "/how-it-works", label: "How GigWay works", icon: LifeBuoy },
   { href: "/contact", label: "Help & Support", icon: LifeBuoy },
 ]
@@ -190,10 +187,9 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
             </div>
             {user ? (
               <div className="lg:mt-0 mt-2 border-t border-brand-borderLight pt-2 lg:border-t-0 lg:pt-0">
-                <p className="px-3 py-1.5 text-body-sm font-semibold text-brand-midnight truncate">{profile?.full_name || "My account"}</p>
                 {profile?.username && <p className="truncate px-3 pb-2 text-caption text-brand-slate">@{profile.username}</p>}
                 <Link prefetch={false} href={profile?.username ? `/u/${profile.username}` : "/profile/complete"} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-body-sm text-brand-slate hover:bg-slate-50 hover:text-brand-midnight">
-                    {profile?.username ? "My Professional Identity" : "Complete Professional Identity"}
+                    {profile?.username ? "View my profile" : "Complete your profile"}
                 </Link>
                 {MENU_ITEMS.map(item => (
                   <Link prefetch={false} key={item.label} href={item.href} onClick={() => setOpen(false)}
@@ -219,7 +215,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
         <nav aria-label="Mobile navigation" data-mobile-navigation className={`fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-brand-borderLight bg-white px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-12px_rgba(15,23,42,.18)] lg:hidden ${focusedGlimpsCreator || adminExperience ? "hidden" : ""}`}>
           {MOBILE_TABS.map(item => {
             const Icon = item.icon
-            const isActive = isMobileTabActive(pathname, item.href)
+            const isActive = isMobileTabActive(pathname, item.href) || (item.href === "/profile" && !!profile?.username && pathname === "/u/" + profile.username)
             const isCreate = item.href === "/create"
             return (
               <Link prefetch={false} key={item.label} href={item.href}

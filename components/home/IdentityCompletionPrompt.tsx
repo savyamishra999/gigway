@@ -31,7 +31,7 @@ export default async function IdentityCompletionPrompt({ userId, loadProfile, lo
         {data.avatar_url ? <img src={data.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" /> : <span className="text-xl font-bold text-brand-indigo">{data.full_name[0]}</span>}
       </div>
       <div className="min-w-0 flex-1">
-        <h2 className="font-extrabold text-brand-midnight">Build your Professional Identity</h2>
+        <h2 className="font-extrabold text-brand-midnight">Complete your profile</h2>
         <p className="mt-1 text-xs font-semibold text-brand-indigo">Profile incomplete · Keep building at your own pace</p>
         <p className="mt-1 text-xs text-brand-slate">{completed} of {milestones.length} professional milestones added</p>
         <p className="mt-1.5 text-sm font-medium text-brand-midnight">Next recommended action: {next.label}</p>
