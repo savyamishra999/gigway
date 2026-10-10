@@ -1,3 +1,4 @@
+import GigCardInspiration from "@/components/home/GigCardInspiration"
 import { productVisibility } from "@/lib/product-visibility";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -72,6 +73,7 @@ export default async function HomeHub() {
     <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /><HomeActionGuide key={user.id} userId={user.id} /><HomeModule name="primary" load={() => Primary({ user })} />
       <HomeModule name="network" load={() => Network({ user })} />
       <FindWorkEntry />
+      <GigCardInspiration />
       <HomeModule name="opportunities" load={() => Opportunities()} />
       {productVisibility.joxCurrentProduct && <HomeModule name="jox" load={() => Jox({ user })} />}
       {productVisibility.glimpsCurrentProduct && <HomeModule name="glimps" load={() => Glimps({ user })} />}

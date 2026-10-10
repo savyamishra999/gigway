@@ -1,11 +1,11 @@
 import qrcode from "qrcode-generator"
-import { CARD_TEMPLATES, cardProfileUrl, cleanCardDetails, type CardDetails, type CardTemplate } from "./model"
+import { CARD_TEMPLATES, cardDestination, cleanCardDetails, type CardDetails, type CardTemplate } from "./model"
 
 export const CARD_WIDTH = 1800
 export const CARD_HEIGHT = 1000
-export function cardQr(username: string) {
+export function cardQr(username: string, website = "") {
   const qr = qrcode(0, "M")
-  qr.addData(cardProfileUrl(username)); qr.make()
+  qr.addData(cardDestination(username, website)); qr.make()
   return qr
 }
 function lines(ctx: CanvasRenderingContext2D, value: string, x: number, y: number, max: number, size: number, count = 2, weight = 500) {
@@ -39,19 +39,19 @@ export function renderCard(canvas: HTMLCanvasElement, input: CardDetails, userna
   ctx.fillStyle = light ? "#efe8da" : "rgba(255,255,255,0.05)"
   ctx.beginPath(); ctx.arc(1600, 30, 520, 0, Math.PI * 2); ctx.fill()
   ctx.fillStyle = accent; ctx.fillRect(0, 0, 20, CARD_HEIGHT)
-  ctx.fillStyle = light ? "#40347b" : accent; ctx.font = "bold 38px Arial"; if (showBrand) ctx.fillText("GigWay", 95, 110)
-  ctx.fillStyle = light ? "#64748b" : "#ddd9f2"; ctx.font = "22px Arial"; ctx.fillText("PROFESSIONAL IDENTITY", 95, 157)
+  ctx.fillStyle = light ? "#40347b" : accent; ctx.font = "bold 38px Arial"; if (details.company) lines(ctx, details.company, 95, 110, 1580, 48, 1, 700); else if (showBrand) ctx.fillText("GigWay", 95, 110)
+  ctx.fillStyle = light ? "#64748b" : "#ddd9f2"; ctx.font = "22px Arial"; ctx.fillText(details.company ? "BUSINESS CARD" : "PROFESSIONAL CARD", 95, 157)
   const textX = light ? 570 : 100, textWidth = light ? 1110 : 1010
   if (light) { ctx.fillStyle = "#dfd7e5"; ctx.fillRect(485, 225, 2, 560) }
-  ctx.fillStyle = theme.foreground; lines(ctx, details.name || "Your name", textX, 295, textWidth, light ? 78 : 86, 2, 700)
-  ctx.fillStyle = light ? "#40347b" : "#f1ecff"; lines(ctx, details.headline, textX, 505, textWidth, 46)
-  ctx.fillStyle = light ? "#4b5563" : "#e0def1"; lines(ctx, details.skills, textX, 645, textWidth, 36)
-  lines(ctx, details.location, textX, 741, textWidth, 34, 1)
-  const contact = [details.email, details.phone].filter(Boolean).join("  ·  ")
-  lines(ctx, contact, textX, 798, textWidth, 32, 1)
-  ctx.fillStyle = light ? "#dcd5e5" : "rgba(255,255,255,0.18)"; ctx.fillRect(95, 854, 1610, 2)
-  ctx.fillStyle = light ? "#40347b" : "#ffffff"; if (showBrand) lines(ctx, `gigway.in/u/${username}`, 100, 916, 1110, 28, 1, 600)
-  ctx.font = "18px Arial"; ctx.fillStyle = light ? "#64748b" : "#d5d1e8"; ctx.fillText("DESIGN PREVIEW", 1490, 925)
+  ctx.fillStyle = theme.foreground; lines(ctx, details.name || "Your name", textX, 280, textWidth, 104, 2, 700)
+  ctx.fillStyle = light ? "#40347b" : "#f1ecff"; lines(ctx, details.headline, textX, 455, textWidth, 70)
+  ctx.fillStyle = light ? "#4b5563" : "#e0def1"; lines(ctx, details.skills, textX, 630, textWidth, 58)
+  lines(ctx, details.location, textX, 755, textWidth, 46, 1)
+  lines(ctx, details.email, textX, 817, textWidth, 38, 1)
+  lines(ctx, details.phone, textX, 872, textWidth, 38, 1)
+  ctx.fillStyle = light ? "#dcd5e5" : "rgba(255,255,255,0.18)"; ctx.fillRect(95, 904, 1610, 2)
+  ctx.fillStyle = light ? "#40347b" : "#ffffff"; if (details.website) lines(ctx, cardDestination(username, details.website).slice(8), 100, 966, 1260, 32, 1, 600); else if (showBrand) lines(ctx, `gigway.in/u/${username}`, 100, 966, 1110, 28, 1, 600)
+  ctx.font = "18px Arial"; ctx.fillStyle = light ? "#64748b" : "#d5d1e8"; ctx.fillText("DESIGN PREVIEW", 1490, 966)
   const portraitX = light ? 280 : 1470, portraitY = light ? 375 : 312, radius = light ? 152 : 185
   ctx.save(); ctx.beginPath(); ctx.arc(portraitX, portraitY, radius, 0, Math.PI * 2); ctx.clip()
   ctx.fillStyle = accent; ctx.fillRect(portraitX - radius, portraitY - radius, radius * 2, radius * 2)
@@ -63,7 +63,7 @@ export function renderCard(canvas: HTMLCanvasElement, input: CardDetails, userna
     ctx.fillStyle = "#17172b"; ctx.font = "bold 145px Arial"; ctx.textAlign = "center"; ctx.fillText(Array.from(details.name || "G")[0].toUpperCase(), portraitX, portraitY + 52); ctx.textAlign = "left"
   }
   ctx.restore()
-  const qr = cardQr(username), count = qr.getModuleCount(), cell = Math.floor(252 / (count + 8)), side = (count + 8) * cell
+  const qr = cardQr(username, details.website), count = qr.getModuleCount(), cell = Math.floor(252 / (count + 8)), side = (count + 8) * cell
   const left = portraitX - side / 2, top = 564
   ctx.fillStyle = "#ffffff"; ctx.fillRect(left, top, side, side)
   ctx.fillStyle = "#101321"

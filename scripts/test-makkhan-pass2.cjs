@@ -93,6 +93,7 @@ function fixture({ fault, delayed, hanging, records, realRanking = false, legacy
     },
     '@/lib/identity': { compactIntentLabels: () => [] },
     '@/components/home/HomeActionGuide': def(placeholder('action-guide')),
+    '@/components/home/GigCardInspiration': def(placeholder('gigcard-inspiration')),
     '@/components/home/IdentityCompletionPrompt': def(async ({loadProfile,loadIntents}) => { if(fault==='completion') throw Error('Injected'); return completion({userId:'viewer',loadProfile,loadIntents}); }),
     '@/components/social/JoxOrbitRail': def(placeholder('jox')), '@/components/social/GlimpsRail':def(placeholder('glimps')),
     '@/lib/home/primary': { initialHomePosts: async id => { assert.equal(id,'viewer'); if(fault==='primary') throw Error('Injected'); return {items:[{id:'post',body:'Useful content'}],nextCursor:null}; } },
