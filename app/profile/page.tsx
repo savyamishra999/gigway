@@ -27,6 +27,7 @@ export default async function ProfilePage() {
           {profile?.username ? <Link href={`/u/${profile.username}`} className="rounded-xl border border-brand-borderLight px-3 py-2">View Professional Identity</Link> : <Link href="/profile/complete" className="rounded-xl border border-brand-borderLight px-3 py-2">Complete Professional Identity</Link>}
           <Link href="/profile/edit" className="rounded-xl border border-brand-borderLight px-3 py-2">Edit Professional Identity</Link>
           {profile?.username && <Link prefetch={false} href={`/gig-card/${profile.username}`} className="rounded-xl border border-brand-borderLight px-3 py-2">View GigCard</Link>}
+          {profile?.username && <Link prefetch={false} href="/profile/gigcard" className="rounded-xl bg-brand-indigo px-3 py-2 text-white">Design my GigCard</Link>}
         </div>
         {profile?.username && <ProfileShareActions username={profile.username} />}
       </section>

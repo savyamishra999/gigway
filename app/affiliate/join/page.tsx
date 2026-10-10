@@ -1,10 +1,12 @@
 import { Metadata } from "next"
 import AffiliateJoinForm from "@/components/affiliate/AffiliateJoinForm"
 import { CheckCircle2, TrendingUp, IndianRupee, RefreshCw } from "lucide-react"
+import { BILLING_LAUNCH_ENABLED } from "@/lib/billing/launch"
+import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Earn with GigWay — Affiliate Program",
-  description: "Promote GigWay and earn 20% on every sale. ₹40 per Boost · ₹60 per Verified Badge. Recurring monthly income.",
+  title: "GigWay Affiliate Program — Paused",
+  description: "Affiliate enrollment and paid promotions are currently paused.",
 }
 
 const PERKS = [
@@ -15,6 +17,7 @@ const PERKS = [
 ]
 
 export default function AffiliateJoinPage() {
+  if (!BILLING_LAUNCH_ENABLED) return <main className="mx-auto max-w-xl px-4 py-12"><h1 className="text-2xl font-bold">Affiliate enrollment is paused</h1><p className="mt-4 text-brand-slate">Paid products and referral commissions are not available for new purchases. We are not accepting new affiliate applications right now.</p><Link href="/work" className="mt-5 inline-block font-semibold text-brand-indigo">Explore free opportunities</Link></main>
   return (
     <div className="min-h-screen bg-[#0A0A0F] py-16 px-4">
       <div className="max-w-5xl mx-auto">
