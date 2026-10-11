@@ -31,6 +31,12 @@ async function main(){
   const rail=moduleAt('components/home/GigCardInspiration.tsx',{'next/link':def('a'),'@/lib/gigcard/purchase':moduleAt('lib/gigcard/purchase.ts',{})}).default();
   assert.match(text(rail),/fictional names/);assert.match(text(rail),/permission/);
   assert.equal(walk(rail,n=>n.type==='article').length,3);
+  for (const who of ['owner','visitor','guest','error']) {
+    const prompt=moduleAt('components/profile/GigCardProfilePrompt.tsx',{'next/link':def('a'),'@/lib/gigcard/purchase':moduleAt('lib/gigcard/purchase.ts',{}),'@/lib/auth/server':{getViewer:async()=>{if(who==='error')throw Error('auth unavailable');return who==='guest'?null:{id:who}}}}).default;
+    const tree=await prompt({profile:{id:'owner',username:'owner',full_name:'Example Founder',tagline:'Designer',avatar_url:'https://example.com/photo.png'}});
+    if(who!=='owner')assert.equal(tree,null);
+    else {assert.match(text(tree),/Example Founder/);assert.match(text(tree),/Designer/);assert.match(text(tree),/one-time per card/);assert.equal(walk(tree,n=>n.type==='a'&&n.props.href==='/profile/gigcard').length,1);assert.equal(walk(tree,n=>n.type==='img')[0].props.src,'https://example.com/photo.png');}
+  }
   console.log('PASS GigCard owner projection, guest/error gates, private contact defaults, field bounds, QR construction, truthful tools copy and unchanged payment pause');
 }
 main().catch(error=>{console.error(error);process.exitCode=1});

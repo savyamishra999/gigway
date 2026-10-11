@@ -17,6 +17,7 @@ import PublicWorkplace from "@/components/organizations/PublicWorkplace"
 import { WORKPLACE_FIELDS, workplaceSection, workplacePage } from "@/lib/organizations/public"
 import ProfileShareActions from "@/components/profile/ProfileShareActions"
 import ProfileWorkPreview from "@/components/profile/ProfileWorkPreview"
+import GigCardProfilePrompt from "@/components/profile/GigCardProfilePrompt"
 import { profileTab, type ProfileTab } from "@/lib/profile/tabs"
 
 function portfolioTitle(url: string) {
@@ -129,6 +130,8 @@ export default async function PublicIdentity({ params, searchParams }: { params:
               </div>
               <Suspense fallback={null}><PersonActions id={profile.id} username={profile.username} /></Suspense>
             </div>
+
+            <Suspense fallback={null}><GigCardProfilePrompt profile={profile} /></Suspense>
 
             {modes.length > 0 && (
               <div className="mt-6 flex flex-wrap gap-2">
