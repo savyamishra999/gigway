@@ -17,8 +17,9 @@ function fixture(){
   return{store,provider,get local(){return local},get creates(){return creates},get settles(){return settles},capture(){captured=true},refund(){refund=9900},wrong(){wrongAmount=true}};
 }
 async function main(){
-  for(const env of [{},{GIGCARD_PAYMENTS_MODE:'live'},{GIGCARD_PAYMENTS_MODE:'test',VERCEL_ENV:'production'}]) assert.equal(moduleAt('lib/gigcard/config.ts',{},{process:{env}}).gigcardMode(),'paused');
+  for(const env of [{},{GIGCARD_PAYMENTS_MODE:'test',VERCEL_ENV:'production'}]) assert.equal(moduleAt('lib/gigcard/config.ts',{},{process:{env}}).gigcardMode(),'paused');
   assert.equal(moduleAt('lib/gigcard/config.ts',{},{process:{env:{GIGCARD_PAYMENTS_MODE:'test'}}}).gigcardMode(),'test');
+  assert.equal(moduleAt('lib/gigcard/config.ts',{},{process:{env:{GIGCARD_PAYMENTS_MODE:'live',VERCEL_ENV:'production'}}}).gigcardMode(),'live');
   const f=fixture();await payments.prepareCardOrder(f.store,f.provider,id,owner,'test');await payments.prepareCardOrder(f.store,f.provider,id,owner,'test');assert.equal(f.creates,1);
   await assert.rejects(payments.settleCardPayment(f.store,f.provider,f.local,'pay_Test'),/pending/);assert.equal(f.settles,0);
   f.capture();assert.equal((await payments.recoverCardPayment(f.store,f.provider,f.local)).status,'paid');

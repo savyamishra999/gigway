@@ -1,3 +1,15 @@
+# Live checkout activation follow-up ? 2026-10-11
+
+User explicitly authorized the GigCard production migration and live activation. User applied the GigCard SQL manually and reported success. Production REST checks confirmed both new tables exist: service-role reads returned 200; anonymous reads were denied (401 / 42501). This does not prove authenticated cross-account isolation or close the separate P0 gates.
+
+Production Razorpay live credentials were checked read-only (HTTP 200). GigCard production mode is now configured as live, and its independent code gate is approved. General billing and escrow remain paused. The webhook secret is configured in Vercel; Razorpay Dashboard webhook registration is not confirmed. Checkout uses synchronous HMAC plus provider capture verification, and Restore purchase/export checks recover missed callbacks without requiring a webhook. No real payment, capture or refund was performed by this agent.
+
+Download/Share now starts save -> Razorpay directly, without the preliminary purchase dialog. Post-payment file sharing still uses an explicit native-share tap. Browser simulation, backend/checkout tests and TypeScript passed. All 41 current suites pass. Vercel production build passed and deployment `dpl_DKc26gkNa8KfvnmrZTHEnsseD4m7` (`gigway-c04rycy8h-savyamishra999s-projects.vercel.app`) was promoted to the live domains. Public `/api/gigcard/cards` and `/api/gigcard/checkout` now return the expected unauthenticated 401 instead of paused 503. The actual signed-in Razorpay popup and a real payment/download remain user acceptance checks, not claimed as executed. The release was built from HEAD plus only the five GigCard code/test changes; all 42 excluded file hashes remain unchanged.
+
+The following original review describes the pre-activation checkpoint; its paused/unapplied statements are superseded only for GigCard by this follow-up. P0 remains production-unapplied.
+
+---
+
 ﻿# GigCard paid-card implementation review
 
 Date: 2026-10-10. Base HEAD: `5367b1232426f531da1fcbdd1c81914559d300b6`.

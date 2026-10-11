@@ -1,5 +1,5 @@
 // A separate switch: never enable general billing, proposals or escrow for GigCard.
-export const GIGCARD_LIVE_RELEASE_APPROVED = false
+export const GIGCARD_LIVE_RELEASE_APPROVED = true
 export function gigcardMode(): "paused" | "test" | "live" {
   const mode = process.env.GIGCARD_PAYMENTS_MODE
   if (mode === "test" && process.env.VERCEL_ENV !== "production") return "test"

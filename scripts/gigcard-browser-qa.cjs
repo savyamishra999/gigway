@@ -64,14 +64,7 @@ async function main(){
   const share=await evaluate(`(async()=>{let received;Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async d=>{received=d}});const f=new File(['fixture'],'card.png',{type:'image/png'});const result=await qa.shareCardImage(f);Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('cancel','AbortError')}});const cancelled=await qa.shareCardImage(f);return{result,cancelled,file:received.files[0].name,url:received.url||null}})()`);assert.deepEqual(share,{result:'shared',cancelled:'cancelled',file:'card.png',url:null});
 
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('a')).some(a=>a.href.includes('wa.me'))`),false);
-  for (const label of ['Download PNG','Download JPG','Download PDF','Share card image']) {
-    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent===${JSON.stringify(label)}).click()`);
-    assert.equal(await evaluate(`document.querySelector('dialog').open`),true);
-    assert.equal(await evaluate(`document.querySelector('dialog').textContent.includes('₹99')`),true);
-    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Back to editing').click()`);
-  }
   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Download PNG').click()`);
-  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.startsWith('Continue with Razorpay')).click()`);
   await until(`document.querySelector('dialog').open && document.querySelector('dialog').textContent.includes('not been charged')`);
   assert.equal(await evaluate(`!!document.querySelector('script[src*="checkout.razorpay.com"]')`),false);
   assert.equal(fs.readdirSync(dir).some(f=>f.endsWith('-preview.png')),false,'no unpaid download');
@@ -81,7 +74,6 @@ async function main(){
   await evaluate(`window.fixtureOpens=0;window.Razorpay=class{constructor(options){this.options=options}on(){}open(){window.fixtureOpens++;this.options.handler({razorpay_order_id:'order_Fixture',razorpay_payment_id:'pay_Fixture',razorpay_signature:'synthetic'})}}`);
   for(const label of ['Download PNG','Share card image']){
     await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent===${JSON.stringify(label)}).click()`);
-    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.startsWith('Continue with Razorpay')).click()`);
     await until(`document.querySelector('dialog').open && !!Array.from(document.querySelectorAll('button')).find(b=>b.textContent===${JSON.stringify(label==='Download PNG'?'Download paid card':'Share paid card')})`);
     assert.equal(await evaluate('window.fixtureOpens'),1,'repeat actions must reuse the paid card');
     if(label==='Share card image'){await evaluate(`Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.sharedPaidFile=data.files[0].name}});Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Share paid card').click()`);await until('!!window.sharedPaidFile');}
