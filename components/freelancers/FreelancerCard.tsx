@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import Link from "next/link"
 import { Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -71,7 +73,7 @@ export default function FreelancerCard({ freelancer }: FreelancerCardProps) {
           <div className="relative w-12 h-12 flex-shrink-0">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-bold text-lg">
               {freelancer.avatar_url
-                ? <img src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
+                ? <MediaImage sizes="128px" src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
                 : initial}
             </div>
             {boosted && (

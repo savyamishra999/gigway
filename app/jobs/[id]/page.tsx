@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
@@ -92,7 +94,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
             <div className="bg-white border border-brand-borderLight rounded-card p-6 shadow-soft">
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-14 h-14 rounded-xl bg-brand-indigo/10 flex items-center justify-center overflow-hidden text-brand-indigo font-bold text-2xl flex-shrink-0">
-                  {organization?.logo_url ? <img src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : companyDisplay[0]?.toUpperCase() || "C"}
+                  {organization?.logo_url ? <MediaImage sizes="128px" src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : companyDisplay[0]?.toUpperCase() || "C"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-h2 font-extrabold text-brand-midnight mb-1">{job.title}</h1>
@@ -214,7 +216,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
               </h2>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-brand-indigo/10 flex items-center justify-center overflow-hidden text-brand-indigo font-bold flex-shrink-0">
-                  {organization?.logo_url ? <img src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : companyDisplay[0]?.toUpperCase() || "C"}
+                  {organization?.logo_url ? <MediaImage sizes="128px" src={organization.logo_url} alt="" className="h-full w-full object-cover" /> : companyDisplay[0]?.toUpperCase() || "C"}
                 </div>
                 <div className="flex items-center gap-1.5 min-w-0">
                   {employerHref ? <Link href={employerHref} className="text-brand-midnight font-medium text-sm truncate hover:text-brand-indigo">{companyDisplay}</Link> : <p className="text-brand-midnight font-medium text-sm truncate">{companyDisplay}</p>}

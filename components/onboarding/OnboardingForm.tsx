@@ -1,5 +1,9 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
+import { prepareImageUpload } from "@/lib/media/prepare-upload"
+
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -129,9 +133,10 @@ export default function OnboardingForm({
   // ── avatar ─────────────────────────────────────────────────────────────────
   const uploadAvatar = async (file: File) => {
     setUploading(true)
+    file = await prepareImageUpload(file)
     const ext  = file.name.split(".").pop()
-    const path = `${userId}/${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true })
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: false, contentType: file.type, cacheControl: "86400" })
     if (!upErr) {
       const { data } = supabase.storage.from("avatars").getPublicUrl(path)
       setFormData(p => ({ ...p, avatar_url: data.publicUrl }))
@@ -474,7 +479,7 @@ export default function OnboardingForm({
           <div className="relative">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-[#6366F1]/20 flex items-center justify-center">
               {formData.avatar_url
-                ? <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ? <MediaImage sizes="128px" src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                 : <span className="text-3xl font-bold text-[#A5B4FC]">{formData.full_name?.[0]?.toUpperCase() || "?"}</span>
               }
             </div>

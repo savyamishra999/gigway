@@ -1,5 +1,7 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
 import { useState } from "react"
 import { useAuthUi } from "@/components/layout/AuthUiProvider"
 import { useRouter } from "next/navigation"
@@ -451,7 +453,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
                   {organizations.map(org => (
                     <div key={org.username} className="flex items-center gap-3 bg-[#0F172A] border border-[#334155] rounded-xl p-3.5">
                       <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/15 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {org.logoUrl ? <img src={org.logoUrl} alt="" className="w-full h-full object-cover" /> : <Building2 className="h-5 w-5 text-[#F59E0B]" />}
+                        {org.logoUrl ? <MediaImage src={org.logoUrl} alt="" className="w-full h-full object-cover" /> : <Building2 className="h-5 w-5 text-[#F59E0B]" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[#F8FAFC] text-sm font-semibold truncate">{org.name}</p>
@@ -563,7 +565,7 @@ export default function EditProfileForm({ profile, userId, activeModes = [], org
               {organizations.map(org => (
                 <div key={org.username} className="flex items-center gap-3 bg-[#0F172A] border border-[#334155] rounded-xl p-3.5">
                   <div className="w-10 h-10 rounded-xl bg-[#6366F1]/15 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {org.logoUrl ? <img src={org.logoUrl} alt="" className="w-full h-full object-cover" /> : <Building2 className="h-5 w-5 text-[#818CF8]" />}
+                    {org.logoUrl ? <MediaImage src={org.logoUrl} alt="" className="w-full h-full object-cover" /> : <Building2 className="h-5 w-5 text-[#818CF8]" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[#F8FAFC] text-sm font-semibold truncate">{org.name}</p>

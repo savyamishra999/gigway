@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
@@ -65,7 +67,7 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
             {/* Thumbnail */}
             <div className="rounded-card overflow-hidden h-64 bg-gradient-to-br from-brand-indigo to-brand-coral flex items-center justify-center shadow-soft">
               {gig.image_url
-                ? <img src={gig.image_url} alt={gig.title} className="w-full h-full object-cover" />
+                ? <MediaImage src={gig.image_url} alt={gig.title} className="w-full h-full object-cover" />
                 : <span className="text-white/25 text-6xl font-black">{gig.category?.slice(0, 2).toUpperCase() || "GW"}</span>
               }
             </div>
@@ -98,7 +100,7 @@ export default async function GigDetailPage(props: { params: Promise<{ id: strin
               {freelancer && profileHref && (
                 <Link href={profileHref} className="flex items-center gap-3 group">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-indigo to-brand-coral flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
-                    {freelancer.avatar_url ? <img src={freelancer.avatar_url} alt="" className="w-full h-full object-cover" /> : (freelancer.full_name?.[0]?.toUpperCase() || "F")}
+                    {freelancer.avatar_url ? <MediaImage sizes="128px" src={freelancer.avatar_url} alt="" className="w-full h-full object-cover" /> : (freelancer.full_name?.[0]?.toUpperCase() || "F")}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">

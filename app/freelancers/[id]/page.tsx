@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
@@ -92,7 +94,7 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
               {/* Avatar */}
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#4F46E5] to-[#F97316] flex items-center justify-center text-white font-black text-3xl mb-4 mx-auto">
                 {freelancer.avatar_url
-                  ? <img src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
+                  ? <MediaImage sizes="128px" src={freelancer.avatar_url} alt={freelancer.full_name ?? ""} className="w-full h-full object-cover" />
                   : freelancer.full_name?.[0]?.toUpperCase() || "?"}
               </div>
 
@@ -268,7 +270,7 @@ export default async function FreelancerDetailPage(props: { params: Promise<{ id
                       <div className="flex items-start gap-3 mb-2">
                         <div className="w-9 h-9 rounded-full overflow-hidden bg-[#4F46E5]/20 flex items-center justify-center text-[#818CF8] text-sm font-bold flex-shrink-0">
                           {(review.reviewer as { full_name?: string; avatar_url?: string | null } | null)?.avatar_url
-                            ? <img src={(review.reviewer as { avatar_url: string }).avatar_url} className="w-full h-full object-cover" alt="" />
+                            ? <MediaImage sizes="128px" src={(review.reviewer as { avatar_url: string }).avatar_url} className="w-full h-full object-cover" alt="" />
                             : (review.reviewer as { full_name?: string } | null)?.full_name?.[0] || "?"}
                         </div>
                         <div className="flex-1">

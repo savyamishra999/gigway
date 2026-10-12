@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import ContentTimestamp from "@/components/ui/ContentTimestamp";
 import Link from "next/link"
 import { Star, Clock, CheckCircle2 } from "lucide-react"
@@ -48,7 +50,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
       {/* Thumbnail */}
       <div className={`relative h-44 bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden pointer-events-none`}>
         {gig.image_url ? (
-          <img src={gig.image_url} alt={gig.title} className="w-full h-full object-cover" />
+          <MediaImage src={gig.image_url} alt={gig.title} className="w-full h-full object-cover" />
         ) : (
           <div className="text-white/25 text-5xl font-black select-none">{gig.category?.slice(0, 2).toUpperCase() || "GW"}</div>
         )}

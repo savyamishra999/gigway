@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import Link from "next/link"
 import { getViewer } from "@/lib/auth/server"
 import { GIGCARD_PRICE_LABEL } from "@/lib/gigcard/purchase"
@@ -23,7 +25,7 @@ export default async function GigCardProfilePrompt({ profile }: { profile: CardP
       <p className="relative text-xs font-bold uppercase tracking-widest text-[#63508a]">GigCard · Preview</p>
       <div className="relative mt-6 flex min-w-0 items-center gap-4">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#ddd2f7] text-2xl font-bold text-[#483675]">
-          {profile.avatar_url ? <img src={profile.avatar_url} alt="" width={64} height={64} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : name[0]?.toUpperCase()}
+          {profile.avatar_url ? <MediaImage sizes="128px" src={profile.avatar_url} alt="" width={64} height={64} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : name[0]?.toUpperCase()}
         </div>
         <div className="min-w-0"><p className="break-words text-2xl font-bold leading-tight">{name}</p><p className="mt-2 break-words text-base font-medium leading-6 text-[#574299]">{profile.tagline?.trim() || "Your headline goes here"}</p></div>
       </div>

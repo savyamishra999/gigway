@@ -1,5 +1,9 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
+import { prepareImageUpload } from "@/lib/media/prepare-upload"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -104,11 +108,12 @@ export default function ProfileCompleteForm({ userId }: { userId: string }) {
 
   const uploadFile = async (file: File, bucket: string, type: "avatar" | "resume") => {
     setUploading(type)
+    if (type === "avatar") file = await prepareImageUpload(file)
     const ext = file.name.split(".").pop()
-    const path = `${userId}/${Date.now()}.${ext}`
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`
     const { error: upErr } = await supabase.storage
       .from(bucket)
-      .upload(path, file, { upsert: true })
+      .upload(path, file, { upsert: false, contentType: file.type, cacheControl: type === "avatar" ? "86400" : "3600" })
     if (!upErr) {
       const { data } = supabase.storage.from(bucket).getPublicUrl(path)
       set(type === "avatar" ? "avatar_url" : "resume_url", data.publicUrl)
@@ -360,7 +365,7 @@ export default function ProfileCompleteForm({ userId }: { userId: string }) {
               <div className="relative">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-[#1E293B] flex items-center justify-center border-2 border-dashed border-[#6366F1]/40">
                   {form.avatar_url ? (
-                    <img src={form.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    <MediaImage sizes="128px" src={form.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="h-8 w-8 text-[#6366F1]/50" />
                   )}

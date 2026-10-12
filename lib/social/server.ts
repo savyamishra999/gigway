@@ -68,7 +68,7 @@ export async function resolvePostAccess(id:string, viewerId?:string|null) {
 function byPost<T extends {post_id:string}>(rows:T[]|null|undefined){const map=new Map<string,T[]>();for(const row of rows||[]){const values=map.get(row.post_id)||[];values.push(row);map.set(row.post_id,values)}return map}
 
 /** Serialize a bounded, already-authorized page with a fixed set of bulk DB
- * stages. Storage still signs each protected object independently. */
+ * stages. Stable media routes recheck access at delivery without signing each object. */
 export async function safePosts(posts:SocialPost[],viewerId?:string|null) {
   if (!posts.length) return []
   const startedAt=performance.now(),db=socialDb(),postIds=[...new Set(posts.map(post=>post.id))]
@@ -106,7 +106,7 @@ export async function safePosts(posts:SocialPost[],viewerId?:string|null) {
     const profile=post.author_profile_id?profileMap.get(post.author_profile_id):null,organization=post.author_organization_id?organizationMap.get(post.author_organization_id):null
     const author=profile?{type:"profile",id:profile.id,name:profile.full_name,username:profile.username,avatar:profile.avatar_url,tagline:profile.tagline,verified:profile.is_verified}:organization?{type:"organization",id:organization.id,name:organization.name,username:organization.username,avatar:organization.logo_url,tagline:organization.tagline,verified:organization.is_verified}:null
     const canManage=!!viewerId&&(post.author_user_id===viewerId||!!post.author_organization_id&&managedOrganizations.has(post.author_organization_id))
-    const mediaItems=await Promise.all((mediaByPost.get(post.id)||[]).map(async item=>{const publicDelivery=post.visibility==="public"&&["audio","video"].includes(item.media_type);const result=publicDelivery?null:await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(item.storage_path,300);if(result)requireSocialResult("signed_url",result);const url=publicDelivery?`/social/posts/${post.id}/media/${item.id}/public`:result?.data?.signedUrl;return url?{id:item.id,type:item.media_type,url,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}:null}))
+    const mediaItems=(mediaByPost.get(post.id)||[]).map(item=>({id:item.id,type:item.media_type,url:post.visibility==="public"?`/social/posts/${post.id}/media/${item.id}/public`:`/api/social/posts/${post.id}/media/${item.id}/file`,fileName:item.file_name,mimeType:item.mime_type,width:item.width,height:item.height,durationSeconds:item.duration_seconds}))
     const visibleMedia=mediaItems.filter((item):item is NonNullable<typeof item>=>!!item),contentFormat=parsePersistedContentFormat(post.content_format)||"standard"
     const cover=post.jox_cover_media_id?visibleMedia.find(item=>item.id===post.jox_cover_media_id&&item.type==="image")||null:null
     const coverNumber=(value:unknown,fallback:number,min:number,max:number)=>typeof value==="number"&&Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback
@@ -114,7 +114,7 @@ export async function safePosts(posts:SocialPost[],viewerId?:string|null) {
     const isFollowing=!!post.author_profile_id&&followedProfiles.has(post.author_profile_id)||!!post.author_organization_id&&followedOrganizations.has(post.author_organization_id)
     return {id:post.id,body:post.body,contentFormat,contentDomain:toContentDomain(contentFormat)!,visibility:post.visibility,createdAt:post.created_at,editedAt:post.edited_at,momentSlug:post.moment_slug||null,vijoxTranscriptText:post.vijox_transcript_text||null,vijoxTranscriptSegments:validVijoxTranscriptSegments(post.vijox_transcript_segments),highlights:contentFormat==="standard"?validPostHighlights(post.post_highlights,post.body||""):[] as PostHighlight[],author,media:visibleMedia,joxCover:cover?{id:cover.id,url:cover.url,fileName:cover.fileName,scale:coverNumber(post.jox_cover_scale,1,1,3),positionX:coverNumber(post.jox_cover_position_x,0,-1,1),positionY:coverNumber(post.jox_cover_position_y,0,-1,1)}:null,viewCount:coverNumber(post.view_count,0,0,Number.MAX_SAFE_INTEGER),likeCount:likeCounts.get(post.id)||0,commentCount:commentCounts.get(post.id)||0,repostCount:repostCounts.get(post.id)||0,isRepostedByMe:repostedIds.has(post.id),canRepost:!!viewerId&&!canManage,isLikedByMe:likedIds.has(post.id),isSavedByMe:savedIds.has(post.id),canEdit:canManage,canDelete:canManage,canManageVisibility:canManage,canFollow:!!viewerId&&!canManage&&!!author,isFollowing,canReport:!!viewerId&&!canManage,mentions:postMentions}
   }))
-  socialPerf("social_batch_serialization",startedAt,{posts:posts.length,dbStages:10+3*postIds.length,signedUrlOperations:media.filter(item=>!posts.some(post=>post.id===item.post_id&&post.visibility==="public"&&["audio","video"].includes(item.media_type))).length})
+  socialPerf("social_batch_serialization",startedAt,{posts:posts.length,dbStages:10+3*postIds.length,signedUrlOperations:0})
   return serialized
 }
 

@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import { loginForCurrent } from "@/lib/auth/server"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -20,7 +22,7 @@ export default async function WorkplacesPage() {
       </header>
       {workplaces.length ? <div className="space-y-3">{workplaces.map(workplace => <article key={workplace.id} className="min-w-0 rounded-2xl border border-brand-borderLight bg-white p-4 sm:p-5">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-indigo/10 text-brand-indigo">{workplace.logo_url ? <img src={workplace.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-6 w-6" />}</div>
+          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-indigo/10 text-brand-indigo">{workplace.logo_url ? <MediaImage sizes="128px" src={workplace.logo_url} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-6 w-6" />}</div>
           <div className="min-w-0 flex-1"><h2 className="break-words text-lg font-bold text-brand-midnight">{workplace.name}</h2><p className="text-sm capitalize text-brand-slate">{workplace.role}</p><p className="break-all text-sm text-brand-slate">@{workplace.username}</p></div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">

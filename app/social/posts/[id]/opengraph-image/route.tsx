@@ -29,7 +29,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         </div>
         <div style={{ display: "flex", fontSize: 17, color: accent }}>{special ? "Celebrating the people who always have your back." : "gigway.in · Professional Network & Marketplace"}</div>
       </div>
-      {photo && <div style={{ display: "flex", width: 430, borderRadius: 24, overflow: "hidden", background: "#e2e8f0" }}><img src={photo.url} width="430" height="542" style={{ objectFit: "cover", width: "100%", height: "100%" }} /></div>}
+      {photo && <div style={{ display: "flex", width: 430, borderRadius: 24, overflow: "hidden", background: "#e2e8f0" }}><img src={new URL(photo.url, _request.url).href} width="430" height="542" style={{ objectFit: "cover", width: "100%", height: "100%" }} /></div>}
     </div>,
     { width: 1200, height: 630 },
   );

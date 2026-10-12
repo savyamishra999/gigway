@@ -1,4 +1,6 @@
 "use client"
+
+import { MediaImage } from "@/components/ui/media-image";
 import { boundedFetch } from "@/lib/async";
 import Link from "next/link";
 import ContentTimestamp from "@/components/ui/ContentTimestamp";
@@ -180,7 +182,7 @@ function Rail({
           >
             <div className="flex min-w-0 items-start gap-3">
               {x.image ? (
-                <img src={x.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover" />
+                <MediaImage sizes="128px" src={x.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover" />
               ) : (
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{(x.title || x.name || "G")[0]}</span>
               )}
@@ -198,14 +200,14 @@ function Rail({
 }
 export function OpportunityRail({ items }: { items: OpportunityItem[] }) {
   if (!items.length) return null;
-  return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Opportunities for You</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{items.map((item) => <Link key={`${item.kind}-${item.id}`} href={item.href} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-indigo/35 sm:w-60"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <img src={item.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover"/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{item.title?.[0] || "G"}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.title}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div><p className="mt-4 text-caption font-bold text-brand-indigo">{item.cta}</p></Link>)}</div></section>;
+  return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Opportunities for You</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{items.map((item) => <Link key={`${item.kind}-${item.id}`} href={item.href} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-indigo/35 sm:w-60"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <MediaImage sizes="128px" src={item.image} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover"/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{item.title?.[0] || "G"}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.title}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div><p className="mt-4 text-caption font-bold text-brand-indigo">{item.cta}</p></Link>)}</div></section>;
 }
 export function NetworkRail({ items }: { items: NetworkItem[] }) {
   const [candidates, setCandidates] = useState(items), [busyId, setBusyId] = useState<string | null>(null);
   useEffect(() => setCandidates(items), [items]);
   if (!candidates.length) return null;
   const follow = async (item: NetworkItem) => { setBusyId(item.actorId); try { const response = await boundedFetch(`/api/social/follow/${item.kind === "person" ? "profile" : "organization"}/${item.actorId}`, { method: "POST" }); if (!response.ok) throw Error(); setCandidates((rows) => rows.filter((row) => row.actorId !== item.actorId)); } finally { setBusyId(null); } };
-  return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Grow Your Network</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{candidates.map((item) => <article key={`${item.kind}-${item.actorId}`} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft sm:w-60"><Link href={item.href} className="block"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <img src={item.image} alt="" className={`h-10 w-10 shrink-0 object-cover ${item.kind === "person" ? "rounded-full" : "rounded-xl"}`}/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{(item.name || "G")[0]}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.name}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div></Link><button onClick={() => void follow(item)} disabled={busyId === item.actorId} className="mt-4 w-full rounded-xl border border-brand-indigo/25 py-2 text-caption font-bold text-brand-indigo disabled:opacity-60">{busyId === item.actorId ? "Following…" : "Follow"}</button></article>)}</div></section>;
+  return <section className="my-7 min-w-0 max-w-full"><div className="mb-3 flex justify-between"><h2 className="font-extrabold text-brand-midnight">Grow Your Network</h2><Link href="/explore" className="text-caption font-bold text-brand-indigo">View all</Link></div><div className="flex w-full max-w-full snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{candidates.map((item) => <article key={`${item.kind}-${item.actorId}`} className="w-[78%] shrink-0 snap-start rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft sm:w-60"><Link href={item.href} className="block"><p className="text-[10px] font-extrabold tracking-[.14em] text-brand-indigo">{item.kind.toUpperCase()}</p><div className="mt-2 flex min-w-0 gap-3">{item.image ? <MediaImage src={item.image} alt="" className={`h-10 w-10 shrink-0 object-cover ${item.kind === "person" ? "rounded-full" : "rounded-xl"}`}/> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-lg font-extrabold text-brand-indigo">{(item.name || "G")[0]}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{item.name}</p><p className="mt-1 line-clamp-2 text-caption leading-5 text-brand-slate">{item.subtitle}</p></div></div></Link><button onClick={() => void follow(item)} disabled={busyId === item.actorId} className="mt-4 w-full rounded-xl border border-brand-indigo/25 py-2 text-caption font-bold text-brand-indigo disabled:opacity-60">{busyId === item.actorId ? "Following…" : "Follow"}</button></article>)}</div></section>;
 }
 export function PostCard({
   post,
@@ -425,11 +427,11 @@ export function PostCard({
       <div className="flex gap-3">
         {authorHref ? (
           <Link href={authorHref} aria-label={`View ${post.author?.name || "author"} profile`} className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-indigo/10 font-bold text-brand-indigo ${post.author?.type === "organization" ? "rounded-xl" : "rounded-full"}`}>
-            {post.author?.avatar ? <img src={post.author.avatar} alt="" className="h-full w-full object-cover" /> : post.author?.name?.[0] || "G"}
+            {post.author?.avatar ? <MediaImage sizes="128px" src={post.author.avatar} alt="" className="h-full w-full object-cover" /> : post.author?.name?.[0] || "G"}
           </Link>
         ) : (
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-brand-indigo/10 font-bold text-brand-indigo ${post.author?.type === "organization" ? "rounded-xl" : "rounded-full"}`}>
-            {post.author?.avatar ? <img src={post.author.avatar} alt="" className="h-full w-full object-cover" /> : post.author?.name?.[0] || "G"}
+            {post.author?.avatar ? <MediaImage sizes="128px" src={post.author.avatar} alt="" className="h-full w-full object-cover" /> : post.author?.name?.[0] || "G"}
           </div>
         )}
         <div className="relative min-w-0 flex-1">
@@ -548,12 +550,13 @@ export function PostCard({
           {post.body && post.contentDomain !== "jox" && <><PostText body={post.body} mentions={post.mentions} highlights={post.highlights} hiddenUrls={richPreviewUrls} gigThought={post.contentDomain === "post"} />{post.contentDomain === "post" && <ExternalPostPreview body={post.body} />}</>}
           {post.media.map((m) =>
             m.type === "image" && post.contentDomain !== "jox" ? (
-              <img
-                key={m.id}
+              <a key={m.id} href={m.url} target="_blank" rel="noreferrer" aria-label={`Open original image: ${m.fileName}`}>
+              <MediaImage
                 src={m.url}
                 alt={m.fileName}
                 className={`mt-3 block h-auto max-h-[400px] w-full max-w-full rounded-xl bg-brand-ivory object-contain sm:max-h-[500px] ${m.height && m.width && m.height > m.width ? "mx-auto" : ""}`}
               />
+              </a>
             ) : m.type === "video" ? (
               <GigVideoPlayer key={m.id} id={m.id} src={m.url} fileName={m.fileName} width={m.width} height={m.height} durationSeconds={m.durationSeconds} />
             ) : post.contentDomain === "jox" && m.type === "audio" ? (
@@ -640,7 +643,7 @@ export function PostCard({
             {preview.map((reply) => {
               const href = reply.author?.username ? `/u/${reply.author.username}` : null;
               return <div key={reply.id} className="flex min-w-0 gap-2.5 text-body-sm">
-                {href ? <Link href={href} className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-brand-indigo/10" aria-label={`View ${reply.author?.name || "member"} profile`}>{reply.author?.avatar ? <img src={reply.author.avatar} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-[10px] font-bold text-brand-indigo">{reply.author?.name?.[0] || "G"}</span>}</Link> : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-indigo/10 text-[10px] font-bold text-brand-indigo">{reply.author?.name?.[0] || "G"}</span>}
+                {href ? <Link href={href} className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-brand-indigo/10" aria-label={`View ${reply.author?.name || "member"} profile`}>{reply.author?.avatar ? <MediaImage sizes="128px" src={reply.author.avatar} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-[10px] font-bold text-brand-indigo">{reply.author?.name?.[0] || "G"}</span>}</Link> : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-indigo/10 text-[10px] font-bold text-brand-indigo">{reply.author?.name?.[0] || "G"}</span>}
                 <div className="min-w-0"><p className="truncate text-caption"><span className="font-bold text-brand-midnight">{reply.author?.name || "GigWay member"}</span>{reply.author?.username && <span className="ml-1 text-brand-indigo">@{reply.author.username}</span>}<span className="ml-1 text-brand-slate">· {new Date(reply.createdAt).toLocaleDateString()}</span></p><p className="line-clamp-2 whitespace-pre-wrap break-words leading-5 text-brand-slate">{reply.body}</p></div>
               </div>;
             })}
@@ -674,12 +677,19 @@ export default function SocialHomeFeed({
     [tuneOpen, setTuneOpen] = useState(false),
     [cursor, setCursor] = useState<string | null>(initialPage?.nextCursor || null);
   const previousFeed = useRef(feed);
+  const pendingPage = useRef<{ key: string; controller: AbortController } | null>(null);
   const load = async (reset = false) => {
+    const key = `${feed}:${reset ? "first" : cursor || "first"}`;
+    if (pendingPage.current?.key === key) return;
+    pendingPage.current?.controller.abort();
+    const request = { key, controller: new AbortController() };
+    pendingPage.current = request;
     setLoading(true);
     setError(false);
     try {
       const r = await boundedFetch(
           `/api/social/posts?feed=${feed}${!reset && cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+          { signal: request.controller.signal },
         ),
         d: unknown = await r.json().catch(() => null);
       if (
@@ -691,12 +701,13 @@ export default function SocialHomeFeed({
       )
         throw Error("Could not load the feed.");
       const page = d as { items: FeedItem[]; nextCursor: string | null };
+      if (pendingPage.current !== request) return;
       setPosts((x) => (reset ? page.items : [...x, ...page.items]));
       setCursor(typeof page.nextCursor === "string" ? page.nextCursor : null);
     } catch {
-      setError(true);
+      if (pendingPage.current === request) setError(true);
     } finally {
-      setLoading(false);
+      if (pendingPage.current === request) { pendingPage.current = null; setLoading(false); }
     }
   };
   useEffect(() => {
@@ -760,7 +771,7 @@ export default function SocialHomeFeed({
         {posts.map((item, i) => {
           if ("type" in item && item.type === "marketplace_share") {
             const share = item as MarketplaceShare;
-            return <div key={`marketplace-${share.shareId}`}><p className="mb-2 flex min-w-0 items-center gap-1.5 text-caption font-semibold text-brand-slate"><Repeat2 className="h-3.5 w-3.5"/><Link href={share.actor.href} className="truncate hover:text-brand-indigo">{share.actor.name}</Link><span>{share.verb} a {share.object.type === "service" ? "Service" : share.object.type[0].toUpperCase() + share.object.type.slice(1)}</span></p><Link href={share.object.href} className="block max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft hover:border-brand-indigo/35"><div className="flex min-w-0 gap-3">{share.object.image ? <img src={share.object.image} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover"/> : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-brand-indigo">{share.object.type === "job" ? <BriefcaseBusiness className="h-5 w-5"/> : share.object.type === "project" ? <Building2 className="h-5 w-5"/> : <Package className="h-5 w-5"/>}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{share.object.title}</p><p className="mt-1 line-clamp-2 text-caption text-brand-slate">{share.object.subtitle}</p>{share.object.tags?.length ? <p className="mt-2 truncate text-caption text-brand-indigo">{share.object.tags.join(" · ")}</p> : null}</div></div><p className="mt-3 text-caption font-bold text-brand-indigo">{share.object.cta}</p></Link><div className="h-4"/></div>
+            return <div key={`marketplace-${share.shareId}`}><p className="mb-2 flex min-w-0 items-center gap-1.5 text-caption font-semibold text-brand-slate"><Repeat2 className="h-3.5 w-3.5"/><Link href={share.actor.href} className="truncate hover:text-brand-indigo">{share.actor.name}</Link><span>{share.verb} a {share.object.type === "service" ? "Service" : share.object.type[0].toUpperCase() + share.object.type.slice(1)}</span></p><Link href={share.object.href} className="block max-w-full rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft hover:border-brand-indigo/35"><div className="flex min-w-0 gap-3">{share.object.image ? <MediaImage sizes="128px" src={share.object.image} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover"/> : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-indigo/10 text-brand-indigo">{share.object.type === "job" ? <BriefcaseBusiness className="h-5 w-5"/> : share.object.type === "project" ? <Building2 className="h-5 w-5"/> : <Package className="h-5 w-5"/>}</span>}<div className="min-w-0"><p className="truncate font-bold text-brand-midnight">{share.object.title}</p><p className="mt-1 line-clamp-2 text-caption text-brand-slate">{share.object.subtitle}</p>{share.object.tags?.length ? <p className="mt-2 truncate text-caption text-brand-indigo">{share.object.tags.join(" · ")}</p> : null}</div></div><p className="mt-3 text-caption font-bold text-brand-indigo">{share.object.cta}</p></Link><div className="h-4"/></div>
           }
           const repost = ("type" in item ? item : null) as Extract<
               FeedItem,

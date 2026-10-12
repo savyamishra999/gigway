@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!rule || !dimensions || typeof b.path !== "string") return NextResponse.json({ error: "Invalid media finalization request." }, { status: 400 });
 
   const db = socialDb();
-  const { data: post } = await db.from("posts").select("id,author_user_id,author_organization_id,status,content_format").eq("id", id).maybeSingle();
+  const { data: post } = await db.from("posts").select("id,author_user_id,author_organization_id,status,content_format,visibility").eq("id", id).maybeSingle();
   if (!post || !["published", "hidden"].includes(post.status)) return NextResponse.json({ error: "Post not found." }, { status: 404 });
   if (!(await canManagePost(post, u.id))) return NextResponse.json({ error: "You cannot attach media to this post." }, { status: 403 });
   const domain=toContentDomain(post.content_format); if(!domain)return NextResponse.json({error:"Invalid post format."},{status:400});
@@ -40,6 +40,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Could not attach uploaded media." }, { status: 503 });
   }
   await updatePostType(id);
-  const { data: url } = await db.storage.from(POST_MEDIA_BUCKET).createSignedUrl(b.path, 300);
-  return NextResponse.json({ media: { id: data.id, type: data.media_type, url: url?.signedUrl, fileName: data.file_name, mimeType: data.mime_type, width: data.width, height: data.height, durationSeconds: data.duration_seconds } }, { status: 201 });
+  const mediaUrl = post.visibility === "public" ? `/social/posts/${id}/media/${data.id}/public` : `/api/social/posts/${id}/media/${data.id}/file`;
+  return NextResponse.json({ media: { id: data.id, type: data.media_type, url: mediaUrl, fileName: data.file_name, mimeType: data.mime_type, width: data.width, height: data.height, durationSeconds: data.duration_seconds } }, { status: 201 });
 }

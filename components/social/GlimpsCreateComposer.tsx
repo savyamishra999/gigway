@@ -1,5 +1,7 @@
 "use client";
 
+import { MediaImage } from "@/components/ui/media-image";
+
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { Hash, Loader2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -30,7 +32,7 @@ function readMetadata(file: File): Promise<Metadata> {
 }
 
 function Avatar({ author }: { author: Author }) {
-  return <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo">{author.avatar ? <img src={author.avatar} alt="" className="h-full w-full object-cover" /> : author.name.charAt(0).toUpperCase()}</span>;
+  return <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-brand-indigo/10 font-bold text-brand-indigo">{author.avatar ? <MediaImage sizes="128px" src={author.avatar} alt="" className="h-full w-full object-cover" /> : author.name.charAt(0).toUpperCase()}</span>;
 }
 
 export default function GlimpsCreateComposer({ profile, organizations }: Props) {

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { accessibleGlimpsPage, resolvePostAccess, safePost } from "@/lib/social/server";
+import { accessibleGlimpsPage, resolvePostAccess, safePosts } from "@/lib/social/server";
 import GlimpsFeed from "@/components/social/GlimpsFeed";
 import type { Post } from "@/components/social/SocialHomeFeed";
 import { isGlimps } from "@/lib/social/content-domain";
@@ -8,5 +8,5 @@ export default async function GlimpsPage({ searchParams }: { searchParams: Promi
   const session = await createClient(), { data: { user } } = await session.auth.getUser();
   const requested = (await searchParams).post, page = await accessibleGlimpsPage(user?.id, undefined, 10), selected = requested ? await resolvePostAccess(requested, user?.id) : null, validSelected = isGlimps(selected?.content_format) ? selected : null;
   const raw = validSelected ? [validSelected, ...page.posts.filter((post) => post.id !== validSelected.id)] : page.posts;
-  return <main className="min-h-screen overflow-hidden bg-brand-ivory"><GlimpsFeed initialItems={await Promise.all(raw.map((post) => safePost(post, user?.id))) as Post[]} initialCursor={page.nextCursor} initialActiveId={validSelected?.id} authHref={user ? undefined : "/login?next=/social/glimps"} /></main>;
+  return <main className="min-h-screen overflow-hidden bg-brand-ivory"><GlimpsFeed initialItems={await safePosts(raw, user?.id) as Post[]} initialCursor={page.nextCursor} initialActiveId={validSelected?.id} authHref={user ? undefined : "/login?next=/social/glimps"} /></main>;
 }

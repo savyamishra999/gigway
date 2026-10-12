@@ -1,4 +1,8 @@
 "use client";
+
+import { MediaImage } from "@/components/ui/media-image";
+
+import { prepareImageUpload } from "@/lib/media/prepare-upload"
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import {
@@ -93,7 +97,7 @@ function Avatar({ a }: { a: Author }) {
   return (
     <span className="grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-brand-indigo/10 font-extrabold text-brand-indigo">
       {a.avatar ? (
-        <img src={a.avatar} alt="" className="h-full w-full object-cover" />
+        <MediaImage sizes="128px" src={a.avatar} alt="" className="h-full w-full object-cover" />
       ) : (
         a.name.charAt(0).toUpperCase()
       )}
@@ -193,7 +197,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
     try {
       const init = await fetch("/api/social/jox-uploads/init", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileName: file.name, mimeType: file.type, fileSize: file.size }) }), data = await init.json();
       if (!init.ok) throw Error(data.error || "Could not upload your Jox.");
-      const upload = await createClient().storage.from("post-media").uploadToSignedUrl(data.path, data.token, file, { contentType: file.type });
+      const upload = await createClient().storage.from("post-media").uploadToSignedUrl(data.path, data.token, file, { contentType: file.type, cacheControl: "300" });
       if (upload.error) throw Error("Upload failed. Please try again.");
       const complete = await fetch(`/api/social/jox-uploads/${data.inspectionId}/complete`, { method: "POST" }), result = await complete.json();
       if (!complete.ok) throw Error(result.error || "Could not check your Jox.");
@@ -354,11 +358,13 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
     if (inspectionId) fetch(`/api/social/jox-uploads/${inspectionId}`, { method: "DELETE" }).catch(() => undefined);
     setInspectionId(null); setFiles((f) => f.filter((x) => kind(x) !== "audio"));
   };
+  const submitLock = useRef(false);
   const submit = async () => {
-    if (busy || recording || authorUnavailable) return;
+    if (submitLock.current || busy || recording || authorUnavailable) return;
     if (isJoxCreator && (!vijox || (inspectionId && status !== "idle"))) return setError("Jox your voice or upload audio before publishing.");
     if (!body.trim() && !files.length && !coverFile)
       return setError("Add text or an attachment before posting.");
+    submitLock.current = true;
     try {
       setStatus(files.length || coverFile ? "uploading" : "publishing");
       const created = await fetch("/api/social/posts", {
@@ -380,7 +386,8 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
         }),
         cb = await created.json();
       if (!created.ok) throw Error(cb.error || "Could not create post.");
-      for (const file of [...files.filter(file => !(inspectionId && kind(file) === "audio")), ...(coverFile ? [coverFile] : [])]) {
+      for (const sourceFile of [...files.filter(file => !(inspectionId && kind(file) === "audio")), ...(coverFile ? [coverFile] : [])]) {
+        const file = await prepareImageUpload(sourceFile);
         const init = await fetch(
             `/api/social/posts/${cb.post.id}/media/upload`,
             {
@@ -397,7 +404,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
         if (!init.ok) throw Error(d.error || "Could not prepare upload.");
         const upload = await createClient()
           .storage.from("post-media")
-          .uploadToSignedUrl(d.path, d.token, file, { contentType: file.type });
+          .uploadToSignedUrl(d.path, d.token, file, { contentType: file.type, cacheControl: "300" });
         if (upload.error)
           throw Error("Upload failed. Your text is still saved in this draft.");
         const final = await fetch(
@@ -417,7 +424,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
           fb = await final.json();
         if (!final.ok)
           throw Error(fb.error || "Could not attach uploaded media.");
-        if (isJoxCreator && file === coverFile) {
+        if (isJoxCreator && sourceFile === coverFile) {
           const cover = await fetch(`/api/social/posts/${cb.post.id}/jox-cover`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mediaId: fb.media?.id, ...coverPresentation }) }), coverBody = await cover.json();
           if (!cover.ok) throw Error(coverBody.error || "Could not set Jox cover.");
         }
@@ -441,6 +448,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
       }
       setTimeout(() => router.push(isJoxCreator ? `/social/posts/${cb.post.id}` : "/home"), 700);
     } catch (e) {
+      submitLock.current = false;
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("idle");
     }
@@ -466,7 +474,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
       textarea.current?.setSelectionRange(x.cursor, x.cursor),
     );
   };
-  const coverEditor = coverFile && coverUrl && editingCover ? <div className="mt-4 rounded-2xl border border-violet-200 bg-white/85 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold text-brand-midnight">Adjust cover</p><p className="mt-1 text-caption text-brand-slate">Drag the photo to position it inside your Jox circle.</p></div><button type="button" onClick={() => setEditingCover(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button></div><div ref={coverCrop} className="relative mx-auto mt-4 h-44 w-44 touch-none overflow-hidden rounded-full border-4 border-violet-100 bg-violet-50 shadow-soft" onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); coverDrag.current={x:event.clientX,y:event.clientY,positionX:coverPresentation.positionX,positionY:coverPresentation.positionY}; }} onPointerMove={event => { const drag=coverDrag.current, rect=coverCrop.current?.getBoundingClientRect(); if(!drag||!rect)return; const room=Math.max(.2,coverPresentation.scale-1); setCoverPresentation(value=>({...value,positionX:Math.max(-1,Math.min(1,drag.positionX+(event.clientX-drag.x)/rect.width/room)),positionY:Math.max(-1,Math.min(1,drag.positionY+(event.clientY-drag.y)/rect.height/room))})); }} onPointerUp={() => { coverDrag.current=null; }} onPointerCancel={() => { coverDrag.current=null; }}><img src={coverUrl} alt="Adjust Jox cover" draggable={false} className="h-full w-full select-none object-cover" style={{ transform: `translate(${coverPresentation.positionX * (coverPresentation.scale - 1) * 50}%, ${coverPresentation.positionY * (coverPresentation.scale - 1) * 50}%) scale(${coverPresentation.scale})` }} /></div><label className="mt-4 block text-caption font-bold text-brand-midnight">Zoom<input aria-label="Cover zoom" type="range" min="1" max="3" step="0.05" value={coverPresentation.scale} onChange={event => setCoverPresentation(value=>({ ...value, scale:Number(event.target.value) }))} className="mt-2 block w-full accent-violet-600" /></label><button type="button" onClick={() => setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 })} className="mt-3 text-caption font-bold text-violet-700">Reset</button></div> : null;
+  const coverEditor = coverFile && coverUrl && editingCover ? <div className="mt-4 rounded-2xl border border-violet-200 bg-white/85 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold text-brand-midnight">Adjust cover</p><p className="mt-1 text-caption text-brand-slate">Drag the photo to position it inside your Jox circle.</p></div><button type="button" onClick={() => setEditingCover(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button></div><div ref={coverCrop} className="relative mx-auto mt-4 h-44 w-44 touch-none overflow-hidden rounded-full border-4 border-violet-100 bg-violet-50 shadow-soft" onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); coverDrag.current={x:event.clientX,y:event.clientY,positionX:coverPresentation.positionX,positionY:coverPresentation.positionY}; }} onPointerMove={event => { const drag=coverDrag.current, rect=coverCrop.current?.getBoundingClientRect(); if(!drag||!rect)return; const room=Math.max(.2,coverPresentation.scale-1); setCoverPresentation(value=>({...value,positionX:Math.max(-1,Math.min(1,drag.positionX+(event.clientX-drag.x)/rect.width/room)),positionY:Math.max(-1,Math.min(1,drag.positionY+(event.clientY-drag.y)/rect.height/room))})); }} onPointerUp={() => { coverDrag.current=null; }} onPointerCancel={() => { coverDrag.current=null; }}><MediaImage src={coverUrl} alt="Adjust Jox cover" draggable={false} className="h-full w-full select-none object-cover" style={{ transform: `translate(${coverPresentation.positionX * (coverPresentation.scale - 1) * 50}%, ${coverPresentation.positionY * (coverPresentation.scale - 1) * 50}%) scale(${coverPresentation.scale})` }} /></div><label className="mt-4 block text-caption font-bold text-brand-midnight">Zoom<input aria-label="Cover zoom" type="range" min="1" max="3" step="0.05" value={coverPresentation.scale} onChange={event => setCoverPresentation(value=>({ ...value, scale:Number(event.target.value) }))} className="mt-2 block w-full accent-violet-600" /></label><button type="button" onClick={() => setCoverPresentation({ scale: 1, positionX: 0, positionY: 0 })} className="mt-3 text-caption font-bold text-violet-700">Reset</button></div> : null;
   return (
     <section className="min-w-0 max-w-full rounded-2xl border border-brand-borderLight bg-white p-3 pb-6 text-brand-midnight shadow-elevated sm:p-7">
       <div className="flex items-center justify-between">
@@ -617,7 +625,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
           {coverEditor}
           {quietJox && <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-caption text-violet-800">Your voice sounds a little quiet. Jox Again for better clarity.</p>}
           {editingVijoxTranscript && <div className="mt-3 rounded-2xl border border-violet-100 bg-white/80 p-3"><label htmlFor="vijox-transcript" className="text-caption font-bold text-brand-midnight">Add the words spoken in your VIJOX</label><textarea id="vijox-transcript" value={vijoxTranscriptText} onChange={event => setVijoxTranscriptText(event.target.value)} maxLength={2000} rows={3} className="mt-2 w-full resize-none rounded-xl border border-brand-borderLight bg-white p-3 text-body-sm text-brand-midnight outline-none focus:border-brand-indigo" aria-describedby="vijox-transcript-count" /><div className="mt-2 flex flex-wrap items-center justify-between gap-2"><span id="vijox-transcript-count" className="text-caption text-brand-slate">{vijoxTranscriptText.length} / 2000 characters</span><div className="flex gap-2"><button type="button" onClick={() => setEditingVijoxTranscript(false)} className="rounded-lg bg-brand-indigo px-3 py-1.5 text-caption font-bold text-white">Done</button><button type="button" onClick={() => { setVijoxTranscriptText(""); setEditingVijoxTranscript(false); }} aria-label="Remove VIJOX transcript" className="rounded-lg px-3 py-1.5 text-caption font-bold text-brand-coral">Remove transcript</button></div></div></div>}
-          {images.length > 0 && <div className="mt-4"><p className="text-caption font-bold text-brand-midnight">Companion images</p><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{images.map((image,index) => { const fileIndex=files.indexOf(image); return <div key={`${image.name}-${fileIndex}`} className="relative overflow-hidden rounded-xl border border-violet-100 bg-white"><img src={urls[fileIndex]} alt="Selected companion image" className="h-24 w-full object-cover"/><button type="button" onClick={() => setFiles(value=>value.filter(file=>file!==image))} aria-label={`Remove companion image ${index+1}`} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-brand-coral shadow-sm"><X className="h-4 w-4"/></button></div>})}</div></div>}
+          {images.length > 0 && <div className="mt-4"><p className="text-caption font-bold text-brand-midnight">Companion images</p><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{images.map((image,index) => { const fileIndex=files.indexOf(image); return <div key={`${image.name}-${fileIndex}`} className="relative overflow-hidden rounded-xl border border-violet-100 bg-white"><MediaImage src={urls[fileIndex]} alt="Selected companion image" className="h-24 w-full object-cover"/><button type="button" onClick={() => setFiles(value=>value.filter(file=>file!==image))} aria-label={`Remove companion image ${index+1}`} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-brand-coral shadow-sm"><X className="h-4 w-4"/></button></div>})}</div></div>}
         </div>
       )}
       {images.length > 0 && !vijox && (
@@ -628,7 +636,7 @@ export default function CreatePostComposer({ profile, organizations: initialOrga
                 key={`${f.name}-${i}`}
                 className="relative rounded-xl border p-3"
               >
-                <img
+                <MediaImage
                   src={urls[i]}
                   alt="Selected preview"
                   className="h-28 w-full rounded-lg object-cover"

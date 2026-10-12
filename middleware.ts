@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
   // post-login profile/onboarding gate.
   // Work is static public navigation; callback verifies its own PKCE exchange.
   const publicRoute = pathname === "/work" || pathname === "/auth/callback" || pathname === "/login" || pathname.startsWith("/u/") || pathname.startsWith("/@") ||
-    ["/social/explore", "/social/vijox", "/social/glimps"].includes(pathname) || /^\/social\/posts\/[^/]+$/.test(pathname)
+    ["/social/explore", "/social/vijox", "/social/glimps"].includes(pathname) || /^\/social\/posts\/[^/]+$/.test(pathname) || /^\/social\/posts\/[^/]+\/media\/[^/]+\/public$/.test(pathname)
   let session = null
   if (!publicRoute) {
   // Build a client that can refresh session tokens via cookies

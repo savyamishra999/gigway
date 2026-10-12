@@ -1,8 +1,10 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import { productVisibility, isCurrentProductCategory, currentProductFormats } from "@/lib/product-visibility";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { accessibleGlimps, accessibleJoxPage, canViewPost, safePost, SOCIAL_POST_FIELDS, socialDb } from "@/lib/social/server";
+import { accessibleGlimps, accessibleJoxPage, canViewPost, safePosts, SOCIAL_POST_FIELDS, socialDb } from "@/lib/social/server";
 import type { Post } from "@/components/social/SocialHomeFeed";
 import { PostCard } from "@/components/social/SocialHomeFeed";
 import JoxOrbitRail from "@/components/social/JoxOrbitRail";
@@ -35,9 +37,10 @@ export default async function SocialExplore({ searchParams }: { searchParams: Pr
     : { data: [] as { profile_id: string; intent_type: string }[] }
   const intentsByProfile = new Map<string, string[]>()
   for (const intent of peopleIntents || []) intentsByProfile.set(intent.profile_id, [...(intentsByProfile.get(intent.profile_id) || []), intent.intent_type])
-  const visible: Post[] = [];
-  for (const post of postsRes.data || []) if (await canViewPost(post as any, user?.id)) visible.push(await safePost(post as any, user?.id) as Post);
-  const [rawJox, rawGlimps] = await Promise.all([Promise.all(joxPage.posts.map((post) => safePost(post, user?.id))), Promise.all(glimpsRows.map((post) => safePost(post, user?.id)))]) as [Post[], Post[]];
+  const allowed = [];
+  for (const post of postsRes.data || []) if (await canViewPost(post as any, user?.id)) allowed.push(post);
+  const visible = await safePosts(allowed, user?.id) as Post[];
+  const [rawJox, rawGlimps] = await Promise.all([safePosts(joxPage.posts, user?.id), safePosts(glimpsRows, user?.id)]) as [Post[], Post[]];
   const includesQuery = (post: Post) => !query || (post.body || "").toLocaleLowerCase().includes(query.toLocaleLowerCase());
   const jox = rawJox.filter(includesQuery);
   const glimps = rawGlimps.filter(includesQuery);
@@ -54,7 +57,7 @@ export default async function SocialExplore({ searchParams }: { searchParams: Pr
     </header>
     {query && <p className="mt-4 text-body-sm text-brand-slate">{params.tag ? `Topic #${query}` : `Results for "${query}"`}</p>}
     {!query && show("all") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">Topics</h2><div className="mt-2 flex flex-wrap gap-2">{topics.length ? topics.map((topic) => <Link key={topic} href={`/social/explore?tag=${encodeURIComponent(topic.slice(1))}`} className="rounded-lg bg-violet-50 px-3 py-2 text-caption font-semibold text-violet-700">{topic}</Link>) : <p className="text-body-sm text-brand-slate">Topics will appear as professionals share them.</p>}</div></section>}
-    {show("people") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">{query ? "People" : "People to discover"}</h2><div className="mt-3 grid gap-2 sm:grid-cols-2">{(peopleRes.data || []).map((person) => { const intentLabels = compactIntentLabels(intentsByProfile.get(person.id)); return <Link key={person.id} href={`/u/${person.username}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-brand-borderLight bg-white p-3"><span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-indigo/10">{person.avatar_url && <img src={person.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="min-w-0"><b className="block truncate text-body-sm text-brand-midnight">{person.full_name}</b><span className="block truncate text-caption text-brand-slate">{person.tagline || `@${person.username}`}</span>{intentLabels.length ? <span className="mt-1 block truncate text-caption font-semibold text-brand-indigo">{intentLabels.join(" · ")}</span> : null}</span></Link>})}</div></section>}
+    {show("people") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">{query ? "People" : "People to discover"}</h2><div className="mt-3 grid gap-2 sm:grid-cols-2">{(peopleRes.data || []).map((person) => { const intentLabels = compactIntentLabels(intentsByProfile.get(person.id)); return <Link key={person.id} href={`/u/${person.username}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-brand-borderLight bg-white p-3"><span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-indigo/10">{person.avatar_url && <MediaImage sizes="128px" src={person.avatar_url} alt="" className="h-full w-full object-cover" />}</span><span className="min-w-0"><b className="block truncate text-body-sm text-brand-midnight">{person.full_name}</b><span className="block truncate text-caption text-brand-slate">{person.tagline || `@${person.username}`}</span>{intentLabels.length ? <span className="mt-1 block truncate text-caption font-semibold text-brand-indigo">{intentLabels.join(" · ")}</span> : null}</span></Link>})}</div></section>}
     {productVisibility.joxCurrentProduct && show("jox") && <JoxOrbitRail items={jox} />}
     {productVisibility.glimpsCurrentProduct && show("glimps") && <GlimpsRail items={glimps} />}
     {show("posts") && <section className="mt-6"><h2 className="font-extrabold text-brand-midnight">Posts</h2><div className="mt-3 space-y-3">{visible.map((post) => <PostCard key={post.id} post={post} />)}</div></section>}

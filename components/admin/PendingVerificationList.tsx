@@ -1,5 +1,7 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
 import { useState } from "react"
 import { CheckCircle, XCircle, ExternalLink, MessageCircle } from "lucide-react"
 
@@ -99,7 +101,7 @@ export default function PendingVerificationList({ pending: initialPending }: Pen
               {/* Avatar */}
               <div className="w-12 h-12 rounded-full overflow-hidden bg-[#4F46E5]/20 flex items-center justify-center text-[#818CF8] font-bold text-lg flex-shrink-0">
                 {profile.avatar_url
-                  ? <img src={profile.avatar_url} alt={profile.full_name ?? ""} className="w-full h-full object-cover" />
+                  ? <MediaImage sizes="128px" src={profile.avatar_url} alt={profile.full_name ?? ""} className="w-full h-full object-cover" />
                   : initial}
               </div>
 

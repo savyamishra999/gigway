@@ -1,3 +1,4 @@
+import { optimizeImage } from "@/lib/media/image-server"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { boundedFetch, withDeadline } from "@/lib/async"
@@ -37,8 +38,11 @@ export async function POST() {
     const bytes = new Uint8Array(await response.arrayBuffer())
     if (!bytes.length || bytes.length > MAX_BYTES) return NextResponse.json({ error: "Google photo is too large. Upload a smaller photo instead." }, { status: 413 })
 
-    const path = `${user.id}/avatars/google-${crypto.randomUUID()}.${extension}`
-    const upload = await db.storage.from("avatars").upload(path, bytes, { contentType: mime, upsert: false })
+    const original = Buffer.from(bytes)
+    const optimized = await optimizeImage(original, mime).catch(() => ({ bytes: original, type: mime }))
+    const outputExtension = optimized.type === "image/webp" ? "webp" : extension
+    const path = `${user.id}/avatars/google-${crypto.randomUUID()}.${outputExtension}`
+    const upload = await db.storage.from("avatars").upload(path, optimized.bytes, { contentType: optimized.type, upsert: false, cacheControl: "86400" })
     if (upload.error) return NextResponse.json({ error: "Google photo could not be saved. Upload a photo or skip for now." }, { status: 503 })
     return NextResponse.json({ avatarUrl: db.storage.from("avatars").getPublicUrl(path).data.publicUrl })
   } catch {

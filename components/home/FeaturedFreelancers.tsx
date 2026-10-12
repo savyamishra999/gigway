@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import { createPublicClient } from "@/lib/supabase/public"
 import { SectionUnavailable } from "@/components/layout/SectionStatus"
 import Link from "next/link"
@@ -35,7 +37,7 @@ export default async function FeaturedFreelancers() {
                 className="bg-brand-ivory border border-brand-borderLight hover:border-brand-indigo/30 hover:-translate-y-1 rounded-card p-5 transition-all duration-200 shadow-soft hover:shadow-elevated">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-indigo to-brand-coral flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
-                    {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : (f.full_name?.[0]?.toUpperCase() || "?")}
+                    {f.avatar_url ? <MediaImage sizes="128px" src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : (f.full_name?.[0]?.toUpperCase() || "?")}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">

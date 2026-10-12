@@ -1,5 +1,7 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
 import { isCurrentProductCategory } from "@/lib/product-visibility";
 import Image from "next/image"
 import Link from "next/link"
@@ -86,7 +88,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const active = (href: string) => (href === "/" ? pathname === homeHref : pathname.startsWith(href))
   const initial = profile?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "G"
   const avatar = profile?.avatar_url
-    ? <img width={40} height={40} decoding="async" src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+    ? <MediaImage loading="eager" sizes="128px" width={40} height={40} decoding="async" src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
     : <span>{initial}</span>
   const logout = async () => {
     if (signingOut) return

@@ -1,5 +1,7 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
 import { useState } from "react"
 import { ExternalLink, Trash2, X, Shield, ShieldOff, Ban, CheckCircle, UserCheck, Send } from "lucide-react"
 
@@ -200,7 +202,7 @@ export default function AdminFreelancersClient({ initial }: { initial: Freelance
                         <div className="flex items-center gap-3">
                           {f.avatar_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={f.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                            <MediaImage sizes="128px" src={f.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-[#4F46E5]/20 flex items-center justify-center text-[#818CF8] font-bold text-sm flex-shrink-0">
                               {f.full_name?.[0]?.toUpperCase() || "?"}

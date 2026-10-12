@@ -1,4 +1,6 @@
 "use client"
+
+import { MediaImage } from "@/components/ui/media-image";
 import { withDeadline } from "@/lib/async"
 import RequestFailure from "@/components/layout/RequestFailure"
 
@@ -171,7 +173,7 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
         <Link href="/messages" aria-label="Back to conversations" className="rounded-lg p-2 text-brand-slate hover:bg-brand-ivory"><ArrowLeft className="h-5 w-5" /></Link><Link href={other?.username ? `/u/${other.username}` : "#"} className="flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 rounded-full bg-brand-indigo/10 flex items-center justify-center text-brand-indigo font-bold overflow-hidden flex-shrink-0">
           {other?.avatar_url
-            ? <img src={other.avatar_url} alt="" className="w-full h-full object-cover" />
+            ? <MediaImage sizes="128px" src={other.avatar_url} alt="" className="w-full h-full object-cover" />
             : (other?.full_name?.[0] ?? "?").toUpperCase()
           }
         </div>

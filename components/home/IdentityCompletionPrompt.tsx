@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
@@ -28,7 +30,7 @@ export default async function IdentityCompletionPrompt({ userId, loadProfile, lo
     return <section className="mx-auto mt-5 max-w-3xl rounded-2xl border border-brand-indigo/20 bg-white p-4 shadow-soft sm:flex sm:items-center sm:gap-4">
       <div role="img" aria-label={`${completed} of ${milestones.length} profile milestones complete`} className="relative grid h-16 w-16 shrink-0 place-items-center">
         <svg viewBox="0 0 64 64" className="absolute inset-0 h-16 w-16 -rotate-90" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="#E0E7FF" strokeWidth="4" /><circle cx="32" cy="32" r="28" fill="none" stroke="#4F46E5" strokeWidth="4" pathLength="5" strokeDasharray={`${completed} 5`} strokeLinecap="round" /></svg>
-        {data.avatar_url ? <img src={data.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" /> : <span className="text-xl font-bold text-brand-indigo">{data.full_name[0]}</span>}
+        {data.avatar_url ? <MediaImage sizes="128px" src={data.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" /> : <span className="text-xl font-bold text-brand-indigo">{data.full_name[0]}</span>}
       </div>
       <div className="min-w-0 flex-1">
         <h2 className="font-extrabold text-brand-midnight">Complete your profile</h2>

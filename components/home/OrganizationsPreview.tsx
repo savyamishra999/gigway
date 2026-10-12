@@ -1,3 +1,5 @@
+
+import { MediaImage } from "@/components/ui/media-image";
 import { createPublicClient } from "@/lib/supabase/public"
 import { SectionUnavailable } from "@/components/layout/SectionStatus"
 import Link from "next/link"
@@ -33,7 +35,7 @@ export default async function OrganizationsPreview() {
                 className="bg-white border border-brand-borderLight hover:border-brand-indigo/30 rounded-card p-5 text-center transition-all hover:-translate-y-1 shadow-soft hover:shadow-elevated">
                 <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-brand-indigo to-brand-coral flex items-center justify-center overflow-hidden mb-3">
                   {org.logo_url
-                    ? <img src={org.logo_url} alt="" className="w-full h-full object-cover" />
+                    ? <MediaImage sizes="128px" src={org.logo_url} alt="" className="w-full h-full object-cover" />
                     : <span className="text-white font-bold">{org.name?.[0] || "G"}</span>}
                 </div>
                 <p className="text-brand-midnight font-semibold text-body-sm truncate">{org.name}</p>

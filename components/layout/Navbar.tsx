@@ -1,5 +1,7 @@
 "use client"
 
+import { MediaImage } from "@/components/ui/media-image";
+
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -313,7 +315,7 @@ export default function Navbar() {
                     <Button variant="ghost" className="flex items-center gap-2 h-9 px-2 hover:bg-white/5">
                       <div className="w-7 h-7 rounded-full overflow-hidden bg-[#6366F1] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                         {profile?.avatar_url
-                          ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ? <MediaImage sizes="128px" src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                           : initial}
                       </div>
                       <span className="text-white text-sm max-w-[72px] truncate">{firstName}</span>
