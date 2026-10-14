@@ -4,7 +4,7 @@ import { socialPerf } from "@/lib/social/server";
 import { SectionUnavailable } from "@/components/layout/SectionStatus";
 
 const labels = {
-  primary: "your feed", opportunities: "opportunities", network: "your network",
+  identity: "your profile preview", suggestions: "people to meet", primary: "your feed", opportunities: "opportunities", network: "your network",
   jox: "JOX", glimps: "GLIMPS", completion: "your Professional Identity", activity: "activity",
 };
 type Props = { name: keyof typeof labels; load: () => Promise<ReactNode> };

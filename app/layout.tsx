@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import ModernNavbar from '@/components/layout/ModernNavbar'
 import AuthUiProvider from '@/components/layout/AuthUiProvider'
+import ActivityProvider from '@/components/notifications/ActivityProvider'
 import Footer from '@/components/layout/Footer'
 import { getActiveMoment } from '@/lib/moments'
 
@@ -53,13 +54,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <AuthUiProvider>
+          <AuthUiProvider><ActivityProvider>
             <ModernNavbar moment={getActiveMoment()} />
             <main className="min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0">
               {children}
             </main>
             <Footer />
-          </AuthUiProvider>
+          </ActivityProvider></AuthUiProvider>
         </ThemeProvider>
       </body>
     </html>

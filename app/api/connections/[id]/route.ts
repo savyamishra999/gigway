@@ -12,7 +12,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   const payload = { requester_user_id: user.id, recipient_user_id: profileId, status: "pending", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), responded_at: null };
   const result = existing ? await db.from("professional_connections").update(payload).eq("id", existing.id) : await db.from("professional_connections").insert(payload);
   if (result.error) return NextResponse.json({ error: "Could not send connection request." }, { status: 409 });
-  const actor = await resolveProfile(user.id); await db.from("notifications").insert({ user_id: profileId, type: "connection_request", title: "New connection request", body: `${actor?.full_name || "Someone"} wants to connect with you`, link: "/network" });
+  const actor = await resolveProfile(user.id); await db.from("notifications").insert({ user_id: profileId, type: "connection_request", title: "New connection request", body: `${actor?.full_name || "Someone"} wants to connect with you`, link: "/network?tab=connections" });
   return NextResponse.json({ state: "outgoing_pending" }, { status: 201 });
 }
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -1,3 +1,5 @@
+import ProfileReady from "@/components/home/ProfileReady"
+import RelevantPeople from "@/components/home/RelevantPeople"
 import GigCardInspiration from "@/components/home/GigCardInspiration"
 import { productVisibility } from "@/lib/product-visibility";
 import { cache } from "react";
@@ -34,8 +36,7 @@ const getHomeIntents = cache(async (userId: string) => {
 });
 async function Opportunities() { return LatestOpportunities(); }
 async function Network({ user }: { user: User }) {
-  const [people, workplaces] = await Promise.all([PeoplePreview({viewerId: user.id, kind: "people"}), PeoplePreview({viewerId: user.id, kind: "workplaces"})]);
-  return <>{people}{workplaces}</>;
+  return PeoplePreview({viewerId: user.id, kind: "workplaces"});
 }
 async function Primary({ user }: { user: User }) {
   const page = await initialHomePosts(user.id);
@@ -70,7 +71,7 @@ export default async function HomeHub() {
   return <main className="min-h-screen max-w-full overflow-x-clip bg-brand-ivory pb-24 lg:pb-16"><div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
     <header className="mx-auto max-w-3xl"><p className="text-caption font-bold tracking-[.16em] text-brand-coral">HOME</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight sm:text-h1">Welcome back.</h1><p className="mt-1 text-body-sm text-brand-slate sm:text-body-lg">Professional conversations and opportunities, in one place.</p></header>
 
-    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /><HomeActionGuide key={user.id} userId={user.id} /><HomeModule name="primary" load={() => Primary({ user })} />
+    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="identity" load={() => ProfileReady({ userId: user.id })} /><HomeModule name="suggestions" load={() => RelevantPeople({ userId: user.id })} /><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /><details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="cursor-pointer font-bold text-brand-indigo">Explore more ways to use GigWay</summary><HomeActionGuide key={user.id} userId={user.id} /></details><HomeModule name="primary" load={() => Primary({ user })} />
       <HomeModule name="network" load={() => Network({ user })} />
       <FindWorkEntry />
       <GigCardInspiration />

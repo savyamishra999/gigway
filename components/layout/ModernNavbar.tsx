@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Bell, BriefcaseBusiness, Building2, Compass, CirclePlus, Home, LifeBuoy, Menu, MessageSquare, Package, Plus, Search, Sparkles, UserRound, UsersRound, Video, Volume2, X } from "lucide-react"
 import { authenticatedRootDestination, loginHref } from "@/lib/auth/return-to"
+import { ActivityBadge } from "@/components/notifications/ActivityProvider"
 import { withDeadline } from "@/lib/async"
 import { createClient } from "@/lib/supabase/client"
 import { useAuthUi } from "@/components/layout/AuthUiProvider"
@@ -142,11 +143,11 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
                 <Link prefetch={false} aria-label="Create" href="/create" className="hidden sm:flex rounded-lg p-2.5 text-brand-coral hover:bg-brand-coral/10">
                   <CirclePlus className="h-5 w-5" />
                 </Link>
-                <Link prefetch={false} aria-label="Messages" href="/messages" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
-                  <MessageSquare className="h-5 w-5" />
+                <Link prefetch={false} aria-label="Messages" href="/messages" className="relative rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
+                  <MessageSquare className="h-5 w-5" /><ActivityBadge kind="messages" />
                 </Link>
-                <Link prefetch={false} aria-label="Notifications" href="/notifications" className="rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
-                  <Bell className="h-5 w-5" />
+                <Link prefetch={false} aria-label="Notifications" href="/notifications" className="relative rounded-lg p-2 sm:p-2.5 text-brand-slate hover:bg-slate-100 hover:text-brand-midnight">
+                  <Bell className="h-5 w-5" /><ActivityBadge kind="notifications" />
                 </Link>
                 <button onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open} aria-controls="account-menu"
                   className="h-8 w-8 shrink-0 overflow-hidden rounded-full sm:h-9 sm:w-9 bg-gradient-to-br from-brand-indigo to-brand-coral text-sm font-bold text-white">

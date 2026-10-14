@@ -34,7 +34,7 @@ function portfolioTitle(url: string) {
 async function PersonActions({ id, username }: { id: string; username: string }) {
   try {
     const viewer = await getViewer()
-    if (!viewer) return null
+    if (!viewer) return <Link href={`/login?next=${encodeURIComponent(`/messages/${id}`)}`} className="inline-flex min-h-11 items-center rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white">Sign in to connect or message</Link>
     if (viewer.id === id) return <div className="min-w-0"><Link href="/profile/edit" className="inline-flex min-h-11 items-center rounded-xl bg-[#6D5DFB] px-4 py-2.5 text-sm font-semibold text-white">Edit profile</Link><ProfileShareActions username={username} /></div>
     const [connection, follow] = await withDeadline(Promise.all([
       connectionRow(viewer.id, id),

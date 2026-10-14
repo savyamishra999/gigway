@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { boundedFetch } from "@/lib/async";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, UserPlus } from "lucide-react";
@@ -23,7 +25,7 @@ export default function ProfileConnectionActions({ profileId, connectionId, init
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(url, { method });
+      const response = await boundedFetch(url, { method, headers: { "content-type": "application/json" } });
       const data = await response.json().catch(() => ({}));
       if (data.state) setState(data.state);
       if (!response.ok) throw Error(data.error || "Could not update connection.");
@@ -39,7 +41,7 @@ export default function ProfileConnectionActions({ profileId, connectionId, init
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api/social/follow/profile/${profileId}`, { method: following ? "DELETE" : "POST" });
+      const response = await boundedFetch(`/api/social/follow/profile/${profileId}`, { method: following ? "DELETE" : "POST" });
       if (!response.ok) throw Error("Could not update follow.");
       setFollowing((value) => !value);
     } catch (reason) {
@@ -71,7 +73,7 @@ export default function ProfileConnectionActions({ profileId, connectionId, init
       )}
       {state === "connected" && (
         <>
-          <span className="inline-flex items-center gap-2 rounded-xl bg-brand-indigo/10 px-3 py-2.5 text-sm font-semibold text-brand-indigo"><Check className="h-4 w-4" />Connected</span>
+          <span className="inline-flex items-center gap-2 rounded-xl bg-brand-indigo/10 px-3 py-2.5 text-sm font-semibold text-brand-indigo"><Check className="h-4 w-4" />Connected</span><Link href={`/messages/${profileId}`} className="rounded-xl bg-brand-indigo px-4 py-2.5 text-sm font-semibold text-white">Say hello</Link>
           <button disabled={busy} onClick={() => request(`/api/connections/${profileId}`, "DELETE")} className="rounded-xl border border-brand-borderLight px-3 py-2.5 text-sm font-semibold text-brand-slate disabled:opacity-60">Disconnect</button>
         </>
       )}
