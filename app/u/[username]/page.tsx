@@ -1,3 +1,4 @@
+import ProfessionalBadge from "@/components/utility/ProfessionalBadge"
 
 import { MediaImage } from "@/components/ui/media-image";
 import { Suspense } from "react"
@@ -60,7 +61,7 @@ async function PersonCounts({ id, username }: { id: string; username: string }) 
 async function PersonContent({ id, name, username, initialTab }: { id: string; name: string; username: string; initialTab: ProfileTab }) {
   const viewer = await getViewer().catch(() => null)
   const isOwner = viewer?.id === id
-  return <ProfileSocialFeed profileId={id} name={name} isOwner={isOwner} initialTab={initialTab} workPreview={<Suspense fallback={<p role="status" className="text-sm text-[#B8C0D0]">Loading public work…</p>}><ProfileWorkPreview profileId={id} username={username} isOwner={isOwner} /></Suspense>} />
+  return <><Suspense fallback={null}><ProfessionalBadge ownerId={id} /></Suspense><ProfileSocialFeed profileId={id} name={name} isOwner={isOwner} initialTab={initialTab} workPreview={<Suspense fallback={<p role="status" className="text-sm text-[#B8C0D0]">Loading public work…</p>}><ProfileWorkPreview profileId={id} username={username} isOwner={isOwner} /></Suspense>} /></>
 }
 
 export default async function PublicIdentity({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ section?: string; page?: string; tab?: string }> }) {

@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/freelancers",       label: "Freelancers",    icon: UserCheck        },
   { href: "/admin/employers",         label: "Employers",      icon: Building2        },
   { href: "/admin/verifications",     label: "Verifications",  icon: CheckCircle2     },
+  { href: "/admin/utility-verifications", label: "Work reviews", icon: CheckCircle2 },
   { href: "/admin/applications",      label: "Applications",   icon: ClipboardList    },
   { href: "/admin/gigs",              label: "Gigs",           icon: FileText         },
   { href: "/admin/jobs",              label: "Jobs",           icon: Briefcase        },

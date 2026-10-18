@@ -1,7 +1,32 @@
-import { createHash } from "crypto"
-import { NextRequest, NextResponse } from "next/server"
-import OpenAI from "openai"
-import { getUsageLimit, limitResponse } from "@/lib/billing/limits"
-import { createClient } from "@/lib/supabase/server"
-const list=(v:unknown)=>Array.isArray(v)?v.filter((x):x is string=>typeof x==="string").map(x=>x.trim()).filter(Boolean).slice(0,6):[]
-export async function POST(req:NextRequest){const db=await createClient();const{data:{user}}=await db.auth.getUser();if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});const body=await req.json().catch(()=>({}));const resumeText=typeof body.resumeText==="string"?body.resumeText.trim():"";const targetRole=typeof body.targetRole==="string"?body.targetRole.trim().slice(0,120):"";if(resumeText.length<200||resumeText.length>20000)return NextResponse.json({error:"Paste 200 to 20,000 characters of resume text."},{status:400});const usage=await getUsageLimit(db,user.id,"resume_analyses");if(!usage.allowed)return NextResponse.json(limitResponse(usage),{status:429});if(!process.env.OPENAI_API_KEY)return NextResponse.json({error:"Resume analysis is not configured yet."},{status:503});try{const c=await new OpenAI({apiKey:process.env.OPENAI_API_KEY}).chat.completions.create({model:"gpt-4o-mini",response_format:{type:"json_object"},max_tokens:1100,messages:[{role:"system",content:"You are a precise resume reviewer. Assess only supplied information. Return valid JSON only."},{role:"user",content:`Review this resume${targetRole?` for ${targetRole}`:""}. Return {"overallScore":0,"strengths":[],"improvements":[],"missingSections":[],"skillsAnalysis":[],"formatting":[],"recommendedActions":[]}.\n${resumeText}`}]});const raw=JSON.parse(c.choices[0]?.message?.content||"{}");const score=Number(raw.overallScore);if(!Number.isFinite(score))throw Error("Invalid model response");const analysis={overallScore:Math.max(0,Math.min(100,Math.round(score))),strengths:list(raw.strengths),improvements:list(raw.improvements),missingSections:list(raw.missingSections),skillsAnalysis:list(raw.skillsAnalysis),formatting:list(raw.formatting),recommendedActions:list(raw.recommendedActions)};const{error}=await db.from("resume_analyses").insert({user_id:user.id,source_hash:createHash("sha256").update(resumeText).digest("hex"),target_role:targetRole||null,overall_score:analysis.overallScore,result:analysis});if(error)return NextResponse.json({error:"Resume Analyzer needs its database migration applied before it can be used."},{status:503});const full=usage.tier!=="free";return NextResponse.json({result:full?analysis:{overallScore:analysis.overallScore,strengths:analysis.strengths.slice(0,2),improvements:analysis.improvements.slice(0,2),locked:true},locked:!full})}catch{return NextResponse.json({error:"We couldn't analyze that resume right now."},{status:502})}}
+import { createHash } from "node:crypto"
+import { resumePdf } from "@/lib/utility/pdf"
+import { generateUtility } from "@/lib/utility/ai"
+import { reportPreview, validateReport } from "@/lib/utility/catalog"
+import { utilityDb, utilityOwner, utilityBody, utilityJson, utilityError, UtilityError, rpc, accessMode, paidAccess } from "@/lib/utility/server"
+export const maxDuration = 90
+export async function POST(req: Request) {
+  let reservation: { id: string; created_at: string } | undefined
+  let db: ReturnType<typeof utilityDb> | undefined
+  try {
+    db = utilityDb()
+    const owner = await utilityOwner(db), body = await utilityBody(req)
+    const resumeText = typeof body.resumeText === "string" ? body.resumeText.trim() : ""
+    const targetRole = typeof body.targetRole === "string" ? body.targetRole.trim().slice(0,120) : ""
+    if (resumeText.length < 200 || resumeText.length > 20000) throw new UtilityError("Paste 200 to 20,000 characters of resume text.")
+    if (!process.env.OPENAI_API_KEY) throw new UtilityError("Resume analysis is temporarily unavailable.",503)
+    const doc = await rpc(db, "utility_reserve_document", { p_owner: owner.id, p_kind: "resume", p_hash: createHash("sha256").update(JSON.stringify({ resumeText, targetRole })).digest("hex"), p_title: targetRole || "Resume report", p_mode: accessMode() })
+    let result = doc.result
+    if (doc.generate) {
+      reservation = doc
+      result = await generateUtility("resume", { resumeText, targetRole })
+      resumePdf(validateReport(result), targetRole)
+      const { data, error } = await db.from("utility_documents").update({ result, status: "ready" }).eq("id", doc.id).eq("status", "generating").eq("created_at",doc.created_at).select("id").maybeSingle()
+      if (error || !data) throw new UtilityError("Your report could not be saved. Please retry.",503)
+    }
+    const full = !!await paidAccess(db, owner.id, "resume_report", doc.id)
+    return utilityJson({ id: doc.id, result: full ? validateReport(result) : reportPreview(validateReport(result)), locked: !full })
+  } catch (e) {
+    if (reservation && db) await db.from("utility_documents").update({ status: "failed" }).eq("id",reservation.id).eq("created_at",reservation.created_at).eq("status","generating")
+    return utilityError(e)
+  }
+}

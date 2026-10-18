@@ -1,21 +1,7 @@
 import Link from "next/link"
-const tools = [
-  { name: "Resume Intelligence", description: "Review your resume's strengths and areas to improve.", href: "/tools/resume-analyzer" },
-  { name: "Opportunity Match", description: "Understand your fit for a role and the skills to develop next." },
-  { name: "Profile Intelligence", description: "Improve your headline, About section and professional presentation." },
-  { name: "Job Description Intelligence", description: "Break down role requirements and preparation priorities." },
-  { name: "Career Gap Map", description: "Plan practical steps towards your next role." },
-  { name: "Portfolio Intelligence", description: "Present the story behind your work." },
-  { name: "Smart Application", description: "Prepare an application grounded in your experience." },
-  { name: "Smart Proposal", description: "Develop a clear response to a project brief." },
-  { name: "Interview Prep", description: "Prepare for conversations about your next role." },
-  { name: "Interview Practice", description: "Practice explaining your experience with confidence." },
+const tools=[
+ {title:"Check Resume Score",copy:"Free score and preview. Full analysis + PDF for ₹49 per report.",href:"/tools/resume-analyzer",cta:"Check my resume"},
+ {title:"Job-Tailored Pitch",copy:"One pitch free. Unlimited pitches with GigWay Pro for ₹149 / 30 days. Prepaid access; no auto-renewal.",href:"/tools/pitch",cta:"Create my pitch"},
+ {title:"Verified Professional",copy:"Professional work review, then ₹299 for a 365-day badge after approval.",href:"/tools/verification",cta:"Request review"},
 ]
-export default function ProfessionalToolsPage() {
-  return <main className="min-h-screen bg-brand-ivory px-4 py-10 pb-28"><div className="mx-auto max-w-6xl">
-    <header className="max-w-2xl"><p className="text-xs font-bold tracking-[.16em] text-brand-coral">GIGWAY PROFESSIONAL TOOLS</p><h1 className="mt-3 text-3xl font-extrabold text-brand-midnight">Make your next move with clarity.</h1><p className="mt-3 text-brand-slate">Explore available previews. Additional tools and one-time report purchases are being prepared; checkout is currently paused.</p></header>
-    <section className="mt-7 rounded-2xl border border-indigo-100 bg-white p-5"><p className="text-xs font-bold text-brand-indigo">NEW · GIGCARD STUDIO PREVIEW</p><h2 className="mt-2 text-xl font-bold">A professional introduction worth sharing.</h2><p className="mt-2 text-sm text-brand-slate">Try three card designs with your details. Export a sample image or PDF before deciding what suits you.</p><Link href="/profile/gigcard" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand-indigo px-4 font-bold text-white">Design my GigCard</Link></section>
-    <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{tools.map(tool => <article key={tool.name} className="rounded-2xl border border-brand-borderLight bg-white p-5"><p className="text-xs font-semibold text-brand-indigo">{tool.href ? "Preview" : "Coming soon"}</p><h2 className="mt-3 text-lg font-bold text-brand-midnight">{tool.name}</h2><p className="mt-2 text-sm text-brand-slate">{tool.description}</p>{tool.href ? <Link href={tool.href} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-brand-indigo">Open preview →</Link> : <p className="mt-4 text-xs text-brand-slate">Not available for purchase.</p>}</article>)}</div>
-    <p className="mt-7 text-sm text-brand-slate">Basic profiles, posting, following and discovery stay free. No paid plan is needed to participate.</p>
-  </div></main>
-}
+export default function Page(){return <main className="min-h-screen bg-brand-ivory px-4 py-10 pb-28"><div className="mx-auto max-w-5xl"><h1 className="text-3xl font-extrabold text-brand-midnight">Practical tools for your next opportunity.</h1><div className="mt-7 grid gap-4 md:grid-cols-3">{tools.map(t=><article key={t.href} className="flex flex-col rounded-2xl border bg-white p-5"><h2 className="text-xl font-bold">{t.title}</h2><p className="my-4 text-sm leading-6 text-brand-slate">{t.copy}</p><Link href={t.href} className="mt-auto py-3 font-bold text-brand-indigo">{t.cta} →</Link></article>)}</div><p className="mt-6 text-sm text-brand-slate">Profiles, work discovery and community participation stay free.</p><Link href="/profile/gigcard" className="mt-4 inline-block text-sm font-bold text-brand-indigo">Explore GigCard Studio →</Link></div></main>}
