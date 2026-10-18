@@ -1,7 +1,7 @@
 # GigWay utility launch — 18 October 2026
 
 ## Implemented locally
-- Home leads with Check Resume Score, Post a Service / Gig and Add Portfolio / Project. Community has its own /community route; Home no longer loads posts, suggestions, profile strength or activity-count queries.
+- Home leads with Check Resume Score, Post a Service / Gig and Add Portfolio / Project, followed by the pitch entry. Per the user's correction, the original profile cards, People to Meet/Connect, feed, Workplaces, Find Work, GigCard, opportunities and activity sidebar remain below these actions. /community is an additional feed entry, not a replacement for the Home feed.
 - Resume text → actual AI readiness score/free preview → saved report → ₹49 per-report unlock → full report and server-authorized PDF. Reports are in English; this is text review, not an ATS parsing certification.
 - Job description + user-supplied experience → editable pitch + cover letter. One successful pitch is free per account; failed generation does not consume it. ₹149 unlocks 30 days of unlimited pitches, paced at 10 generation attempts/hour. This version is prepaid access, **not an automatically renewing subscription**.
 - /u/[username]/pitch shows only an explicitly published pitch. Publishing replaces the previous public pitch; private save unpublishes the selected draft. Inputs are not published.
@@ -36,7 +36,7 @@ The migration creates new objects and is intended to run once through migration 
 - node scripts/test-utility-database.cjs: in-memory PostgreSQL tests for direct-client denial, service RPC permissions, ownership, free-pitch reservation, duplicate/retried generation, payment amount/ownership, replay, refunds, expiry, test/live isolation and publish/unpublish.
 - node scripts/test-utility-payments.cjs: HMAC malformed signatures, product whitelist, AI result validation, PDF generation, provider captured-state/amount/currency/ownership/mode validation and interrupted order recovery.
 - node scripts/test-utility-routes.cjs: actual GET/PDF handler execution with mocked storage/auth for preview redaction, unpaid export denial and cross-user access denial.
-- node scripts/test-utility-home.cjs: real Home/action server render with mocked auth; verifies three primary actions, secondary community link, guest entry and absence of eager social/profile queries.
+- node scripts/test-utility-home.cjs: real Home/action server render with mocked auth; verifies new utility actions precede the retained profile, suggestions, feed, network, opportunities and activity modules.
 - TypeScript: PASS. All four utility test scripts: PASS.
 - Production Next.js build: PASS (160 static pages generated; utility routes included). First attempt failed because restricted network access prevented Manrope Google Font download; retry with network access completed successfully. Existing Browserslist/cache/edge-runtime warnings were non-blocking. Generated service-worker source artifacts were restored after the build to avoid unrelated source changes.
 - No claim of a live payment, browser end-to-end test or production migration is made.
