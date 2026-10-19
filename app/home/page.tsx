@@ -1,4 +1,4 @@
-import ProfileNextActions from "@/components/profile/ProfileNextActions"
+import HomeActionRails from "@/components/home/HomeActionRails"
 import ProfileReady from "@/components/home/ProfileReady"
 import RelevantPeople from "@/components/home/RelevantPeople"
 import GigCardInspiration from "@/components/home/GigCardInspiration"
@@ -72,12 +72,8 @@ export default async function HomeHub() {
   return <main className="min-h-screen max-w-full overflow-x-clip bg-brand-ivory pb-24 lg:pb-16"><div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
     <header className="mx-auto max-w-3xl"><p className="text-caption font-bold tracking-[.16em] text-brand-coral">HOME</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight sm:text-h1">Welcome back.</h1><p className="mt-1 text-body-sm text-brand-slate sm:text-body-lg">Professional conversations and opportunities, in one place.</p></header>
 
-    <section aria-label="Professional tools" className="mx-auto max-w-5xl">
-      <ProfileNextActions />
-      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-brand-borderLight bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div><h2 className="text-lg font-bold text-brand-midnight">Make your next application count.</h2><p className="mt-1 text-sm text-brand-slate">Create a job-tailored pitch. Your first pitch is free.</p></div>
-        <Link href="/tools/pitch" className="shrink-0 rounded-xl border border-brand-indigo px-4 py-3 text-sm font-bold text-brand-indigo">Create my pitch</Link>
-      </div>
+    <section aria-label="Home actions" className="mx-auto max-w-5xl">
+      <HomeActionRails />
       <section aria-label="Professional verification" className="mb-5 rounded-2xl border border-brand-indigo/20 bg-white p-5">
         <h2 className="text-lg font-bold text-brand-midnight">Build trust with a verified profile</h2>
         <p className="mt-2 text-sm text-brand-slate">Show clients that GigWay has reviewed your professional details and public work evidence. After approval and payment, your public profile displays a Verified Professional badge for 365 days.</p>
