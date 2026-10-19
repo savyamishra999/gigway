@@ -1,5 +1,21 @@
 # Manual activation assistance — 18 October 2026
 
+## Current status
+- Live utility webhook is enabled; payment.captured and refund.processed subscriptions verified by API read-back. Real paid checkout/unlock verification is deferred at the user's request.
+- The following notes are chronological activation history; the current live status supersedes the earlier paused/disabled state.
+
+## Update — 19 October 2026
+- Later activation: user explicitly requested existing live keys instead of further test-mode setup. Set Production `UTILITY_PAYMENTS_MODE=live` and redeployed existing production commit `230002f` as `dpl_DadPbu88N9XUhgTrztNzEjJWxyjP`, aliased to www.gigway.in. New local Home/Create changes are not included.
+- Production webhook no-op probe: valid signature HTTP 200, invalid signature HTTP 401. All four utility tables are backend-readable. No real charge or purchased-feature unlock was performed by the agent; first actual checkout remains to be verified.
+- User reports migration SQL success and supplied expected four-table RLS/read/write checks and four server-only invoker function checks.
+- Created dedicated Razorpay utility webhook `TpkBJfkk1wro7y` for `https://www.gigway.in/api/utility/webhook`, with `payment.captured` and `refund.processed`. Read-back confirms secret present and webhook disabled pending testing.
+- Saved `UTILITY_RAZORPAY_WEBHOOK_SECRET` to Vercel Production as sensitive; matching secret is in ignored `.env.local`. Never commit or print it.
+- Saved `UTILITY_PAYMENTS_MODE=paused` to Vercel Production. No redeploy or live activation performed.
+- Payment, route, and database local test suites pass. These are not Razorpay end-to-end payment tests.
+- Next requirement: isolated test credentials (`RAZORPAY_TEST_KEY_ID`, `RAZORPAY_TEST_KEY_SECRET` stored privately), test payment/unlock/refund, then enable the live webhook, switch mode and deploy. Existing unrelated webhook was preserved.
+
+The earlier observations below describe the state before this update.
+
 ## Confirmed
 - The linked Vercel GigWay production deployment is Ready and aliased to https://www.gigway.in.
 - Production has Supabase, OpenAI and Razorpay key variable names configured. Secret contents were not printed.

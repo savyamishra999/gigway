@@ -19,6 +19,8 @@ function composer(query = '', workplaces = ready) {
     react: hooks, 'next/dynamic': def(() => () => null),
     'next/navigation': { useRouter: () => ({ back() {}, push() {} }), useSearchParams: () => new URLSearchParams(query) },
     'lucide-react': new Proxy({}, { get: () => () => null }),
+    '@/components/ui/media-image': { MediaImage: () => null },
+    '@/lib/media/prepare-upload': { prepareImageUpload() { throw Error('unexpected upload'); } },
     '@/components/create/useCreateWorkplaces': { useCreateWorkplaces: () => workplaces },
     '@/components/social/MentionPicker': def(() => null), '@/components/social/VijoxCircularProgress': def(() => null),
     '@/lib/social/mentions': { findActiveMention: () => null }, '@/lib/social/content-domain': { MAX_JOX_CAPTION_LENGTH: 100 },
@@ -45,7 +47,7 @@ async function run() {
   await check('four actions survive pending/failed Workplaces and unavailable display identity', () => {
     for (const state of [ready, { ...ready, organizations: [], loading: true }, { ...ready, organizations: [], error: 'Failed' }]) {
       const tree = choices('', state, { user: null, profile: null });
-      assert.deepEqual(walk(tree, n => n.props?.['data-create-action'] === true).map(n => n.props.href), ['/social/create','/jobs/new','/projects/new','/gigs/new']);
+      assert.deepEqual(walk(tree, n => n.props?.['data-create-action'] === true).map(n => n.props.href), ['/tools/pitch','/gigs/new','/social/create','/tools/resume-analyzer']);
       assert.match(walk(tree, n => n.props?.['data-create-actions'] === true)[0].props.className, /grid-cols-1.*sm:grid-cols-2/);
       assert.doesNotMatch(text(tree), /jox|glimps/i);
     }
@@ -67,7 +69,7 @@ async function run() {
     }
   });
   await check('Professional/Workplace selection preserves verified actor; unknown actor has no actions', () => {
-    assert.equal(walk(choices('organization=org'), n => n.props?.['data-create-action']).length, 2);
+    assert.deepEqual(walk(choices('organization=org'), n => n.props?.['data-create-action']).map(n => n.props.href), ['/jobs/new?organization=org', '/projects/new?organization=org', '/social/create?organization=org']);
     assert.ok(walk(choices('organization=org'), n => n.props?.href === '/jobs/new?organization=org').length);
     assert.equal(walk(choices('organization=other'), n => n.props?.['data-create-action']).length, 0);
     assert.equal(walk(choices('personal=1'), n => n.props?.['data-create-action']).length, 4);
@@ -92,6 +94,13 @@ async function run() {
     assert.match(section, /<Link prefetch=\{false\} key=\{item.label\} href=\{item.href\}/);
     assert.doesNotMatch(section, /onClick|router.push/);
     assert.equal((source.match(/href: "\/create", label: "Create"/g) || []).length, 1);
+  });
+  await check('feed shortcuts open relevant prompts without prefilled post content', () => {
+    for (const [prompt, expected] of [['thought', /insight/], ['opportunity', /skills needed/], ['question', /ask your professional network/]]) {
+      const field = walk(composer('prompt=' + prompt).tree, n => n.type === 'textarea')[0];
+      assert.match(field.props.placeholder, expected);
+      assert.equal(field.props.value, '');
+    }
   });
   await check('Workplace API uses one scoped join, no profile query, and finite error response', async () => {
     const { NextResponse } = require('next/server');

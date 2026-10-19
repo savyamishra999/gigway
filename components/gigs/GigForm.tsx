@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import VerificationPrompt from "@/components/utility/VerificationPrompt"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -158,6 +159,7 @@ export default function GigForm({ userId }: { userId: string }) {
           </div>
         </Section>
 
+        <VerificationPrompt />
         <div className="flex gap-3 pt-2">
           <Button type="submit" disabled={loading}
             className="flex-1 sm:flex-initial bg-brand-indigo hover:bg-brand-indigoDark text-white font-bold py-5 px-8 text-base shadow-[0_4px_14px_-4px_rgba(79,70,229,.5)]">

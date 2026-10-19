@@ -30,6 +30,10 @@ const home=load('app/home/page.tsx',deps).default;
   assert.equal((html.match(new RegExp('data-home-module="'+name+'"','g'))||[]).length,1);
  }
  assert.ok(html.includes('Your activity'));assert.ok(html.includes('Find Work'));assert.ok(html.includes('GigCardInspiration'));assert.ok(html.includes('HomeActionGuide'));
+ const order=['identity','completion','primary','opportunities','suggestions','network'];
+ for(let i=1;i<order.length;i++)assert.ok(html.indexOf('data-home-module="'+order[i]+'"')>html.indexOf('data-home-module="'+order[i-1]+'"'),order[i]+' order');
+ assert.ok(html.indexOf('Apply for verification')<html.indexOf('data-home-module="identity"'));
+ assert.equal((html.match(/<details /g)||[]).length,3);
  viewer=null;html=renderToStaticMarkup(await home());assert.ok(html.includes('Join GigWay'));assert.equal(html.includes('Check Resume Score'),false);
  console.log('PASS: utility actions above all retained Home modules; feed, people/connect suggestions, profiles, activity, work and guide present; guest gate preserved.');
 })().catch(e=>{console.error(e);process.exitCode=1});

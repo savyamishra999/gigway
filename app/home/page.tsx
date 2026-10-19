@@ -76,16 +76,24 @@ export default async function HomeHub() {
       <ProfileNextActions />
       <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-brand-borderLight bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
         <div><h2 className="text-lg font-bold text-brand-midnight">Make your next application count.</h2><p className="mt-1 text-sm text-brand-slate">Create a job-tailored pitch. Your first pitch is free.</p></div>
-        <Link href="/tools/pitch" className="shrink-0 rounded-xl border border-brand-indigo px-4 py-3 text-sm font-bold text-brand-indigo">Create my pitch ?</Link>
+        <Link href="/tools/pitch" className="shrink-0 rounded-xl border border-brand-indigo px-4 py-3 text-sm font-bold text-brand-indigo">Create my pitch</Link>
       </div>
-      <Link href="/tools/verification" className="mb-5 inline-flex min-h-11 items-center text-sm font-semibold text-brand-indigo">Get verified ?</Link>
+      <section aria-label="Professional verification" className="mb-5 rounded-2xl border border-brand-indigo/20 bg-white p-5">
+        <h2 className="text-lg font-bold text-brand-midnight">Build trust with a verified profile</h2>
+        <p className="mt-2 text-sm text-brand-slate">Apply for GigWay professional verification. Your badge is awarded after review and approval.</p>
+        <Link href="/tools/verification" className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-brand-indigo px-4 py-2 text-sm font-bold text-white">Apply for verification - &#8377;299/year</Link>
+      </section>
     </section>
 
-    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="identity" load={() => ProfileReady({ userId: user.id })} /><HomeModule name="suggestions" load={() => RelevantPeople({ userId: user.id })} /><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /><details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="cursor-pointer font-bold text-brand-indigo">Explore more ways to use GigWay</summary><HomeActionGuide key={user.id} userId={user.id} /></details><HomeModule name="primary" load={() => Primary({ user })} />
-      <HomeModule name="network" load={() => Network({ user })} />
-      <FindWorkEntry />
-      <GigCardInspiration />
+    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="identity" load={() => ProfileReady({ userId: user.id })} />
+      <HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} />
+      <HomeModule name="primary" load={() => Primary({ user })} />
       <HomeModule name="opportunities" load={() => Opportunities()} />
+      <HomeModule name="suggestions" load={() => RelevantPeople({ userId: user.id })} />
+      <HomeModule name="network" load={() => Network({ user })} />
+      <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">Explore more ways to use GigWay</summary><HomeActionGuide key={user.id} userId={user.id} /></details>
+      <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">Find work</summary><FindWorkEntry /></details>
+      <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">Create your GigCard</summary><GigCardInspiration /></details>
       {productVisibility.joxCurrentProduct && <HomeModule name="jox" load={() => Jox({ user })} />}
       {productVisibility.glimpsCurrentProduct && <HomeModule name="glimps" load={() => Glimps({ user })} />}
       </div><aside className="mt-8 min-w-0 space-y-4"><section className="rounded-2xl border border-brand-borderLight bg-white p-4 shadow-soft"><h2 className="font-extrabold text-brand-midnight">Your activity</h2><HomeModule name="activity" load={() => Activity({ user })} /></section><section className="rounded-2xl border border-brand-indigo/20 bg-brand-indigo/[.04] p-4"><CheckCircle2 className="h-5 w-5 text-brand-indigo"/><h2 className="mt-2 font-extrabold text-brand-midnight">Get to know GigWay.</h2><Link href="/how-it-works" className="mt-3 inline-flex items-center gap-1 text-caption font-bold text-brand-indigo">How GigWay works <ArrowRight className="h-3.5 w-3.5"/></Link></section></aside></div>

@@ -5,10 +5,16 @@ import { useAuthUi } from "@/components/layout/AuthUiProvider"
 import { useCreateWorkplaces } from "./useCreateWorkplaces"
 
 export const personalActions = [
+  { href: "/tools/pitch", label: "Create Job-Tailored Pitch", description: "Turn a job description into a tailored application. First pitch free.", example: "Create a cover letter for your next opportunity." },
+  { href: "/gigs/new", label: "Offer a Service / Gig", description: "Show people what you can do.", example: "Logo Design, Tuition, Legal Help, Photography." },
   { href: "/social/create", label: "Share a GigThought", description: "Share an update, idea, photo or video.", example: "I'm available for new freelance projects." },
+  { href: "/tools/resume-analyzer", label: "Scan Resume / Check Score", description: "Paste your resume for a free score. Full report and PDF available for Rs 49.", example: "Find ways to improve your next application." },
+]
+
+export const workplaceActions = [
   { href: "/jobs/new", label: "Post a Job", description: "Hire someone for a role.", example: "Hiring a Sales Executive in Lucknow." },
-  { href: "/projects/new", label: "Post a Gig Project", description: "Get a specific piece of work done.", example: "Need someone to build a business website." },
-  { href: "/gigs/new", label: "Offer a Service", description: "Show people what you can do.", example: "Logo Design, Tuition, Legal Help, Photography." },
+  { href: "/projects/new", label: "Post a Project", description: "Hire for freelance or contract work.", example: "Need someone to build a business website." },
+  { href: "/social/create", label: "Share a Workplace Update / GigThought", description: "Share news, ideas or updates from your Workplace.", example: "Meet our team and see what we are building." },
 ]
 
 export default function CreateChoices({ viewerId }: { viewerId: string }) {
@@ -17,7 +23,7 @@ export default function CreateChoices({ viewerId }: { viewerId: string }) {
   const workplaces = useCreateWorkplaces(viewerId)
   const requested = useSearchParams().get("organization")
   const selected = workplaces.organizations.find(org => org.id === requested)
-  const actions = requested ? selected ? personalActions.slice(0, 2) : [] : personalActions
+  const actions = requested ? selected ? workplaceActions : [] : personalActions
   return <main className="min-h-screen bg-brand-ivory px-3 pt-3 pb-24 text-brand-midnight sm:px-4 sm:pt-8"><div className="mx-auto min-w-0 max-w-2xl">
     <h1 className="text-lg font-extrabold sm:text-h2">Choose what to create</h1>
     <div className="mt-2 rounded-xl border border-brand-borderLight bg-white px-3 py-2">
@@ -33,6 +39,7 @@ export default function CreateChoices({ viewerId }: { viewerId: string }) {
         <p className="mt-3 hidden text-xs text-brand-slate sm:block">Example: {action.example}</p>
       </Link>)}
     </div>
+    {!requested && <p className="mt-4 text-sm text-brand-slate">Hiring? <Link prefetch={false} href="/jobs/new" className="font-bold text-brand-indigo underline">Post a Job</Link> or <Link prefetch={false} href="/projects/new" className="font-bold text-brand-indigo underline">Post a Project</Link></p>}
     <section aria-label="Posting identity" className="mt-4 text-sm">
       {workplaces.loading && <p role="status" className="text-brand-slate">Loading Workplaces…</p>}
       {workplaces.error && <p role="alert">{workplaces.error} <button type="button" onClick={workplaces.retry} className="min-h-11 px-2 font-bold text-brand-indigo">Retry</button></p>}

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import VerificationPrompt from "@/components/utility/VerificationPrompt"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -253,6 +254,7 @@ export default function JobForm({ userId, organizations = [], initialOrganizatio
             </div>
           </div>
 
+          <VerificationPrompt />
           <div className="flex gap-4 pt-2">
             <Button
               type="submit"

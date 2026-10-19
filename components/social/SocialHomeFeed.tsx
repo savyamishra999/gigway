@@ -748,6 +748,11 @@ export default function SocialHomeFeed({
         </span>
         <Plus className="text-brand-coral" />
       </Link>
+      <nav aria-label="Post shortcuts" className="mt-2 flex flex-wrap gap-2">
+        <Link href="/social/create?prompt=thought" className="inline-flex min-h-11 items-center rounded-xl border border-brand-borderLight bg-white px-3 text-xs font-bold text-brand-indigo">Post Thought</Link>
+        <Link href="/social/create?prompt=opportunity" className="inline-flex min-h-11 items-center rounded-xl border border-brand-borderLight bg-white px-3 text-xs font-bold text-brand-indigo">Share Work Opportunity</Link>
+        <Link href="/social/create?prompt=question" className="inline-flex min-h-11 items-center rounded-xl border border-brand-borderLight bg-white px-3 text-xs font-bold text-brand-indigo">Ask Question</Link>
+      </nav>
       <div className="mt-4 flex min-w-0 gap-5 overflow-x-auto border-b border-brand-borderLight px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setFeed("discover")}
