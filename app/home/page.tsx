@@ -80,7 +80,8 @@ export default async function HomeHub() {
       </div>
       <section aria-label="Professional verification" className="mb-5 rounded-2xl border border-brand-indigo/20 bg-white p-5">
         <h2 className="text-lg font-bold text-brand-midnight">Build trust with a verified profile</h2>
-        <p className="mt-2 text-sm text-brand-slate">Apply for GigWay professional verification. Your badge is awarded after review and approval.</p>
+        <p className="mt-2 text-sm text-brand-slate">Show clients that GigWay has reviewed your professional details and public work evidence. After approval and payment, your public profile displays a Verified Professional badge for 365 days.</p>
+        <p className="mt-2 text-xs text-brand-slate">Pay after approval. No automatic renewal. Verification does not guarantee jobs, clients or earnings.</p>
         <Link href="/tools/verification" className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-brand-indigo px-4 py-2 text-sm font-bold text-white">Apply for verification - &#8377;299/year</Link>
       </section>
     </section>
