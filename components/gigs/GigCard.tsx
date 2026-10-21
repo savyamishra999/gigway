@@ -66,7 +66,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
         {/* Creator — separately clickable, sits above the stretched card link */}
         <div className="relative z-10 flex items-center gap-2 mb-3">
           {creatorHref ? (
-            <Link href={creatorHref} className="flex items-center gap-2 min-w-0 group/creator" onClick={e => e.stopPropagation()}>
+            <Link href={creatorHref} className="flex items-center gap-2 min-w-0 group/creator">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-indigo to-brand-coral flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {creator?.full_name?.[0]?.toUpperCase() || "F"}
               </div>
