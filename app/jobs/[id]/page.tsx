@@ -30,6 +30,7 @@ export async function generateMetadata(
     : ""
 
   return {
+    alternates: { canonical: `https://www.gigway.in/jobs/${id}` },
     title: `${job.title} at ${job.company_name || "Company"} | GigWay Jobs`,
     description: `${job.job_type} position${job.location ? ` in ${job.location}` : ""}${salary ? `. Salary: ${salary}` : ""}. ${job.description?.slice(0, 100) ?? ""}`,
     openGraph: {

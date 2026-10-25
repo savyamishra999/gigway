@@ -6,6 +6,7 @@ import type { Metadata } from "next"
 import { socialDb } from "@/lib/social/server"
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://www.gigway.in/freelancers" },
   title: "Find Freelancers in India | GigWay",
   description: "Hire top Indian freelancers for design, development, writing, marketing, and more. Zero commission. Browse verified profiles on GigWay.",
   openGraph: {

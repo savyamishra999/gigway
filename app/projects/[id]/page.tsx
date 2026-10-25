@@ -46,6 +46,7 @@ export async function generateMetadata(
   if (!project) return { title: "Project Not Found | GigWay" }
 
   return {
+    alternates: { canonical: `https://www.gigway.in/projects/${id}` },
     title: `${project.title} | GigWay`,
     description: `${project.description?.slice(0, 150) ?? ""}... Budget: ₹${project.budget?.toLocaleString()}`,
     openGraph: {

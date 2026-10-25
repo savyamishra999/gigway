@@ -16,6 +16,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   const { data: gig } = await supabase.from("gigs").select("title, description, price").eq("id", id).single()
   if (!gig) return { title: "Service Not Found | GigWay" }
   return {
+    alternates: { canonical: `https://www.gigway.in/gigs/${id}` },
     title: `${gig.title} | GigWay`,
     description: `${gig.description?.slice(0, 150) ?? ""}... Starting at ₹${gig.price}`,
   }

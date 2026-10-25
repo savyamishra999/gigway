@@ -23,6 +23,7 @@ export async function generateMetadata(
 
   const skills = Array.isArray(f.skills) ? f.skills.slice(0, 3).join(", ") : ""
   return {
+    alternates: { canonical: `https://www.gigway.in/freelancers/${id}` },
     title: `${f.full_name} — Freelancer | GigWay`,
     description: f.tagline
       ? `${f.tagline}. Skills: ${skills}. ₹${f.hourly_rate}/hr on GigWay.`

@@ -4,6 +4,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://www.gigway.in/projects" },
   title: "Browse Projects | GigWay",
   description: "Find open freelance projects across web dev, design, writing, marketing and more. Post your project for free on GigWay.",
   openGraph: {

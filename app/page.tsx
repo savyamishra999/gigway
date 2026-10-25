@@ -1,3 +1,4 @@
+export const metadata = { alternates: { canonical: "https://www.gigway.in/" } }
 import { createPublicClient } from "@/lib/supabase/public"
 import { Suspense } from "react"
 import { withDeadline } from "@/lib/async"

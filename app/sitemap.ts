@@ -1,50 +1,32 @@
-import { MetadataRoute } from "next"
-import { createClient } from "@/lib/supabase/server"
+import type { MetadataRoute } from "next"
+import { createPublicClient } from "@/lib/supabase/public"
 
-const BASE = "https://gigway.in"
+const BASE = "https://www.gigway.in"
+export const dynamic = "force-dynamic"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient()
-
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: BASE,                    lastModified: new Date(), changeFrequency: "daily",   priority: 1.0 },
-    { url: `${BASE}/gigs`,          lastModified: new Date(), changeFrequency: "hourly",  priority: 0.9 },
-    { url: `${BASE}/jobs`,          lastModified: new Date(), changeFrequency: "hourly",  priority: 0.9 },
-    { url: `${BASE}/projects`,      lastModified: new Date(), changeFrequency: "hourly",  priority: 0.9 },
-    { url: `${BASE}/freelancers`,   lastModified: new Date(), changeFrequency: "daily",   priority: 0.8 },
-    { url: `${BASE}/pricing`,       lastModified: new Date(), changeFrequency: "weekly",  priority: 0.7 },
-    { url: `${BASE}/contact`,       lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE}/privacy`,       lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
-    { url: `${BASE}/terms`,         lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
+  // Always anonymous: a logged-in visitor must not put private rows in the sitemap.
+  const db = createPublicClient()
+  const routes: MetadataRoute.Sitemap = ["", "/gigs", "/jobs", "/projects", "/freelancers", "/work", "/ai-tools", "/pricing", "/contact", "/privacy", "/terms"].map(path => ({ url: `${BASE}${path || "/"}` }))
+  const sources = [
+    { table: "profiles", path: "freelancers", field: "profile_completed", value: true, columns: "id,updated_at" },
+    { table: "gigs", path: "gigs", field: "status", value: "active", columns: "id" },
+    { table: "jobs", path: "jobs", field: "status", value: "active", columns: "id" },
+    { table: "projects", path: "projects", field: "status", value: "open", columns: "id,updated_at" },
   ]
-
-  // Freelancer profiles
-  const { data: freelancers } = await supabase
-    .from("profiles")
-    .select("id, updated_at")
-    .eq("profile_completed", true)
-    .limit(500)
-
-  const freelancerRoutes: MetadataRoute.Sitemap = (freelancers ?? []).map(f => ({
-    url: `${BASE}/freelancers/${f.id}`,
-    lastModified: f.updated_at ? new Date(f.updated_at) : new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
+  const groups = await Promise.all(sources.map(async source => {
+    const entries: MetadataRoute.Sitemap = []
+    for (let from = 0; ; from += 500) {
+      const { data, error } = await db.from(source.table).select(source.columns).eq(source.field, source.value).order("id").range(from, from + 499)
+      if (error) throw new Error(`Sitemap query failed for ${source.table}: ${error.code}`)
+      const rows = (data || []) as unknown as { id: string; updated_at?: string | null }[]
+      for (const row of rows) {
+        const modified = row.updated_at ? new Date(row.updated_at) : null
+        entries.push({ url: `${BASE}/${source.path}/${row.id}`, ...(modified && Number.isFinite(modified.getTime()) ? { lastModified: modified } : {}) })
+      }
+      if (rows.length < 500) break
+    }
+    return entries
   }))
-
-  // Active gigs
-  const { data: gigs } = await supabase
-    .from("gigs")
-    .select("id, updated_at")
-    .eq("status", "active")
-    .limit(500)
-
-  const gigRoutes: MetadataRoute.Sitemap = (gigs ?? []).map(g => ({
-    url: `${BASE}/gigs/${g.id}`,
-    lastModified: g.updated_at ? new Date(g.updated_at) : new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
-  }))
-
-  return [...staticRoutes, ...freelancerRoutes, ...gigRoutes]
+  return [...routes, ...groups.flat()]
 }

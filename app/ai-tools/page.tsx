@@ -1,3 +1,4 @@
+export const metadata = { title: "Professional Tools | GigWay", alternates: { canonical: "https://www.gigway.in/ai-tools" } }
 import Link from "next/link"
 const tools = [
  {title: "Check Resume Score", copy: "Free score and preview. Full analysis and PDF for Rs 49 per report.", href: "/tools/resume-analyzer", cta: "Check my resume"},
