@@ -53,13 +53,11 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
   const supabase = createClient()
   const pathname = usePathname()
   const focusedGlimpsCreator = pathname === "/social/glimps/create"
-  const homeExperience = pathname === "/home"
   const adminExperience = pathname === "/admin" || pathname.startsWith("/admin/")
   const router = useRouter()
   const { user, profile } = useAuthUi()
   const [open, setOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const [mobileChromeHidden, setMobileChromeHidden] = useState(false)
 
   useEffect(() => {
     const rootDestination = authenticatedRootDestination(pathname, !!user)
@@ -71,18 +69,6 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
     event.preventDefault()
     router.push(loginHref(`${window.location.pathname}${window.location.search}${window.location.hash}`, join))
   }
-  useEffect(() => {
-    let previous = window.scrollY
-    const onScroll = () => {
-      const current = window.scrollY, focused = document.activeElement?.matches("input,textarea,[contenteditable=true]")
-      if (!homeExperience || focused || open || current < 48) { setMobileChromeHidden(false); previous=current; return }
-      if (current - previous > 18) setMobileChromeHidden(true)
-      if (previous - current > 8) setMobileChromeHidden(false)
-      previous=current
-    }
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [homeExperience, open])
 
   const homeHref = user ? "/home" : "/"
   const resolveHref = (href: string) => (href === "/" ? homeHref : href)
@@ -107,7 +93,7 @@ export default function ModernNavbar({ moment }: { moment: Moment | null }) {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl transition-transform duration-200 ${homeExperience && mobileChromeHidden ? "max-lg:-translate-y-full" : "max-lg:translate-y-0"} ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
+      <header className={`sticky top-0 z-50 border-b border-brand-borderLight bg-white/95 backdrop-blur-xl ${focusedGlimpsCreator ? "max-lg:hidden" : ""}`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:gap-4 sm:px-4">
           <Link prefetch={false} href="/" className="shrink-0">
             <Image src="/logo.png" alt="GigWay" width={120} height={40} className="h-auto w-16 sm:h-10 sm:w-auto" />

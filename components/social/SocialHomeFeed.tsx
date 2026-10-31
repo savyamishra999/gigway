@@ -678,6 +678,7 @@ export default function SocialHomeFeed({
     [cursor, setCursor] = useState<string | null>(initialPage?.nextCursor || null);
   const previousFeed = useRef(feed);
   const pendingPage = useRef<{ key: string; controller: AbortController } | null>(null);
+  const loadMoreMarker = useRef<HTMLDivElement>(null);
   const load = async (reset = false) => {
     const key = `${feed}:${reset ? "first" : cursor || "first"}`;
     if (pendingPage.current?.key === key) return;
@@ -719,6 +720,16 @@ export default function SocialHomeFeed({
     setCursor(null);
     load(true);
   }, [feed]);
+  useEffect(() => {
+    if (feed !== "discover" || !cursor || loading || error || typeof IntersectionObserver === "undefined") return;
+    const marker = loadMoreMarker.current;
+    if (!marker) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) void load();
+    }, { rootMargin: "480px 0px" });
+    observer.observe(marker);
+    return () => observer.disconnect();
+  }, [feed, cursor, loading, error]);
   // Keep discovery useful even when the social feed is short: each populated
   // rail is inserted after a post when possible, then any remainder is
   // appended below the available posts.
@@ -844,6 +855,9 @@ export default function SocialHomeFeed({
         {feed === "discover" && discoveryRails.slice(insertedRailCount).map((rail, index) => (
           <div key={`remaining-rail-${index}`}>{rail}</div>
         ))}
+        {!loading && !error && cursor && feed === "discover" && (
+          <div ref={loadMoreMarker} className="h-1" aria-hidden="true" />
+        )}
         {!loading && !error && cursor && (
           <button
             onClick={() => load()}
