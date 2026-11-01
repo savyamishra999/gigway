@@ -72,6 +72,8 @@ export default async function HomeHub() {
   return <main className="min-h-screen max-w-full overflow-x-clip bg-brand-ivory pb-24 lg:pb-16"><div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
     <header className="mx-auto max-w-3xl"><p className="text-caption font-bold tracking-[.16em] text-brand-coral">HOME</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight sm:text-h1">Welcome back.</h1><p className="mt-1 text-body-sm text-brand-slate sm:text-body-lg">Professional conversations and opportunities, in one place.</p></header>
 
+    <div className="mx-auto max-w-5xl"><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /></div>
+
     <section aria-label="Home actions" className="mx-auto max-w-5xl">
       <HomeActionRails />
       <section aria-label="Professional verification" className="mb-5 rounded-2xl border border-brand-indigo/20 bg-white p-5">
@@ -83,7 +85,6 @@ export default async function HomeHub() {
     </section>
 
     <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div className="w-full min-w-0"><HomeModule name="identity" load={() => ProfileReady({ userId: user.id })} />
-      <HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} />
       <HomeModule name="primary" load={() => Primary({ user })} />
       <HomeModule name="opportunities" load={() => Opportunities()} />
       <HomeModule name="suggestions" load={() => RelevantPeople({ userId: user.id })} />
