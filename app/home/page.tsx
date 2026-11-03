@@ -35,6 +35,11 @@ const getHomeIntents = cache(async (userId: string) => {
   if (result.error) throw result.error;
   return result;
 });
+async function NextStep({ userId }: { userId: string }) {
+  const result = await getHomeIntents(userId);
+  if (result.error) throw result.error;
+  return <HomeActionGuide userId={userId} intents={(result.data ?? []).map(intent => intent.intent_type)} />;
+}
 async function Opportunities() { return LatestOpportunities(); }
 async function Network({ user }: { user: User }) {
   return PeoplePreview({viewerId: user.id, kind: "workplaces"});
@@ -73,6 +78,7 @@ export default async function HomeHub() {
     <header className="mx-auto max-w-3xl"><p className="text-caption font-bold tracking-[.16em] text-brand-coral">HOME</p><h1 className="mt-1 text-h2 font-extrabold text-brand-midnight sm:text-h1">Welcome back.</h1><p className="mt-1 text-body-sm text-brand-slate sm:text-body-lg">Professional conversations and opportunities, in one place.</p></header>
 
     <div className="mx-auto max-w-5xl"><HomeModule name="completion" load={() => IdentityCompletionPrompt({ userId: user.id, loadProfile: () => getHomeProfile(user.id), loadIntents: () => getHomeIntents(user.id) })} /></div>
+    <HomeModule name="next-step" load={() => NextStep({ userId: user.id })} />
 
     <section aria-label="Home actions" className="mx-auto max-w-5xl">
       <HomeActionRails />
@@ -89,7 +95,7 @@ export default async function HomeHub() {
       <HomeModule name="opportunities" load={() => Opportunities()} />
       <HomeModule name="suggestions" load={() => RelevantPeople({ userId: user.id })} />
       <HomeModule name="network" load={() => Network({ user })} />
-      <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">Explore more ways to use GigWay</summary><HomeActionGuide key={user.id} userId={user.id} /></details>
+      <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">More ways to use GigWay</summary><p className="mt-2 text-sm text-brand-slate">Create a Workplace for your company, organization, or community.</p><Link href="/organizations/new" className="mt-2 inline-flex min-h-11 items-center font-bold text-brand-indigo">Create a Workplace <ArrowRight className="ml-1 h-4 w-4" /></Link></details>
       <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">Find work</summary><FindWorkEntry /></details>
       <details className="my-4 rounded-xl border border-brand-borderLight bg-white p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold text-brand-indigo">Create your GigCard</summary><GigCardInspiration /></details>
       {productVisibility.joxCurrentProduct && <HomeModule name="jox" load={() => Jox({ user })} />}
